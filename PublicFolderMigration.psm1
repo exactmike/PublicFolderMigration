@@ -60,19 +60,19 @@ if ($SendEmail)
     $To = $newTo
     if (-not $To.Count -gt 0)
     {
-        Write-Error "The -To parameter is required when using the -SendEmail switch. If this parameter was used, verify that valid email addresses were specified."
+        Write-Error 'The -To parameter is required when using the -SendEmail switch. If this parameter was used, verify that valid email addresses were specified.'
         return
     }
     
     if ($From -inotmatch "^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z0-9.-]+$")
     {
-        Write-Error "The -From parameter is not valid. This parameter is required when using the -SendEmail switch."
+        Write-Error 'The -From parameter is not valid. This parameter is required when using the -SendEmail switch.'
         return
     }
 
     if ([string]::IsNullOrEmpty($SmtpServer))
     {
-        Write-Error "You must specify a SmtpServer. This parameter is required when using the -SendEmail switch."
+        Write-Error 'You must specify a SmtpServer. This parameter is required when using the -SendEmail switch.'
         return
     }
     if ((Test-Connection $SmtpServer -Quiet -Count 2) -ne $true)
@@ -133,16 +133,16 @@ $FolderIDs = @(
     #otherwise, get all default public folders
     else 
     {
-        Write-Log -message "Retrieving All Default (Non-System) Public Folders from IPM_SUBTREE" -EntryType Notification -Verbose
+        Write-Log -message 'Retrieving All Default (Non-System) Public Folders from IPM_SUBTREE' -EntryType Notification -Verbose
         Get-PublicFolder -Recurse -ResultSize Unlimited | Select-Object -property @{n='EntryID';e={$_.EntryID.tostring()}},@{n='Identity';e={$_.Identity.tostring()}},Name,Replicas
         if ($IncludeSystemPublicFolders) {
-            Write-Log -Message "Retrieving All System Public Folders from NON_IPM_SUBTREE" -EntryType Notification -Verbose
+            Write-Log -Message 'Retrieving All System Public Folders from NON_IPM_SUBTREE' -EntryType Notification -Verbose
             Get-PublicFolder \Non_IPM_SUBTREE -Recurse -ResultSize Unlimited | Select-Object -property @{n='EntryID';e={$_.EntryID.tostring()}},@{n='Identity';e={$_.Identity.tostring()}},Name,Replicas
         }
     }
 )
 #filter any duplicates if the user specified public folder paths
-Write-Log -Message "Sorting and De-duplicating retrieved Public Folders." -EntryType Notification -Verbose
+Write-Log -Message 'Sorting and De-duplicating retrieved Public Folders.' -EntryType Notification -Verbose
 if ($PublicFolderPath.Count -ge 1) {$FolderIDs = @($FolderIDs | Select-Object -Unique -Property *)}
 #sort folders by path
 $FolderIDs = @($FolderIDs | Sort-Object Identity)
@@ -180,8 +180,8 @@ $publicFolderStatsFromSelectedServers =
                 if ($FolderID.Replicas -contains $PublicFolderMailboxServerDatabases.$Server) 
                 {
                     $count++
-                    $currentOperationString = "$($FolderID.Identity) from Server $Server."
-                    Write-Progress -Activity "Retrieving Public Folder Stats for Selected Public Folders" -CurrentOperation $currentOperationString -PercentComplete $($count/$RecordCount*100) -Status "Retrieving Stats for folder replica instance $count of $RecordCount"
+                    $currentOperationString = "Getting Stats for $($FolderID.Identity) from Server $Server."
+                    Write-Progress -Activity 'Retrieving Public Folder Stats for Selected Public Folders' -CurrentOperation $currentOperationString -PercentComplete $($count/$RecordCount*100) -Status "Retrieving Stats for folder replica instance $count of $RecordCount"
                     Write-Log -Message $currentOperationString -EntryType Notification -Verbose
                     #Error Action Silently Continue because some servers may not have a replica and we don't care about that error in this context
                     $thestats = Get-PublicFolderStatistics -Identity $FolderID.EntryID -Server $Server -ErrorAction SilentlyContinue 
@@ -196,7 +196,7 @@ $publicFolderStatsFromSelectedServers =
                 }
             }#foreach $Server
         }#foreach $FolderID
-        Write-Progress -Activity "Retrieving Public Folder Stats for Selected Public Folders" -CurrentOperation Completed -Completed -Status Completed
+        Write-Progress -Activity 'Retrieving Public Folder Stats for Selected Public Folders' -CurrentOperation Completed -Completed -Status Completed
     }
     # Get statistics for all public folders on all selected servers
     # This is significantly faster than trying to get folders one by one by name
@@ -211,7 +211,7 @@ $publicFolderStatsFromSelectedServers =
                 @{n='SizeInBytes';e={$_.TotalItemSize.ToString().split(('(',')'))[1].replace(',','').replace(' bytes','') -as [long]}}
             )
             Write-Verbose "Retrieving Stats for all Public Folders from $Server"
-            Write-Progress -Activity "Retrieving Public Folder Stats" -CurrentOperation $Server -PercentComplete $($count/$RecordCount*100) -Status "Retrieving Stats for Server $count of $RecordCount"
+            Write-Progress -Activity 'Retrieving Public Folder Stats' -CurrentOperation $Server -PercentComplete $($count/$RecordCount*100) -Status "Retrieving Stats for Server $count of $RecordCount"
             #avoid NULL output by testing for results while still suppressing errors with SilentlyContinue
             $thestats = Get-PublicFolderStatistics -Server $Server -ResultSize Unlimited -ErrorAction SilentlyContinue 
             if ($thestats) {$thestats | Select-Object -ExcludeProperty ServerName -Property $customProperties}
@@ -221,7 +221,7 @@ $publicFolderStatsFromSelectedServers =
 #check for condition where there are no public folders and/or no public folder replicas on the specified servers
 if ($publicFolderStatsFromSelectedServers.Count -eq 0)
 {
-    $message = "There are no public folder replicas hosted on the specified servers."
+    $message = 'There are no public folder replicas hosted on the specified servers.'
     Write-Log -Message $message -EntryType Failed -Verbose -ErrorLog
     Write-Error $message
     return
@@ -248,7 +248,7 @@ $ResultMatrix =
     { 
         $count++
         $currentOperationString= "Processing Report for Folder $($folder.EntryID) with name $($Folder.Identity)"
-        Write-Progress -Activity "Building Data Matrix of Public Folder Stats for output and reporting." -Status "Compiling Data" -CurrentOperation $currentOperationString -PercentComplete ($count/$RecordCount*100)
+        Write-Progress -Activity 'Building Data Matrix of Public Folder Stats for output and reporting.' -Status 'Compiling Data' -CurrentOperation $currentOperationString -PercentComplete ($count/$RecordCount*100)
         Write-Log -Message $currentOperationString -EntryType Notification -Verbose
         $resultItem = @{
             EntryID = $Folder.EntryID
@@ -260,15 +260,14 @@ $ResultMatrix =
                 foreach ($Server in $PublicFolderMailboxServer) 
                 {
                     $publicFolderStatsLookup.$($Folder.EntryID + '_' + $Server) | 
-                    ForEach-Object 
-                    {
+                    ForEach-Object {
                         New-Object PSObject -Property @{
-                                "ServerName" = $_.ServerName
-                                "DatabaseName" = $_.DatabaseName
-                                "TotalItemSize" = $_.TotalItemSize
-                                "ItemCount" = $_.ItemCount
-                                "SizeInBytes" = $_.SizeInBytes
-                                "LastModificationTime" = $_.LastModificationTime
+                                'ServerName' = $_.ServerName
+                                'DatabaseName' = $_.DatabaseName
+                                'TotalItemSize' = $_.TotalItemSize
+                                'ItemCount' = $_.ItemCount
+                                'SizeInBytes' = $_.SizeInBytes
+                                'LastModificationTime' = $_.LastModificationTime
                         }
                     }
                 }
@@ -304,13 +303,13 @@ $ResultMatrix =
             {
                 $replCheck = $false
             }
-            $dataRecord | Add-Member -MemberType NoteProperty -Name "Progress" -Value $progress
+            $dataRecord | Add-Member -MemberType NoteProperty -Name 'Progress' -Value $progress
         }
         $resultItem.ReplicationCompleteOnIncludedServers=$replCheck
         #output result object
         New-Object PSObject -Property $resultItem
     }#Foreach
-    Write-Progress -Activity "Building Data Matrix of Public Folder Stats for output and reporting." -Status "Compiling Data" -CurrentOperation $currentOperationString -Completed
+    Write-Progress -Activity 'Building Data Matrix of Public Folder Stats for output and reporting.' -Status 'Compiling Data' -CurrentOperation $currentOperationString -Completed
 )#$ResultMatrix
 #Build the Report Object
 $ReportObject = @{
@@ -406,7 +405,7 @@ if (-not $incompleteItems.Count -gt 0)
 } else {
     foreach($result in $incompleteItems)
     {
-        "<tr><td>$($result.FolderPath)</td><td>$($result.ItemCount)</td><td>$($result.TotalItemSize)</td><td>$($result.ConfiguredReplicas)</td><td>$($servers = $result.Data | Where-Object { $_.Progress -lt 100 } | Select-Object -expandProperty ServerName; $Servers -join ", ")</td></tr>`r`n"
+        "<tr><td>$($result.FolderPath)</td><td>$($result.ItemCount)</td><td>$($result.TotalItemSize)</td><td>$($result.ConfiguredReplicas)</td><td>$($servers = $result.Data | Where-Object { $_.Progress -lt 100 } | Select-Object -expandProperty ServerName; $Servers -join ', ')</td></tr>`r`n"
     }
 }
 )
@@ -436,19 +435,19 @@ foreach($rItem in $ResultMatrix)
         $rDataItem = $rItem.Data | Where-Object { $_.ServerName -eq $rServer }
         if ($rDataItem -eq $null)
         {
-            "<td>N/A</td>"
+            '<td>N/A</td>'
         } else {
             if ($rDataItem.Progress -ne 100)
             {
-                $color = "#FC2222"
+                $color = '#FC2222'
             } else {
-                $color = "#A9FFB5"
+                $color = '#A9FFB5'
             }
             "<td style='background-color:$($color)'><div title='$($rDataItem.TotalItemSize) of $($rItem.TotalItemSize) and $($rDataItem.ItemCount) of $($rItem.ItemCount) items.'>$($rDataItem.Progress)%</div></td>"
         }
         )
     }
-    "</tr>"
+    '</tr>'
 }
 )
 </table>
@@ -470,7 +469,7 @@ if (-not [string]::IsNullOrEmpty($Filename))
 if ($SendEmail)
 {
     if ([string]::IsNullOrEmpty($Subject)) {
-        $Subject = "Public Folder Replication Status Report"
+        $Subject = 'Public Folder Replication Status Report'
     }
     if ($NoAttachment) {
         Send-MailMessage -SmtpServer $SmtpServer -BodyAsHtml -Body $html -From $From -To $To -Subject $Subject
@@ -480,7 +479,7 @@ if ($SendEmail)
             $attachment = $Filename
         } 
         else {
-            $attachment = "$($Env:TEMP)\Public Folder Report - $([DateTime]::Now.ToString("MM-dd-yy")).html"
+            $attachment = "$($Env:TEMP)\Public Folder Report - $([DateTime]::Now.ToString('MM-dd-yy')).html"
             $html | Out-File $attachment
         }
         Send-MailMessage -SmtpServer $SmtpServer -BodyAsHtml -Body $html -From $From -To $To -Subject $Subject -Attachments $attachment
