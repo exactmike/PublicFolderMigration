@@ -339,6 +339,11 @@ $ReportObject = @{
                     $IncompleteServers = $result.Data | Where-Object {$_.Progress -lt 100} | Select-Object -ExpandProperty ServerName
                     $IncompleteServers -join ','
                 )
+                IncompleteDatabases = 
+                $(
+                    $IncompleteDatabases = $result.Data | Where-Object {$_.Progress -lt 100} | Select-Object -ExpandProperty DatabaseName
+                    $IncompleteDatabases -join ','
+                )
             }#pscustomobject
         }#Foreach
     )
@@ -360,6 +365,7 @@ $ReportObject = @{
                     $RRObject | Add-Member -NotePropertyName $server -NotePropertyValue $resultItem.Progress
                 }#else
             }#Foreach
+        $RRObject
         }#Foreach
     )
 
