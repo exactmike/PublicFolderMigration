@@ -395,7 +395,7 @@ if (-not $ReportObject.LargestPublicFolders.Count -gt 0)
 </table>
 </font><h2>Public Folder Replication Results</h2>
 <table border="0" cellpadding="3">
-<tr style="background-color:#B0B0B0"><th colspan="4">Folders with Incomplete Replication on Included Servers</th></tr>
+<tr style="background-color:#B0B0B0"><th colspan="5">Folders with Incomplete Replication on Included Servers</th></tr>
 <tr style="background-color:#E9E9E9;font-weight:bold"><td>Folder Path</td><td>Item Count</td><td>Size</td><td>Servers with Replicas Configured</td><td>Servers with Replication Incomplete</td></tr>
 $(
 [array]$incompleteItems = $ResultMatrix | Where-Object { $_.ReplicationCompleteOnIncludedServers -eq $false }
@@ -405,7 +405,7 @@ if (-not $incompleteItems.Count -gt 0)
 } else {
     foreach($result in $incompleteItems)
     {
-        "<tr><td>$($result.FolderPath)</td><td>$($result.ItemCount)</td><td>$($result.TotalItemSize)</td><td>$($result.ConfiguredReplicas)</td><td>$($servers = $result.Data | Where-Object { $_.Progress -lt 100 } | Select-Object -expandProperty ServerName; $Servers -join ', ')</td></tr>`r`n"
+        "<tr><td>$($result.FolderPath)</td><td>$($result.ItemCount)</td><td>$($result.TotalItemSize)</td><td>$($DBs = $result.ConfiguredReplicas.split(',');$DBs | foreach {$PublicFolderDatabaseMailboxServers.$_} -join ',')</td><td>$($servers = $result.Data | Where-Object { $_.Progress -lt 100 } | Select-Object -expandProperty ServerName; $Servers -join ', ')</td></tr>`r`n"
     }
 }
 )
