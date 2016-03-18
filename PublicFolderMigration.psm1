@@ -317,9 +317,32 @@ $ReportObject = @{
     IncludedPublicFoldersCount = $ResultMatrix.Count
     TotalSizeOfIncludedPublicFoldersInBytes = $ResultMatrix | Measure-Object -Property TotalBytes -Sum | Select-Object -ExpandProperty Sum
     TotalItemCountFromIncludedPublicFolders = $ResultMatrix | Measure-Object -Property ItemCount -Sum | Select-Object -ExpandProperty Sum
-    IncludedContainerOrEmptyPublicFoldersCount = @($ResultMatrix | where-object -FilterScript {$_.ItemCount -eq 0}).Count
+    IncludedContainerOrEmptyPublicFoldersCount = @($ResultMatrix | Where-Object -FilterScript {$_.ItemCount -eq 0}).Count
     IncludedReplicationIncompletePublicFolders = @($ResultMatrix | Where-Object -FilterScript {$_.ReplicationCompleteOnIncludedServers -eq $false}).Count
     LargestPublicFolders = @($ResultMatrix | Sort-Object TotalBytes -Descending | Select-Object -First $LargestPublicFolderReportCount)
+    PublicFoldersWithIncompleteReplication = @(
+        Foreach ($result in ($ResultMatrix | Where-Object -FilterScript {$_.ReplicationCompleteOnIncludedServers -eq $false}) 
+        {
+            [pscustomobject]@{
+                FolderPath = $Result.FoderPath
+                ItemCount = $Result.ItemCount
+                TotalItemSize = $Result.TotalItemSize
+                ConfiguredReplicaDatabases = $result.ConfiguredReplicas
+                ConfiguredReplicaServers = 
+                $(
+                    $databases = $result.ConfiguredReplicas.split(',')
+                    $servers = $databases | foreach {$PublicFolderDatabaseMailboxServers.$_}
+                    $Servers -join ','
+                )
+                IncompleteServers = 
+                $(
+                    $IncompleteServers = $result.Data | Where-Object {$_.Progress -lt 100} | Select-Object -ExpandProperty ServerName
+                    $IncompleteServers -join ','
+                )
+            }
+        }
+    )
+
 }
 $ReportObject.NonContainerOrEmptyPublicFoldersCount = $ReportObject.IncludedPublicFoldersCount - $ReportObject.IncludedContainerOrEmptyPublicFoldersCount
 $ReportObject.AverageSizeOfIncludedPublicFolders = [Math]::Round($ReportObject.TotalSizeOfIncludedPublicFoldersInBytes/$ReportObject.NonContainerOrEmptyPublicFoldersCount, 0)
@@ -398,14 +421,13 @@ if (-not $ReportObject.LargestPublicFolders.Count -gt 0)
 <tr style="background-color:#B0B0B0"><th colspan="5">Folders with Incomplete Replication on Included Servers</th></tr>
 <tr style="background-color:#E9E9E9;font-weight:bold"><td>Folder Path</td><td>Item Count</td><td>Size</td><td>Servers with Replicas Configured</td><td>Servers with Replication Incomplete</td></tr>
 $(
-[array]$incompleteItems = $ResultMatrix | Where-Object { $_.ReplicationCompleteOnIncludedServers -eq $false }
-if (-not $incompleteItems.Count -gt 0)
+if (-not $ReportObject.PublicFoldersWithIncompleteReplication.Count -gt 0)
 {
     "<tr><td colspan='4'>There are no public folders with incomplete replication.</td></tr>"
 } else {
-    foreach($result in $incompleteItems)
+    foreach($IncompleteFolder in $ReportObject.PublicFoldersWithIncompleteReplication)
     {
-        "<tr><td>$($result.FolderPath)</td><td>$($result.ItemCount)</td><td>$($result.TotalItemSize)</td><td>$($DBs = $result.ConfiguredReplicas.split(',');$servers = $DBs | foreach {$PublicFolderDatabaseMailboxServers.$_}; $servers -join ',')</td><td>$($servers = $result.Data | Where-Object { $_.Progress -lt 100 } | Select-Object -expandProperty ServerName; $Servers -join ', ')</td></tr>`r`n"
+        "<tr><td>$($IncompleteFolder.FolderPath)</td><td>$($IncompleteFolder.ItemCount)</td><td>$($IncompleteFolder.TotalItemSize)</td><td>$($IncompleteFolder.ConfiguredReplicaServers)</td><td>$($IncompleteFolder.IncompleteServers)</td></tr>`r`n"
     }
 }
 )
