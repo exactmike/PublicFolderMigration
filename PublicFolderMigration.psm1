@@ -339,8 +339,28 @@ $ReportObject = @{
                     $IncompleteServers = $result.Data | Where-Object {$_.Progress -lt 100} | Select-Object -ExpandProperty ServerName
                     $IncompleteServers -join ','
                 )
-            }
-        }
+            }#pscustomobject
+        }#Foreach
+    )
+    ReplicationReportByServerPercentage = @(
+        Foreach ($result in $ResultMatrix) 
+        {
+        $RRObject = [pscustomobject]@{
+            FolderPath = $result.FolderPath
+        }#pscustomobject
+            Foreach ($Server in $PublicFolderMailboxServer) 
+            {
+                $ResultItem = $result.Data | Where-Object -FilterScript {$_.ServerName -eq $Server}
+                if ($resultItem -eq $null) 
+                {
+                    $RRObject | Add-Member -NotePropertyName $Server -NotePropertyValue 'N/A'
+                }#if
+                else 
+                {
+                    $RRObject | Add-Member -NotePropertyName $server -NotePropertyValue $resultItem.Progress
+                }#else
+            }#Foreach
+        }#Foreach
     )
 
 }
@@ -350,7 +370,8 @@ $ReportObject.AverageItemCountFromIncludedPublicFolders = [Math]::Round($ReportO
 
 #output the $result Matrix if requested
 if ($Passthrough) {
-    $ResultMatrix
+    #$ResultMatrix
+    $ReportObject
 }#if $passthrough - output the report data as objects
 
 #Generate HTML output if requested by parameter
