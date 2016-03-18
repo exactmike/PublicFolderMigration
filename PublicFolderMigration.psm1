@@ -405,7 +405,7 @@ if (-not $incompleteItems.Count -gt 0)
 } else {
     foreach($result in $incompleteItems)
     {
-        "<tr><td>$($result.FolderPath)</td><td>$($result.ItemCount)</td><td>$($result.TotalItemSize)</td><td>$($DBs = $result.ConfiguredReplicas.split(',');$DBs | foreach {$PublicFolderDatabaseMailboxServers.$_} -join ',')</td><td>$($servers = $result.Data | Where-Object { $_.Progress -lt 100 } | Select-Object -expandProperty ServerName; $Servers -join ', ')</td></tr>`r`n"
+        "<tr><td>$($result.FolderPath)</td><td>$($result.ItemCount)</td><td>$($result.TotalItemSize)</td><td>$($DBs = $result.ConfiguredReplicas.split(',');$servers = $DBs | foreach {$PublicFolderDatabaseMailboxServers.$_}; $servers -join ',')</td><td>$($servers = $result.Data | Where-Object { $_.Progress -lt 100 } | Select-Object -expandProperty ServerName; $Servers -join ', ')</td></tr>`r`n"
     }
 }
 )
