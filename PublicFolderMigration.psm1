@@ -324,7 +324,7 @@ $ReportObject = @{
         Foreach ($result in ($ResultMatrix | Where-Object -FilterScript {$_.ReplicationCompleteOnIncludedServers -eq $false})) 
         {
             [pscustomobject]@{
-                FolderPath = $Result.FoderPath
+                FolderPath = $Result.FolderPath
                 ItemCount = $Result.ItemCount
                 TotalItemSize = $Result.TotalItemSize
                 ConfiguredReplicaDatabases = $result.ConfiguredReplicas
