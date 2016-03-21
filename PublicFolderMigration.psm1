@@ -3,7 +3,7 @@
 .SYNOPSIS
 Generates a report for Exchange 2010 Public Folder Replication.
 .DESCRIPTION
-This script will generate a report for Exchange 2010 Public Folder Replication. It returns general information, such as total number of public folders, total items in all public folders, total size of all items, the top 10 largest folders, and more. Additionally, it lists each Public Folder and the replication status on each server. By default, this script will scan the entire Exchange environment in the current domain and all public folders. This can be limited by using the -ComputerName and -FolderPath parameters.
+This script will generate a report for Exchange 2010 Public Folder Replication. It returns general information, such as total number of public folders, total items in all public folders, total size of all items, the top 10 largest folders, and more. Additionally, it lists each Public Folder and the replication status on each server. By default, this script will scan the entire Exchange environment in the current domain and all public folders. This can be limited by using the -PublicFolderMailboxServer and -PublicFolderPath parameters.
 .PARAMETER PublicFolderMailboxServer
 This parameter specifies the Exchange 2010 server(s) to scan. If this is omitted, all Exchange servers hosting a Public Folder Database are scanned.
 .PARAMETER PublicFolderPath
@@ -12,6 +12,8 @@ This parameter specifies the Public Folder(s) to scan. If this is omitted, all p
 When used in conjunction with the FolderPath parameter, this will include all child Public Folders of the Folders listed in Folder Path.
 .PARAMETER AsHTML
 Specifying this switch will have this script output HTML, rather than the result objects. This is independent of the Filename or SendEmail parameters and only controls the console output of the script.
+.PARAMETER Passthrough
+Controls whether the ReportMatrix of Public Folder Stats is returned to the pipeline instead of just being consumed in output to email, file, or html. 
 .PARAMETER Filename
 Providing a Filename will save the HTML report to a file.
 .PARAMETER SendEmail
@@ -26,6 +28,10 @@ When SendEmail is used, this is the SMTP Server to send the report through.
 When SendEmail is used, this sets the subject of the email report.
 .PARAMETER NoAttachment
 When SendEmail is used, specifying this switch will set the email report to not include the HTML Report as an attachment. It will still be sent in the body of the email.
+.PARAMETER IncludeSystemPublicFolders
+This parameter specifies to include System Public Folders when scanning all public folders. If this is omitted, System Public Folders are omitted.
+.PARAMETER LargestPublicFolderReportCount
+This parameter allows control of the count largest public folders data in the report object.
 #>
 [cmdletbinding()]
 param(
@@ -249,7 +255,7 @@ $ResultMatrix =
         $count++
         $currentOperationString= "Processing Report for Folder $($folder.EntryID) with name $($Folder.Identity)"
         Write-Progress -Activity 'Building Data Matrix of Public Folder Stats for output and reporting.' -Status 'Compiling Data' -CurrentOperation $currentOperationString -PercentComplete ($count/$RecordCount*100)
-        Write-Log -Message $currentOperationString -EntryType Notification -Verbose
+        #Write-Log -Message $currentOperationString -EntryType Notification -Verbose
         $resultItem = @{
             EntryID = $Folder.EntryID
             FolderPath = $Folder.Identity
@@ -313,6 +319,7 @@ $ResultMatrix =
 )#$ResultMatrix
 #Build the Report Object
 $ReportObject = @{
+    TimeStamp = Get-Date -Format yyyyMMdd-HHmm
     IncludedPublicFolderServersAndDatabases = $($(foreach ($server in $PublicFolderMailboxServer) {"$Server ($($PublicFolderMailboxServerDatabases.$server))"}) -join ',')
     IncludedPublicFoldersCount = $ResultMatrix.Count
     TotalSizeOfIncludedPublicFoldersInBytes = $ResultMatrix | Measure-Object -Property TotalBytes -Sum | Select-Object -ExpandProperty Sum
@@ -376,8 +383,8 @@ $ReportObject.AverageItemCountFromIncludedPublicFolders = [Math]::Round($ReportO
 
 #output the $result Matrix if requested
 if ($Passthrough) {
-    #$ResultMatrix
-    $ReportObject
+    $ResultMatrix
+    #$ReportObject
 }#if $passthrough - output the report data as objects
 
 #Generate HTML output if requested by parameter
