@@ -537,7 +537,7 @@ foreach($rItem in $ResultMatrix)
 "@
 }#if to generate HTML output if required/requested
 #endregion GenerateHTMLOutput
-#region GenerateCSVOutput
+#region GenerateOutputFormats
 if ('files' -in $outputmethods -or 'email' -in $outputmethods) #files output to FileFolderpath requested
 {
     $outputfiles = @(
@@ -565,7 +565,8 @@ if ('files' -in $outputmethods -or 'email' -in $outputmethods) #files output to 
         }
     )
 }#if files or email in outputmethods
-
+#endregion GenerateOutputFormats
+#region SendMail
 if ('email' -in $outputmethods)
 {
     if ([string]::IsNullOrEmpty($Subject)) {
@@ -581,5 +582,6 @@ if ('email' -in $outputmethods)
     }
     Send-MailMessage @SendMailMessageParams
 }#if email in outputmethods
-}
+#endregion SendMail
+}#end
 }#function
