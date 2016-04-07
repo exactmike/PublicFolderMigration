@@ -53,7 +53,9 @@ param(
     [string[]]$outputformats, 
     [parameter()]
     [validateset('email','files')]
-    [string[]]$outputmethods 
+    [string[]]$outputmethods,
+    [int]$LargestPublicFolderReportCount = 10
+     
 )
 Begin 
 {
@@ -99,7 +101,7 @@ if ('files' -in $outputmethods -or 'email' -in $outputmethods)
         Write-Error "$FileFolderPath failed validation."
         Return
     }
-    if (-not $FileFolderPath -like '*\'){
+    if ($FileFolderPath -notlike '*\'){
         $FileFolderPath = $FileFolderPath + '\'
     }
 }
@@ -564,7 +566,7 @@ if ('files' -in $outputmethods -or 'email' -in $outputmethods) #files output to 
         }
         if ('html' -in $outputformats)
         {
-            $HTMLFilePath = $FileFolderPath + $(Get-TimeStamp) + '-PublicFolderEnvironmentAndReplicationReport.html'
+            $HTMLFilePath = $FileFolderPath + $(Get-TimeStamp) + 'PublicFolderEnvironmentAndReplicationReport.html'
             $html | Out-File -FilePath $HTMLFilePath 
             $HTMLFilePath
         }
