@@ -38,22 +38,27 @@ param(
     [string[]]$PublicFolderMailboxServer = @(),
     [string[]]$PublicFolderPath = @(),
     [switch]$Recurse,
-    [switch]$AsHTML,
-    [switch]$Passthrough,
-    [string]$Filename,
-    [switch]$SendEmail,
+    [switch]$IncludeSystemPublicFolders,
+    [parameter()]
+    [validateset('RawReplicationData','ReportObject')]
+    [string]$PipelineData,
+    [string]$FileFolderPath,
     [string[]]$To,
     [string]$From,
     [string]$SmtpServer,
     [string]$Subject,
-    [switch]$NoAttachment,
-    [switch]$IncludeSystemPublicFolders,
-    [int]$LargestPublicFolderReportCount = 10
+    [switch]$HTMLBody,
+    [parameter()]
+    [validateset('html','csv')]
+    [string[]]$outputformats, 
+    [parameter()]
+    [validateset('email','files')]
+    [string[]]$outputmethods 
 )
 Begin 
 {
-# Validate parameters
-if ($SendEmail)
+#region ValidateParameters
+if ('email' -in $outputmethods)
 {
     [array]$newTo = @()
     foreach($recipient in $To)
@@ -86,7 +91,15 @@ if ($SendEmail)
         Write-Error "The SMTP server specified ($SmtpServer) could not be contacted."
         return
     }
-}#if $SendMail
+}#if email in outputmethods
+if ('files' -in $outputmethods)
+{
+    if (-not (Test-Path -Path $FileFolderPath))
+    {
+        Write-Error "$FileFolderPath failed validation."
+        Return
+    }
+}
 #if the user specified public folder mailbox servers, validate them:
 if ($PublicFolderMailboxServer.Count -ge 1) 
 {
@@ -94,10 +107,10 @@ if ($PublicFolderMailboxServer.Count -ge 1)
         $VerifyPFDatabase = @(Get-PublicFolderDatabase -server $Server)
         if ($VerifyPFDatabase.Count -ne 1) {
             Write-Error "$server is either not a Mailbox server or does not host a public folder database."
-            return
+            Return
         }
     }
-}#if
+}#if publicFolderMailboxServer count over 0
 #if the user did not specify the public folder mailbox servers to include, include all of them
 if ($PublicFolderMailboxServer.Count -lt 1)
 {
@@ -105,9 +118,11 @@ if ($PublicFolderMailboxServer.Count -lt 1)
         Get-PublicFolderDatabase | Select-Object -ExpandProperty ServerName
     )
 }
+#endregion ValidateParameters
 }#Begin
 End 
 {
+#region BuildServerAndDatabaseLists
 $PublicFolderMailboxServerNames = $PublicFolderMailboxServer -join ', '
 Write-Log -Message "Public Folder Mailbox Servers Included: $PublicFolderMailboxServerNames" -EntryType Notification -Verbose
 #Build Server/Database Hash Tables for later reporting activities
@@ -119,8 +134,9 @@ foreach ($server in $PublicFolderMailboxServer)
     $PublicFolderMailboxServerDatabases.$Server = $PublicFolderDatabase | Select-Object -ExpandProperty Name
     $PublicFolderDatabaseMailboxServers.$($PublicFolderDatabase.Name) = $Server
 }
-# Build a list of public folders for which to retrieve replication stats
-    # Set up the parameters for Get-PublicFolder
+#endregion BuildServerAndDatabaseLists
+#region BuildPublicFolderList
+#Set up the parameters for Get-PublicFolder
 $GetPublicFolderParams = @{}
 if ($Recurse) {
     $GetPublicFolderParams.Recurse = $true
@@ -154,8 +170,8 @@ if ($PublicFolderPath.Count -ge 1) {$FolderIDs = @($FolderIDs | Select-Object -U
 $FolderIDs = @($FolderIDs | Sort-Object Identity)
 $publicFoldersRetrievedCount = $FolderIDs.Count
 Write-Log -Message "Count of Public Folders Retrieved: $publicFoldersRetrievedCount" -EntryType Notification -Verbose
-
-#Gather public folder stats from selected servers
+#endregion BuildPublicFolderList
+#region GetPublicFolderStats
 $publicFolderStatsFromSelectedServers = 
 @(
     # if the user specified public folder path then only retrieve stats for the specified folders.  
@@ -236,7 +252,8 @@ else
 {
     Write-Log -Message "Count of Stats objects returned: $($publicFolderStatsFromSelectedServers.count)" -EntryType Notification -Verbose
 }
-#Build a lookup hash table to greatly speed up the result/report building
+#endregion GetPublicFolderStats
+#region BuildStatsLookupHash
 #create the hash table
 $publicFolderStatsLookup = @{}
 #Populate the hashtable - one key/value pair per EntryID plus Server
@@ -245,7 +262,8 @@ foreach ($Stats in ($publicFolderStatsFromSelectedServers | where-object -Filter
     $Value = $Stats;
     $PublicFolderStatsLookup.$Key = $Value
 }
-#Build the data matrix for the output and reporting
+#endregion BuildStatsLookupHash
+#region BuildResultMatrix
 $ResultMatrix = 
 @(
     $count = 0
@@ -317,7 +335,8 @@ $ResultMatrix =
     }#Foreach
     Write-Progress -Activity 'Building Data Matrix of Public Folder Stats for output and reporting.' -Status 'Compiling Data' -CurrentOperation $currentOperationString -Completed
 )#$ResultMatrix
-#Build the Report Object
+#endregion BuildResultMatrix
+#region BuildReportObject
 $ReportObject = @{
     TimeStamp = Get-Date -Format yyyyMMdd-HHmm
     IncludedPublicFolderServersAndDatabases = $($(foreach ($server in $PublicFolderMailboxServer) {"$Server ($($PublicFolderMailboxServerDatabases.$server))"}) -join ',')
@@ -380,15 +399,21 @@ $ReportObject = @{
 $ReportObject.NonContainerOrEmptyPublicFoldersCount = $ReportObject.IncludedPublicFoldersCount - $ReportObject.IncludedContainerOrEmptyPublicFoldersCount
 $ReportObject.AverageSizeOfIncludedPublicFolders = [Math]::Round($ReportObject.TotalSizeOfIncludedPublicFoldersInBytes/$ReportObject.NonContainerOrEmptyPublicFoldersCount, 0)
 $ReportObject.AverageItemCountFromIncludedPublicFolders = [Math]::Round($ReportObject.TotalItemCountFromIncludedPublicFolders / $ReportObject.NonContainerOrEmptyPublicFoldersCount, 0)
-
-#output the $result Matrix if requested
-if ($Passthrough) {
-    $ResultMatrix
+#endregion BuildReportObject
+#region PipelineDataOutput
+if (-not [string]::IsNullOrWhiteSpace($PipelineData)) {
+    switch ($PipelineData)
+    {
+        'RawReplicationData' 
+        {$ResultMatrix}
+        'ReportObject'
+        {$ReportObject}
+    }
     #$ReportObject
 }#if $passthrough - output the report data as objects
-
-#Generate HTML output if requested by parameter
-if ($AsHTML -or $SendEmail -or $Filename -ne $null)
+#endregion PipelineDataOutput
+#region GenerateHTMLOutput
+if (('html' -in $outputformats) -or $HTMLBody)
 {
     $html = @"
 <html>
@@ -511,36 +536,50 @@ foreach($rItem in $ResultMatrix)
 </html>
 "@
 }#if to generate HTML output if required/requested
-
-if ($AsHTML)
+#endregion GenerateHTMLOutput
+#region GenerateCSVOutput
+if ('files' -in $outputmethods -or 'email' -in $outputmethods) #files output to FileFolderpath requested
 {
-    $html
-}#if $asHTML for raw html output
+    $outputfiles = @(
+        if ('csv' -in $outputformats) {
+            #Create the additional summary output object for CSV
+            $PubliFolderEnvironmentSummary = [pscustomobject]@{
+                ReportTimeStamp = $ReportObject.TimeStamp
+                IncludedPublicFolderServersAndDatabases = $ReportObject.IncludedPublicFoldersAndDatabases
+                IncludedPublicFoldersCount = $ReportObject.IncludedPublicFoldersCount
+                TotalSizeOfIncludedPublicFoldersInBytes = $ReportObject.TotalSizeOfIncludedPublicFoldersInBytes
+                TotalItemCountFromIncludedPublicFolders = $ReportObject.TotalItemCountFromIncludedPublicFolders
+                IncludedContainerOrEmptyPublicFoldersCount = $ReportObject.IncludedContainerOrEmptyPublicFoldersCount
+                IncludedReplicationIncompletePublicFolders = $ReportObject.IncludedReplicationIncompletePublicFolders
+            }
+            Export-Data -ExportFolderPath $FileFolderPath -DataToExportTitle PublicFolderEnvironmentSummary -DataToExport $PubliFolderEnvironmentSummary -DataType csv -ReturnExportFilePath
+            Export-Data -ExportFolderPath $FileFolderPath -DataToExportTitle LargestPublicFolders -DataToExport $ReportObject.LargestPublicFolders -DataType csv -ReturnExportFilePath
+            Export-Data -ExportFolderPath $FileFolderPath -DataToExportTitle PublicFoldersWithIncompleteReplication -DataToExport $ReportObject.PublicFoldersWithIncompleteReplication -DataType csv -ReturnExportFilePath
+            Export-Data -ExportFolderPath $FileFolderPath -DataToExportTitle ReplicationReportByServerPercentage -DataToExport $ReportObject.ReplicationReportByServerPercentage -DataType csv -ReturnExportFilePath
+        }
+        if ('html' -in $outputformats)
+        {
+            $HTMLFilePath = $FileFolderPath + '\' + $(Get-TimeStamp) + '-PublicFolderEnvironmentAndReplicationReport.html'
+            $html | Out-File -FilePath $HTMLFilePath 
+            $HTMLFilePath
+        }
+    )
+}#if files or email in outputmethods
 
-if (-not [string]::IsNullOrEmpty($Filename))
-{
-    $html | Out-File $Filename
-}#if $filename has a value
-
-if ($SendEmail)
+if ('email' -in $outputmethods)
 {
     if ([string]::IsNullOrEmpty($Subject)) {
-        $Subject = 'Public Folder Replication Status Report'
+        $Subject = 'Public Folder Environment and Replication Status Report'
     }
-    if ($NoAttachment) {
-        Send-MailMessage -SmtpServer $SmtpServer -BodyAsHtml -Body $html -From $From -To $To -Subject $Subject
-    } 
-    else {
-        if (-not [string]::IsNullOrEmpty($Filename)) {
-            $attachment = $Filename
-        } 
-        else {
-            $attachment = "$($Env:TEMP)\Public Folder Report - $([DateTime]::Now.ToString('MM-dd-yy')).html"
-            $html | Out-File $attachment
-        }
-        Send-MailMessage -SmtpServer $SmtpServer -BodyAsHtml -Body $html -From $From -To $To -Subject $Subject -Attachments $attachment
-        Remove-Item $attachment -Confirm:$false -Force
+    $SendMailMessageParams = @{
+        Subject = $Subject
+        Attachments = $outputfiles
+        To = $to
+        From = $from
+        Body = if ($HTMLBody) {$html} else {"Public Folder Environment and Replication Status Report Attached."}
+        SMTPServer = $SmtpServer
     }
-}#if $SendEmail
+    Send-MailMessage @SendMailMessageParams
+}#if email in outputmethods
 }
 }#function
