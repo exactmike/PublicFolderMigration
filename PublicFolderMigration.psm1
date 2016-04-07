@@ -92,12 +92,15 @@ if ('email' -in $outputmethods)
         return
     }
 }#if email in outputmethods
-if ('files' -in $outputmethods)
+if ('files' -in $outputmethods -or 'email' -in $outputmethods)
 {
     if (-not (Test-Path -Path $FileFolderPath))
     {
         Write-Error "$FileFolderPath failed validation."
         Return
+    }
+    if (-not $FileFolderPath -like '*\'){
+        $FileFolderPath = $FileFolderPath + '\'
     }
 }
 #if the user specified public folder mailbox servers, validate them:
@@ -561,7 +564,7 @@ if ('files' -in $outputmethods -or 'email' -in $outputmethods) #files output to 
         }
         if ('html' -in $outputformats)
         {
-            $HTMLFilePath = $FileFolderPath + '\' + $(Get-TimeStamp) + '-PublicFolderEnvironmentAndReplicationReport.html'
+            $HTMLFilePath = $FileFolderPath + $(Get-TimeStamp) + '-PublicFolderEnvironmentAndReplicationReport.html'
             $html | Out-File -FilePath $HTMLFilePath 
             $HTMLFilePath
         }
