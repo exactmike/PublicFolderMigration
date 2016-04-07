@@ -542,18 +542,20 @@ if ('files' -in $outputmethods -or 'email' -in $outputmethods) #files output to 
 {
     $outputfiles = @(
         if ('csv' -in $outputformats) {
-            #Create the additional summary output object for CSV
+            #Create the additional summary output object(s) for CSV
             $PubliFolderEnvironmentSummary = [pscustomobject]@{
                 ReportTimeStamp = $ReportObject.TimeStamp
-                IncludedPublicFolderServersAndDatabases = $ReportObject.IncludedPublicFoldersAndDatabases
+                IncludedPublicFolderServersAndDatabases = $ReportObject.IncludedPublicFolderServersAndDatabases
                 IncludedPublicFoldersCount = $ReportObject.IncludedPublicFoldersCount
                 TotalSizeOfIncludedPublicFoldersInBytes = $ReportObject.TotalSizeOfIncludedPublicFoldersInBytes
                 TotalItemCountFromIncludedPublicFolders = $ReportObject.TotalItemCountFromIncludedPublicFolders
                 IncludedContainerOrEmptyPublicFoldersCount = $ReportObject.IncludedContainerOrEmptyPublicFoldersCount
                 IncludedReplicationIncompletePublicFolders = $ReportObject.IncludedReplicationIncompletePublicFolders
             }
+            $LargestPublicFolders = $ReportObject.LargestPublicFolders | Select-Object FolderPath,TotalItemSize,ItemCount
+            #create the csv files
             Export-Data -ExportFolderPath $FileFolderPath -DataToExportTitle PublicFolderEnvironmentSummary -DataToExport $PubliFolderEnvironmentSummary -DataType csv -ReturnExportFilePath
-            Export-Data -ExportFolderPath $FileFolderPath -DataToExportTitle LargestPublicFolders -DataToExport $ReportObject.LargestPublicFolders -DataType csv -ReturnExportFilePath
+            Export-Data -ExportFolderPath $FileFolderPath -DataToExportTitle LargestPublicFolders -DataToExport $LargestPublicFolders -DataType csv -ReturnExportFilePath
             Export-Data -ExportFolderPath $FileFolderPath -DataToExportTitle PublicFoldersWithIncompleteReplication -DataToExport $ReportObject.PublicFoldersWithIncompleteReplication -DataType csv -ReturnExportFilePath
             Export-Data -ExportFolderPath $FileFolderPath -DataToExportTitle ReplicationReportByServerPercentage -DataToExport $ReportObject.ReplicationReportByServerPercentage -DataType csv -ReturnExportFilePath
         }
