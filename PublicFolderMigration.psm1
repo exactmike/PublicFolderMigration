@@ -1,4 +1,54 @@
-﻿function Get-PublicFolderReplicationReport {
+﻿###############################################################################################
+#Module Variables and Variable Functions
+###############################################################################################
+function Get-PFMVariable
+{
+param
+(
+[string]$Name
+)
+    Get-Variable -Scope Script -Name $name
+}
+function Get-PFMVariableValue
+{
+param
+(
+[string]$Name
+)
+    Get-Variable -Scope Script -Name $name -ValueOnly
+}
+function Set-PFMVariable
+{
+param
+(
+[string]$Name
+,
+$Value
+)
+    Set-Variable -Scope Script -Name $Name -Value $value
+}
+function New-PFMVariable
+{
+param
+(
+[string]$Name
+,
+$Value
+)
+    New-Variable -Scope Script -Name $name -Value $Value
+}
+function Remove-PFMVariable
+{
+param
+(
+[string]$Name
+)
+    Remove-Variable -Scope Script -Name $name
+}
+###############################################################################################
+#Core Public Folder Migration Module Functions
+###############################################################################################
+function Get-PublicFolderReplicationReport {
 <#
 .SYNOPSIS
 Generates a report for Exchange 2010 Public Folder Replication.
