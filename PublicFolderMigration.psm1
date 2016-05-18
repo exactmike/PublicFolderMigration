@@ -159,7 +159,7 @@ if ('files' -in $outputmethods -or 'email' -in $outputmethods)
 if ($PublicFolderMailboxServer.Count -ge 1) 
 {
     foreach ($Server in $PublicFolderMailboxServer) {
-        $VerifyPFDatabase = @(Get-PublicFolderDatabase -server $Server)
+        $VerifyPFDatabase = @(Get-PublicFolderDatabase -server $Server -IncludePreExchange2010)
         if ($VerifyPFDatabase.Count -ne 1) {
             Write-Error "$server is either not a Mailbox server or does not host a public folder database."
             Return
@@ -170,7 +170,7 @@ if ($PublicFolderMailboxServer.Count -ge 1)
 if ($PublicFolderMailboxServer.Count -lt 1)
 {
     $PublicFolderMailboxServer = @(
-        Get-PublicFolderDatabase | Select-Object -ExpandProperty ServerName
+        Get-PublicFolderDatabase -IncludePreExchange2010 | Select-Object -ExpandProperty ServerName
     )
 }
 #endregion ValidateParameters
@@ -185,7 +185,7 @@ $PublicFolderMailboxServerDatabases = @{}
 $PublicFolderDatabaseMailboxServers = @{}
 foreach ($server in $PublicFolderMailboxServer) 
 {
-    $PublicFolderDatabase = Get-PublicFolderDatabase -Server $Server
+    $PublicFolderDatabase = Get-PublicFolderDatabase -Server $Server -IncludePreExchange2010
     $PublicFolderMailboxServerDatabases.$Server = $PublicFolderDatabase | Select-Object -ExpandProperty Name
     $PublicFolderDatabaseMailboxServers.$($PublicFolderDatabase.Name) = $Server
 }
