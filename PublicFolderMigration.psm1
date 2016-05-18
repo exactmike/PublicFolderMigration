@@ -338,7 +338,7 @@ $ResultMatrix =
                 #Get all the stats entries for this folder from each server using the EntryID + Server Key lookup
                 foreach ($Server in $PublicFolderMailboxServer) 
                 {
-                    $publicFolderStatsLookup.$($Folder.EntryID + '_' + $Server) | 
+                    $publicFolderStatsLookup.$($Folder.EntryID + '_' + $Server) | Where-Object -FilterScript {$_} |
                     ForEach-Object {
                         New-Object PSObject -Property @{
                                 'ServerName' = $_.ServerName
