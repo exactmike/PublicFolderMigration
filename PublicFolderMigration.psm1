@@ -1,4 +1,5 @@
-﻿function Get-PublicFolderReplicationReport {
+﻿function Get-PublicFolderReplicationReport
+{
 <#
 .SYNOPSIS
 Generates a report for Exchange 2010 Public Folder Replication.
@@ -318,7 +319,7 @@ $ResultMatrix =
     Write-Progress -Activity 'Building Data Matrix of Public Folder Stats for output and reporting.' -Status 'Compiling Data' -CurrentOperation $currentOperationString -Completed
 )#$ResultMatrix
 #Build the Report Object
-$ReportObject = @{
+[pscustomobject]$ReportObject = @{
     TimeStamp = Get-Date -Format yyyyMMdd-HHmm
     IncludedPublicFolderServersAndDatabases = $($(foreach ($server in $PublicFolderMailboxServer) {"$Server ($($PublicFolderMailboxServerDatabases.$server))"}) -join ',')
     IncludedPublicFoldersCount = $ResultMatrix.Count
@@ -340,6 +341,16 @@ $ReportObject = @{
                     $databases = $result.ConfiguredReplicas.split(',')
                     $servers = $databases | foreach {$PublicFolderDatabaseMailboxServers.$_}
                     $Servers -join ','
+                )
+                CompleteServers = 
+                $(
+                    $CompleteServers = $result.Data | Where-Object {$_.Progress -eq 100} | Select-Object -ExpandProperty ServerName
+                    $CompleteServers -join ','
+                )
+                CompleteDatabases = 
+                $(
+                    $CompleteDatabases = $result.Data | Where-Object {$_.Progress -eq 100} | Select-Object -ExpandProperty ServerName
+                    $CompleteDatabases -join ','
                 )
                 IncompleteServers = 
                 $(
@@ -363,19 +374,22 @@ $ReportObject = @{
             Foreach ($Server in $PublicFolderMailboxServer) 
             {
                 $ResultItem = $result.Data | Where-Object -FilterScript {$_.ServerName -eq $Server}
+                $PropertyName1 = $server + '-%'
+                $PropertyName2 = $server + '-Count'
                 if ($resultItem -eq $null) 
                 {
-                    $RRObject | Add-Member -NotePropertyName $Server -NotePropertyValue 'N/A'
+                    $RRObject | Add-Member -NotePropertyName $PropertyName1 -NotePropertyValue 'N/A'
+                    $RRObject | Add-Member -NotePropertyName $PropertyName2 -NotePropertyValue 'N/A'
                 }#if
                 else 
                 {
-                    $RRObject | Add-Member -NotePropertyName $server -NotePropertyValue $resultItem.Progress
+                    $RRObject | Add-Member -NotePropertyName $PropertyName1 -NotePropertyValue $resultItem.Progress
+                    $RRObject | Add-Member -NotePropertyName $PropertyName2 -NotePropertyValue $resultItem.itemCount
                 }#else
             }#Foreach
         $RRObject
         }#Foreach
     )
-
 }
 $ReportObject.NonContainerOrEmptyPublicFoldersCount = $ReportObject.IncludedPublicFoldersCount - $ReportObject.IncludedContainerOrEmptyPublicFoldersCount
 $ReportObject.AverageSizeOfIncludedPublicFolders = [Math]::Round($ReportObject.TotalSizeOfIncludedPublicFoldersInBytes/$ReportObject.NonContainerOrEmptyPublicFoldersCount, 0)
@@ -544,3 +558,206 @@ if ($SendEmail)
 }#if $SendEmail
 }
 }#function
+function Find-OrphanedMailEnabledPublicFolders
+{
+[cmdletbinding()]
+Param(
+[parameter(Mandatory)]
+$ExchangeOrganization
+)
+#End Params
+#Try to get all Mail Enabled Public Folder Objects in the Organization
+try
+{
+    $MailEnabledPublicFolders = @(Get-AllMailPublicFolder -ExchangeOrganization $ExchangeOrganization -ErrorAction Stop)
+}
+catch
+{
+    $_
+    Return
+}
+#Try to get all User Public Folders from the Organization public folder tree
+try
+{
+    $ExchangePublicFolders = @(Get-UserPublicFolderTree -ExchangeOrganization $ExchangeOrganization -ErrorAction Stop)
+}
+catch
+{
+    $_
+    Return
+}
+#Try to get a Mail Enabled Public Folder for each Public Folder
+$splat = @{
+    cmdlet = 'Get-MailPublicFolder'
+    ErrorAction = 'Stop'
+    Splat = @{
+        Identity = ''
+        ErrorAction = 'SilentlyContinue'
+        WarningAction = 'SilentlyContinue'
+    }
+    ExchangeOrganization = $ExchangeOrganization
+}
+$message = "Get-MailPublicFolder for each Public Folder"
+Write-Log -Message $message -EntryType Attempting -Verbose
+$ExchangePublicFoldersMailEnabled = @(
+    $PFCount = 0
+    foreach ($pf in $ExchangePublicFolders) {
+        $PFCount++
+        $splat.splat.Identity = $pf.ParentPath + '\' + $pf.Name
+        Write-Progress -Activity $message -Status "Get-MailPublicFolder -Identity $($splat.Splat.Identity)" -CurrentOperation "$PFCount of $($ExchangePublicFolders.Count)" -PercentComplete $PFCount/$($ExchangePublicFolders.Count)*100
+        Invoke-ExchangeCommand @splat
+    }
+)
+Write-Progress -Activity $message -Status "Completed" -CurrentOperation "Completed" -PercentComplete 100 -Completed
+Write-Log -Message $message -EntryType Succeeded -Verbose
+
+$message = 'Build Hashtables to Compare Results of Get-MailPublicFolder with Per Public Folder Get-MailPublicFolder'
+Write-Log -Message $message -EntryType Attempting -Verbose
+$MEPFHashByDN = $MailEnabledPublicFolders | Group-Object -Property DistinguishedName -AsHashTable
+$EPFMEHashByDN = $ExchangePublicFoldersMailEnabled | Group-Object -Property DistinguishedName -AsHashTable
+Write-Log -Message $message -EntryType Succeeded -Verbose
+$message = 'Compare Results of Get-MailPublicFolder with Per Public Folder Get-MailPublicFolder'
+Write-Log -Message $message -EntryType Attempting -Verbose
+$MEPFWithoutEPFME = @(
+    foreach ($MEPF in $MailEnabledPublicFolders)
+    {
+        if (-not $EPFMEHashByDN.ContainsKey($MEPF.DistinguishedName))
+        {
+            Write-Output -InputObject $MEPF
+        }
+    }
+)
+$EPFMEWithoutMEPF = @(
+    foreach ($EPFME in $ExchangePublicFoldersMailEnabled)
+    {
+        if (-not $MEPFHashByDN.ContainsKey($EPFME.DistinguishedName))
+        {
+            Write-Output -InputObject $EPFME
+        }
+    }
+)
+if ($EPFMEWithoutMEPF.Count -ge 1) {
+    $message = "Found Public Folders which are mail enabled but for which no mail enabled public folder object was found with get-mailpublicfolder.  Exporting Data."
+    Write-Log -message $message -Verbose
+    $file1 = Export-Data -DataToExport $EPFMEWithoutMEPF -DataToExportTitle 'PublicFoldersMissingMailEnabledObject' -Depth 3 -DataType json -ReturnExportFilePath
+    $file2 = Export-Data -DataToExport $EPFMEWithoutMEPF -DataToExportTitle 'PublicFoldersMissingMailEnabledObject' -DataType csv -ReturnExportFilePath
+    Write-Log -Message "Exported Files: $file1,$file2" -Verbose
+}
+if ($MEPFWithoutEPFME.Count -ge 1) {
+    $message = "Found Mail Enabled Public Folders for which no public folder object was found.  Exporting Data."
+    Write-Log -message $message -Verbose
+    $file1 = Export-Data -DataToExport $MEPFWithoutEPFME -DataToExportTitle 'MailEnabledPublicFolderMissingPublicFolderObject' -Depth 3 -DataType json -ReturnExportFilePath
+    $file2 = Export-Data -DataToExport $MEPFWithoutEPFME -DataToExportTitle 'MailEnabledPublicFolderMissingPublicFolderObject' -DataType csv -ReturnExportFilePath
+    Write-Log -Message "Exported Files: $file1,$file2" -Verbose
+}
+}#function
+function Export-UserPublicFolderTree
+{
+[cmdletbinding()]
+param(
+$ExchangeOrganization
+,
+[switch]$ExportPermissions
+)
+    $allUserPublicFolders = @(Get-UserPublicFolderTree -ExchangeOrganization $ExchangeOrganization)
+    $ExportFile = Export-Data -DataToExport $allUserPublicFolders -DataToExportTitle UserPublicFolderTree -Depth 3 -DataType json -ReturnExportFilePath -ErrorAction Stop
+    Write-Log -Message "Exported UserPublicFolderTree File: $ExportFile" -Verbose
+    if ($ExportPermissions)
+    {
+        $splat = @{
+            ExchangeOrganization = $ExchangeOrganization
+            Cmdlet = 'Get-PublicFolderClientPermission'
+            ErrorAction = 'Stop'
+            Splat = @{
+                Identity = ''
+                ErrorAction = 'Stop'
+            }
+        }
+        $PublicFolderUserPermissions = @(
+        $allUserPublicFolders | ForEach-Object
+            {
+                $splat.splat.Identity = $_.EntryID
+                Invoke-ExchangeCommand @splat | Select-Object -Property Identity,User -ExpandProperty AccessRights
+            }
+        )
+        $ExportFile = Export-Data -DataToExport $PublicFolderUserPermissions -DataToExportTitle UserPublicFolderPermissions -Depth 1 -DataType csv -ReturnExportFilePath
+        Write-Log -Message "Exported UserPublicFolderPermissions File: $ExportFile" -Verbose
+    }
+}
+function Export-MailPublicFolder
+{
+[cmdletbinding()]
+param(
+$ExchangeOrganization
+)
+    $allMailPublicFolders = @(Get-AllMailPublicFolder -ExchangeOrganization $ExchangeOrganization)
+    $ExportFile = Export-Data -DataToExport $allMailPublicFolders -DataToExportTitle MailPublicFolders -Depth 3 -DataType json -ReturnExportFilePath -ErrorAction Stop
+    Write-Log -Message "Exported MailPublicFolders File: $ExportFile" -Verbose
+}
+function Get-UserPublicFolderTree
+{
+[cmdletbinding()]
+param(
+[parameter(Mandatory)]
+$ExchangeOrganization
+)
+#Get All Public Folders
+$splat = @{
+    cmdlet = 'Get-PublicFolder'
+    ErrorAction = 'Stop'
+    Splat = @{
+        Recurse = $true
+        Identity = '\'
+    }
+    ExchangeOrganization = $ExchangeOrganization
+}
+try 
+{
+    $message = "Get All Mail Enabled Public Folder Objects"
+    Write-Log -Message $message -EntryType Attempting -Verbose
+    $ExchangePublicFolders = @(Invoke-ExchangeCommand @splat)
+    Write-Log -Message $message -EntryType Succeeded -Verbose
+    Write-Output -InputObject $ExchangePublicFolders
+}
+catch
+{
+    $myerror = $_
+    Write-Log -Message $message -EntryType Failed -Verbose -ErrorLog
+    Write-log -Message $myerror.tostring() -ErrorLog
+    $myerror
+}
+}
+function Get-AllMailPublicFolder
+{
+[cmdletbinding()]
+param(
+[parameter(Mandatory)]
+$ExchangeOrganization
+)
+#Get all mail enabled public folders
+$splat = @{
+    cmdlet = 'Get-MailPublicFolder'
+    ErrorAction = 'Stop'
+    splat = @{
+        ResultSize = 'Unlimited'
+        ErrorAction = 'stop'
+        WarningAction = 'SilentlyContinue'
+    }
+    ExchangeOrganization = $ExchangeOrganization
+}
+try 
+{
+    $message = "Get All Mail Enabled Public Folder Objects"
+    Write-Log -Message $message -EntryType Attempting -Verbose
+    $MailEnabledPublicFolders = @(Invoke-ExchangeCommand @splat)
+    Write-Log -Message $message -EntryType Succeeded -Verbose
+    Write-Output -InputObject $MailEnabledPublicFolders
+}
+catch
+{
+    $myerror = $_
+    Write-Log -Message $message -EntryType Failed -Verbose -ErrorLog
+    Write-log -Message $myerror.tostring() -ErrorLog
+    $myerror
+}
+}
