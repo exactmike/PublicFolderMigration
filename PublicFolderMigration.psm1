@@ -1,5 +1,3 @@
-function Get-PublicFolderReplicationReport
-{
 ###############################################################################################
 #Module Variables and Variable Functions
 ###############################################################################################
@@ -50,7 +48,8 @@ param
 ###############################################################################################
 #Core Public Folder Migration Module Functions
 ###############################################################################################
-function Get-PublicFolderReplicationReport {
+function Get-PublicFolderReplicationReport
+{
 <#
 .SYNOPSIS
 Generates a report for Exchange 2010 Public Folder Replication.
@@ -172,11 +171,7 @@ if ($PublicFolderMailboxServer.Count -ge 1)
 if ($PublicFolderMailboxServer.Count -lt 1)
 {
     $PublicFolderMailboxServer = @(
-<<<<<<< HEAD
         Get-PublicFolderDatabase -includePreExchange2010 | Select-Object -ExpandProperty ServerName
-=======
-        Get-PublicFolderDatabase -IncludePreExchange2010 | Select-Object -ExpandProperty ServerName
->>>>>>> NewOutputTypesAndParams
     )
 }
 #endregion ValidateParameters
