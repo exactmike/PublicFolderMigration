@@ -445,21 +445,26 @@ $ResultMatrix =
         {
             $RRObject = [pscustomobject]@{
                 FolderPath = $result.FolderPath
+                HighestItemCount = $result.ItemCount
+                HighestBytesCount = $result.totalBytes
             }#pscustomobject
             Foreach ($Server in $PublicFolderMailboxServer) 
             {
                 $ResultItem = $result.Data | Where-Object -FilterScript {$_.ServerName -eq $Server}
                 $PropertyName1 = $Server + '-%'
                 $PropertyName2 = $Server + '-Count'
+                $PropertyName3 = $server + '-SizeInBytes'
                 if ($resultItem -eq $null) 
                 {
                     $RRObject | Add-Member -NotePropertyName $PropertyName1 -NotePropertyValue 'N/A'
                     $RRObject | Add-Member -NotePropertyName $PropertyName2 -NotePropertyValue 'N/A'
+                    $RRObject | Add-Member -NotePropertyName $PropertyName3 -NotePropertyValue 'N/A'
                 }#if
                 else 
                 {
                     $RRObject | Add-Member -NotePropertyName $PropertyName1 -NotePropertyValue $resultItem.Progress
                     $RRObject | Add-Member -NotePropertyName $PropertyName2 -NotePropertyValue $resultItem.itemCount
+                    $RRObject | Add-Member -NotePropertyName $PropertyName3 -NotePropertyValue $resultItem.SizeInBytes
                 }#else
             }#Foreach
         $RRObject
