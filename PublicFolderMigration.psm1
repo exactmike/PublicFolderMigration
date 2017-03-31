@@ -877,7 +877,7 @@ $BatchName
 	    Write-Log -Message "Connect to Exchange Organization $ExchangeOrganization" -ErrorLog -EntryType Failed
 	    throw {"Connect to Exchange Organization $ExchangeOrganization Failed"}
     }#End If
-    $Message = "Get all existing sub wave $BatchName move requests"
+    $Message = "Get all existing $BatchName move requests"
     Write-Log -message $Message -Verbose -EntryType Attempting
     $splat = @{
       cmdlet = 'Get-PublicFolderMailboxMigrationRequest'
@@ -924,7 +924,7 @@ param
 )
 Process
 {
-    Get-PFMMoveRequests -ExchangeOrganization $ExchangeOrganization -BatchName $BatchName
+    Get-PFMMoveRequest -ExchangeOrganization $ExchangeOrganization -BatchName $BatchName
     switch ($operation) {
         'FailureAnalysis'
         {
