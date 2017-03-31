@@ -928,17 +928,17 @@ Process
     switch ($operation) {
         'FailureAnalysis'
         {
-            if ($passthru -and $StatsOperation -eq $null)
+            if ($passthru -and -not $PSBoundParameters.ContainsKey('StatsOperation'))
             {$Script:fmr}
         }
         'Monitoring'
         {
-            if ($passthru -and $StatsOperation -eq $null)
+            if ($passthru -and -not $PSBoundParameters.ContainsKey('StatsOperation'))
             {$Script:mr}
         }
         'BatchCompletionMonitoring'
         {
-            if ($passthru -and $StatsOperation -eq $null)
+            if ($passthru -and -not $PSBoundParameters.ContainsKey('StatsOperation')) 
             {$Script:cmr}
         }
     }
