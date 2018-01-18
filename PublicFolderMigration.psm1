@@ -39,25 +39,38 @@ function Get-PublicFolderReplicationReport
         #>
         [cmdletbinding()]
         param(
-            [string[]]$PublicFolderMailboxServer = @(),
-            [string[]]$PublicFolderPath = @(),
-            [switch]$Recurse,
-            [switch]$IncludeSystemPublicFolders,
+            [string[]]$PublicFolderMailboxServer = @()
+            ,
+            [string[]]$PublicFolderPath = @()
+            ,
+            [switch]$Recurse
+            ,
+            [switch]$IncludeSystemPublicFolders
+            ,
             [parameter()]
             [validateset('RawReplicationData','ReportObject')]
-            [string]$PipelineData,
-            [string]$FileFolderPath,
-            [string[]]$To,
-            [string]$From,
-            [string]$SmtpServer,
-            [string]$Subject,
-            [switch]$HTMLBody,
+            [string]$PipelineData
+            ,
+            [string]$FileFolderPath
+            ,
+            [string[]]$To
+            ,
+            [string]$From
+            ,
+            [string]$SmtpServer
+            ,
+            [string]$Subject
+            ,
+            [switch]$HTMLBody
+            ,
             [parameter()]
             [validateset('html','csv')]
-            [string[]]$outputformats,
+            [string[]]$outputformats
+            ,
             [parameter()]
             [validateset('email','files')]
-            [string[]]$outputmethods,
+            [string[]]$outputmethods
+            ,
             [int]$LargestPublicFolderReportCount = 10
         )
         Begin
@@ -79,13 +92,11 @@ function Get-PublicFolderReplicationReport
                         Write-Error 'The -To parameter is required when using the -SendEmail switch. If this parameter was used, verify that valid email addresses were specified.'
                         return
                     }
-                    
                     if ($From -inotmatch "^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z0-9.-]+$")
                     {
                         Write-Error 'The -From parameter is not valid. This parameter is required when using the -SendEmail switch.'
                         return
                     }
-
                     if ([string]::IsNullOrEmpty($SmtpServer))
                     {
                         Write-Error 'You must specify a SmtpServer. This parameter is required when using the -SendEmail switch.'
