@@ -1,4 +1,4 @@
-function Test-IsWriteableDirectory
+function TestIsWriteableDirectory
     {
         #Credits to the following:
         #http://poshcode.org/2236
@@ -37,19 +37,8 @@ function Test-IsWriteableDirectory
             Remove-Item -Path $testPath -ErrorAction SilentlyContinue
         }
     }
-#end function Test-IsWriteableDirectory
-function Test-StringIsConvertibleToGUID
-    {
-        [CmdletBinding()]
-        param
-        (
-            [parameter(Mandatory,ValueFromPipeline)]
-            [String]$string
-        )
-        try {([guid]$string -is [guid])} catch {$false}
-    }
-#end function Test-StringIsConvertibleToGUID
-function Get-GuidFromByteArray
+#end function TestIsWriteableDirectory
+function GetGuidFromByteArray
     {
         [CmdletBinding()]
         param
@@ -58,8 +47,8 @@ function Get-GuidFromByteArray
         )
         New-Object -TypeName guid -ArgumentList (,$GuidByteArray)
     }
-#end function Get-GUIDFromByteArray
-Function Write-Log
+#end function GetGuidFromByteArray
+Function WriteLog
     {
         [cmdletbinding()]
         Param
@@ -145,131 +134,7 @@ Function Write-Log
         #Pass on the message to Write-Verbose if -Verbose was detected
         Write-Verbose -Message $Message
     }
-#end Function Write-Log
-Function Get-SendASRightGUID
-    {
-        #ADSI Adapter: http://social.technet.microsoft.com/wiki/contents/articles/4231.working-with-active-directory-using-powershell-adsi-adapter.aspx
-            $dse = [ADSI]"LDAP://Rootdse"
-            $ext = [ADSI]("LDAP://CN=Extended-Rights," + $dse.ConfigurationNamingContext)
-            $dn = [ADSI]"LDAP://$($dse.DefaultNamingContext)"
-            $dsLookFor = New-Object System.DirectoryServices.DirectorySearcher($dn)
-            $permission = "Send As"
-            $right = $ext.psbase.Children | Where-Object { $_.DisplayName -eq $permission }
-
-            #commented out the above since the GUID for this right seems to be well-known. the below is the GUID is extracted from the above object if you want to revert.
-
-            [GUID]$right.RightsGuid.Value
-    }
-#end Function Get-SendASRightGUID
-Function Test-ExchangeSession
-    {
-        [CmdletBinding()]
-        param
-        (
-            $Session
-        )
-        switch ($Session.State -eq 'Opened')
-        {
-            $true
-            {
-                Try
-                {
-                    $TestCommandResult = invoke-command -Session $Session -ScriptBlock {Get-OrganizationConfig -ErrorAction Stop | Select-Object -ExpandProperty Identity | Select-Object -ExpandProperty Name} -ErrorAction Stop
-                    switch (-not [string]::IsNullOrEmpty($TestCommandResult))
-                    {
-                        $true
-                        {Write-Output -InputObject $true}
-                        $false
-                        {Write-Output -InputObject $false}
-                    }
-                }
-                Catch
-                {
-                    Write-Output -InputObject $false
-                }
-            }
-            $false
-            {
-                Write-Output -InputObject $false
-            }
-        }
-    }
-#end Function Test-ExchangeSession
-Function Export-ExchangePermissionExportResumeData
-    {
-        [CmdletBinding()]
-        param
-        (
-            $ExchangePermissionsExportParameters
-            ,
-            $ExcludedRecipientGuidHash
-            ,
-            $ExcludedTrusteeGuidHash
-            ,
-            $SIDHistoryRecipientHash
-            ,
-            $InScopeRecipients
-            ,
-            $ObjectGUIDHash
-            ,
-            $outputFolderPath
-            ,
-            $ExportedExchangePermissionsFile
-            ,
-            $TimeStamp
-        )
-        GetCallerPreference -Cmdlet $PSCmdlet -SessionState $ExecutionContext.SessionState -Name VerbosePreference
-        $ExchangePermissionExportResumeData = @{
-            ExchangePermissionsExportParameters = $ExchangePermissionsExportParameters
-            ExcludedRecipientGuidHash = $ExcludedRecipientGuidHash
-            ExcludedTrusteeGuidHash = $ExcludedTrusteeGuidHash
-            SIDHistoryRecipientHash = $SIDHistoryRecipientHash
-            InScopeRecipients = $InScopeRecipients
-            ObjectGUIDHash = $ObjectGUIDHash
-            ExportedExchangePermissionsFile = $ExportedExchangePermissionsFile
-            TimeStamp = $TimeStamp
-        }
-        $ExportFilePath = Join-Path -Path $outputFolderPath -ChildPath $($TimeStamp + "ExchangePermissionExportResumeData.xml")
-        Export-Clixml -Depth 2 -Path $ExportFilePath -InputObject $ExchangePermissionExportResumeData -Encoding UTF8
-        Write-Output -InputObject $ExportFilePath
-    }
-Function Import-ExchangePermissionExportResumeData
-    {
-        [CmdletBinding()]
-        param
-        (
-            [parameter(Mandatory)]
-            $path
-        )
-        $ImportedExchangePermissionsExportResumeData = Import-Clixml -Path $path -ErrorAction Stop
-        $parentpath = Split-Path -Path $path -Parent
-        $ResumeIDFilePath = Join-Path -path $parentpath -ChildPath $($ImportedExchangePermissionsExportResumeData.TimeStamp + 'ExchangePermissionExportResumeID.xml')
-        $ResumeIDs = Import-Clixml -Path $ResumeIDFilePath -ErrorAction Stop
-        $ImportedExchangePermissionsExportResumeData.ResumeID = $ResumeIDs.ResumeID
-        $ImportedExchangePermissionsExportResumeData.NextPermissionIdentity = $ResumeIDs.NextPermissionIdentity
-        Write-Output -InputObject $ImportedExchangePermissionsExportResumeData
-    }
-Function Export-ResumeID
-    {
-        [CmdletBinding()]
-        param
-        (
-            $ID
-            ,
-            $nextPermissionID
-            ,
-            $outputFolderPath
-            ,
-            $TimeStamp
-        )
-        $ExportFilePath = Join-Path -Path $outputFolderPath -ChildPath $($TimeStamp + "ExchangePermissionExportResumeID.xml")
-        $Identities = @{
-            NextPermissionIdentity = $nextPermissionID
-            ResumeID = $ID
-        }
-        Export-Clixml -Depth 1 -Path $ExportFilePath -InputObject $Identities -Encoding UTF8
-        Write-Output -InputObject $ExportFilePath
-    }
+#end Function WriteLog
 Function GetCommonParameter
     {
         [cmdletbinding(SupportsShouldProcess)]
@@ -326,3 +191,119 @@ function GetArrayIndexForIdentity
         [array]::indexof(($array.$property).guid,$value)
     }
 #end function GetArrayIndexForIdentity
+function GetExchangePSSession
+    {
+        [CmdletBinding(DefaultParameterSetName = 'ExchangeOnline')]
+        param
+        (
+            [parameter(Mandatory)]
+            [pscredential]$Credential = $script:Credential
+            ,
+            [parameter(Mandatory,ParameterSetName = 'ExchangeOnline')]
+            [switch]$ExchangeOnline
+            ,
+            [parameter(Mandatory,ParameterSetName = 'ExchangeOnPremises')]
+            [string]$ExchangeServer
+            ,
+            [System.Management.Automation.Remoting.PSSessionOption]$PSSessionOption
+        )
+        $NewPsSessionParams = @{
+            ErrorAction = 'Stop'
+            ConfigurationName = 'Microsoft.Exchange'
+            Credential = $Credential
+        }
+        switch ($PSCmdlet.ParameterSetName)
+        {
+            'ExchangeOnline'
+            {
+                $NewPsSessionParams.ConnectionURI = 'https://outlook.office365.com/powershell-liveid/'
+                $NewPsSessionParams.Authentication = 'Basic'
+            }
+            'ExchangeOnPremises'
+            {
+                $NewPsSessionParams.ConnectionURI = 'http://' + $ExchangeServer + '/PowerShell/'
+                $NewPsSessionParams.Authentication = 'Kerberos'
+            }
+        }
+        $ExchangeSession = New-PSSession @NewPsSessionParams
+        if ($PSCmdlet.ParameterSetName -eq 'ExchangeOnPremises')
+        {
+            Invoke-Command -Session $ExchangeSession -ScriptBlock {Set-ADServerSettings -ViewEntireForest $true -ErrorAction 'Stop'} -ErrorAction Stop
+        }
+        Write-Output -InputObject $ExchangeSession
+    }
+#end Function Get-ExchangePSSession
+function GetGetExchangePSSessionParams
+    {
+        $GetExchangePSSessionParams = @{
+            ErrorAction = 'Stop'
+            Credential = $script:Credential
+        }
+        if ($null -ne $script:PSSessionOption -and $script:PSSessionOption -is [System.Management.Automation.Remoting.PSSessionOption])
+        {
+            $GetExchangePSSessionParams.PSSessionOption = $script:PSSessionOption
+        }
+        switch ($Script:OrganizationType)
+        {
+            'ExchangeOnline'
+            {
+                $GetExchangePSSessionParams.ExchangeOnline = $true
+            }
+            'ExchangeOnPremises'
+            {
+                $GetExchangePSSessionParams.ExchangeServer = $script:ExchangeOnPremisesServer
+            }
+        }
+        $GetExchangePSSessionParams
+    }
+#end Function GetGetExchangePSSessionParams
+Function TestExchangePSSession
+    {
+        [CmdletBinding()]
+        param
+        (
+            [System.Management.Automation.Runspaces.PSSession]$PSSession = $script:PSSession
+        )
+        switch ($PSSession.State -eq 'Opened')
+        {
+            $true
+            {
+                Try
+                {
+                    $TestCommandResult = invoke-command -Session $PSSession -ScriptBlock {Get-OrganizationConfig -ErrorAction Stop | Select-Object -ExpandProperty Identity | Select-Object -ExpandProperty Name} -ErrorAction Stop
+                    switch (-not [string]::IsNullOrEmpty($TestCommandResult))
+                    {
+                        $true
+                        {Write-Output -InputObject $true}
+                        $false
+                        {Write-Output -InputObject $false}
+                    }
+                }
+                Catch
+                {
+                    Write-Output -InputObject $false
+                }
+            }
+            $false
+            {
+                Write-Output -InputObject $false
+            }
+        }
+    }
+#end Function TestExchangePSSession
+Function RemoveExchangePSSession
+    {
+        [CmdletBinding()]
+        param
+        (
+            [System.Management.Automation.Runspaces.PSSession]$PSSession = $script:PSSession
+        )
+        Remove-PSSession -Session $PsSession -ErrorAction SilentlyContinue
+    }
+#end Function RemoveExchangePSSession
+function WriteUserInstructionError
+    {
+        $message = "You must call the Connect-ExchangeOrganization function before calling any other cmdlets which require an active Exchange Organization connection."
+        throw($message)
+    }
+#end function WriteUserInstructionError
