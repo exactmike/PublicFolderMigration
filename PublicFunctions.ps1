@@ -160,7 +160,11 @@ function Get-PublicFolderReplicationReport
                 }
             }
             $BeginTimeStamp = Get-Date -Format yyyyMMdd-HHmmss
+            $script:LogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'PublicFolderReplicationAndStatisticsReport.log')
+            $script:ErrorLogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'PublicFolderReplicationAndStatisticsReport-ERRORS.log')
+            WriteLog -Message "Calling Invocation = $($MyInvocation.Line)" -EntryType Notification
             $ExchangeOrganization = Invoke-Command -Session $Script:PSSession -ScriptBlock {Get-OrganizationConfig | Select-Object -ExpandProperty Identity | Select-Object -ExpandProperty Name}
+            WriteLog -Message "Exchange Session is Running in Exchange Organzation $ExchangeOrganization" -EntryType Notification
             #region ValidateParameters
                 if ($true -eq $SendEmail)
                 {
@@ -548,6 +552,7 @@ function Get-PublicFolderReplicationReport
                     {
                         $RRObject = [pscustomobject]@{
                             FolderPath = $result.FolderPath
+                            EntryID = $result.EntryID
                             HighestItemCount = $result.ItemCount
                             HighestBytesCount = $result.totalBytes
                         }#pscustomobject
@@ -600,22 +605,67 @@ function Get-PublicFolderReplicationReport
             $outputfiles = @(
                 if ('csv' -in $outputformats)
                 {
-                    #Create the additional summary output object(s) for CSV
-                    $PubliFolderEnvironmentSummary = [pscustomobject]@{
-                        ReportTimeStamp = $ReportObject.TimeStamp
-                        IncludedPublicFolderServersAndDatabases = $ReportObject.IncludedPublicFolderServersAndDatabases
-                        IncludedPublicFoldersCount = $ReportObject.IncludedPublicFoldersCount
-                        TotalSizeOfIncludedPublicFoldersInBytes = $ReportObject.TotalSizeOfIncludedPublicFoldersInBytes
-                        TotalItemCountFromIncludedPublicFolders = $ReportObject.TotalItemCountFromIncludedPublicFolders
-                        IncludedContainerOrEmptyPublicFoldersCount = $ReportObject.IncludedContainerOrEmptyPublicFoldersCount
-                        IncludedReplicationIncompletePublicFolders = $ReportObject.IncludedReplicationIncompletePublicFolders
+                    $CSVOutputReports = @{
+                        PubliFolderEnvironmentSummary = [pscustomobject]@{
+                            ReportTimeStamp = $ReportObject.TimeStamp
+                            IncludedPublicFolderServersAndDatabases = $ReportObject.IncludedPublicFolderServersAndDatabases
+                            IncludedPublicFoldersCount = $ReportObject.IncludedPublicFoldersCount
+                            TotalSizeOfIncludedPublicFoldersInBytes = $ReportObject.TotalSizeOfIncludedPublicFoldersInBytes
+                            TotalItemCountFromIncludedPublicFolders = $ReportObject.TotalItemCountFromIncludedPublicFolders
+                            IncludedContainerOrEmptyPublicFoldersCount = $ReportObject.IncludedContainerOrEmptyPublicFoldersCount
+                            IncludedReplicationIncompletePublicFolders = $ReportObject.IncludedReplicationIncompletePublicFolders
+                        }
+                        LargestPublicFolders = $ReportObject.LargestPublicFolders | Select-Object FolderPath,TotalItemSize,ItemCount
+                        PublicFoldersWithIncompleteReplication = $ReportObject.PublicFoldersWithIncompleteReplication
+                        ReplicationReportDetails = $ReportObject.ReplicationReportByServerPercentage
+                        PublicFolderStatisticsFromAllReplicas = $resultMatrix | foreach-object {
+                            $parent = $_
+                            $parent.data | foreach-object {
+                                [pscustomobject]@{
+                                    EntryID = $parent.EntryID
+                                    Name = $parent.Name
+                                    FolderPath = $parent.FolderPath
+                                    ConfiguredReplicas = $parent.ConfiguredReplicas
+                                    MaxTotalBytes = $Parent.TotalBytes
+                                    MaxItemCount = $Parent.ItemCount
+                                    MaxLastAccessTime = $Parent.LastAccessTime
+                                    MaxLastModificationTime = $Parent.LastModificationTime
+                                    MaxLastUserAccessTime = $Parent.LastUserAccessTime
+                                    MaxLastUserModificationTime = $Parent.LastUserModificationTime
+                                    AdminDisplayName = $_.AdminDisplayName
+                                    AssociatedItemCount = $_.AssociatedItemCount
+                                    ContactCount = $_.ContactCount
+                                    CreationTime = $_.CreationTime
+                                    DatabaseName = $_.DatabaseName
+                                    DeletedItemCount = $_.DeletedItemCount
+                                    ExpiryTime = $_.ExpiryTime
+                                    Identity = $_.Identity
+                                    IsDeletePending = $_.IsDeletePending
+                                    IsValid = $_.IsValid
+                                    ItemCount = $_.ItemCount
+                                    LastAccessTime = $_.LastAccessTime
+                                    LastModificationTime = $_.LastModificationTime
+                                    LastUserAccessTime = $_.LastUserAccessTime
+                                    LastUserModificationTime = $_.LastUserModificationTime
+                                    MapiIdentity = $_.MapiIdentity
+                                    OwnerCount = $_.OwnerCount
+                                    Progress = $_.Progress
+                                    ServerName = $_.ServerName
+                                    SizeInBytes = $_.SizeInBytes
+                                    TotalAssociatedItemSize = $_.TotalAssociatedItemSize
+                                    TotalDeletedItemSize = $_.TotalDeletedItemSize
+                                    TotalItemSize = $_.TotalItemSize
+                                }
+                            }
+                        }
+                    }#end CSVOutputReports
+                    foreach ($key in $CSVOutputReports.keys)
+                    {
+                        $outputFileName = $BeginTimeStamp + $key + '.csv'
+                        $outputFilePath = Join-Path -path $outputFolderPath -ChildPath $outputFileName 
+                        $CSVOutputReports.$key | Export-CSV -path $outputFilePath -Encoding UTF8 -ErrorAction -NoTypeInformation
+                        $outputFilePath
                     }
-                    $LargestPublicFolders = $ReportObject.LargestPublicFolders | Select-Object FolderPath,TotalItemSize,ItemCount
-                    #create the csv files
-                    Export-Data -ExportFolderPath $outputFolderPath -DataToExportTitle PublicFolderEnvironmentSummary -DataToExport $PubliFolderEnvironmentSummary -DataType csv -ReturnExportFilePath
-                    Export-Data -ExportFolderPath $outputFolderPath -DataToExportTitle LargestPublicFolders -DataToExport $LargestPublicFolders -DataType csv -ReturnExportFilePath
-                    Export-Data -ExportFolderPath $outputFolderPath -DataToExportTitle PublicFoldersWithIncompleteReplication -DataToExport $ReportObject.PublicFoldersWithIncompleteReplication -DataType csv -ReturnExportFilePath
-                    Export-Data -ExportFolderPath $outputFolderPath -DataToExportTitle ReplicationReportByServerPercentage -DataToExport $ReportObject.ReplicationReportByServerPercentage -DataType csv -ReturnExportFilePath
                 }
                 if ('html' -in $outputformats)
                 {
