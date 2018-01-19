@@ -1,43 +1,3 @@
-function TestIsWriteableDirectory
-    {
-        #Credits to the following:
-        #http://poshcode.org/2236
-        #http://stackoverflow.com/questions/9735449/how-to-verify-whether-the-share-has-write-access
-        #pulled in from OneShell module: https://github.com/exactmike/OneShell
-        [CmdletBinding()]
-        param
-        (
-            [parameter()]
-            [ValidateScript(
-                {
-                    $IsContainer = Test-Path -Path ($_) -PathType Container
-                    if ($IsContainer)
-                    {
-                        $Item = Get-Item -Path $_
-                        if ($item.PsProvider.Name -eq 'FileSystem') {$true}
-                        else {$false}
-                    }
-                    else {$false}
-                }
-            )]
-            [string]$Path
-        )
-        try
-        {
-            $testPath = Join-Path -Path $Path -ChildPath ([IO.Path]::GetRandomFileName())
-                New-Item -Path $testPath -ItemType File -ErrorAction Stop > $null
-            $true
-        }
-        catch
-        {
-            $false
-        }
-        finally
-        {
-            Remove-Item -Path $testPath -ErrorAction SilentlyContinue
-        }
-    }
-#end function TestIsWriteableDirectory
 function GetGuidFromByteArray
     {
         [CmdletBinding()]
@@ -89,19 +49,19 @@ Function WriteLog
             #Write to Log file if LogPreference is not $false and LogPath has been provided
             if (-not [string]::IsNullOrWhiteSpace($Local:LogPath))
             {
-                Write-Output -InputObject $Message | Out-File -FilePath $Local:LogPath -Append
+                $Message | Out-File -FilePath $Local:LogPath -Append
             }
             else
             {
                 Write-Error -Message 'No LogPath has been provided. Writing Log Entry to script module variable UnwrittenLogEntries' -ErrorAction SilentlyContinue
                 if (Test-Path -Path variable:script:UnwrittenLogEntries)
                 {
-                    $Script:UnwrittenLogEntries += Write-Output -InputObject $Message
+                    $Script:UnwrittenLogEntries += $Message
                 }
                 else
                 {
                     $Script:UnwrittenLogEntries = @()
-                    $Script:UnwrittenLogEntries += Write-Output -InputObject $Message
+                    $Script:UnwrittenLogEntries += $Message
                 }
             }
             #if ErrorLog switch is present also write log to Error Log
@@ -115,18 +75,18 @@ Function WriteLog
                 }
                 if (-not [string]::IsNullOrWhiteSpace($Local:ErrorLogPath))
                 {
-                    Write-Output -InputObject $Message | Out-File -FilePath $Local:ErrorLogPath -Append
+                    $Message | Out-File -FilePath $Local:ErrorLogPath -Append
                 }
                 else
                 {
                     if (Test-Path -Path variable:script:UnwrittenErrorLogEntries)
                     {
-                        $Script:UnwrittenErrorLogEntries += Write-Output -InputObject $Message 
+                        $Script:UnwrittenErrorLogEntries += $Message 
                     }
                     else
                     {
                         $Script:UnwrittenErrorLogEntries = @()
-                        $Script:UnwrittenErrorLogEntries += Write-Output -InputObject $Message
+                        $Script:UnwrittenErrorLogEntries += $Message
                     }
                 }
             }
@@ -271,22 +231,16 @@ Function TestExchangePSSession
                 Try
                 {
                     $TestCommandResult = invoke-command -Session $PSSession -ScriptBlock {Get-OrganizationConfig -ErrorAction Stop | Select-Object -ExpandProperty Identity | Select-Object -ExpandProperty Name} -ErrorAction Stop
-                    switch (-not [string]::IsNullOrEmpty($TestCommandResult))
-                    {
-                        $true
-                        {Write-Output -InputObject $true}
-                        $false
-                        {Write-Output -InputObject $false}
-                    }
+                    $(-not [string]::IsNullOrEmpty($TestCommandResult))
                 }
                 Catch
                 {
-                    Write-Output -InputObject $false
+                    $false
                 }
             }
             $false
             {
-                Write-Output -InputObject $false
+                $false
             }
         }
     }
@@ -307,6 +261,9 @@ function WriteUserInstructionError
         throw($message)
     }
 #end function WriteUserInstructionError
+###############################################################################################
+#Test (True/False) Functions
+###############################################################################################
 function TestTCPConnection
     {
         <#
@@ -436,3 +393,43 @@ Function TestEmailAddress
         }
     }
 #end function TestEmailAddress
+function TestIsWriteableDirectory
+    {
+        #Credits to the following:
+        #http://poshcode.org/2236
+        #http://stackoverflow.com/questions/9735449/how-to-verify-whether-the-share-has-write-access
+        #pulled in from OneShell module: https://github.com/exactmike/OneShell
+        [CmdletBinding()]
+        param
+        (
+            [parameter()]
+            [ValidateScript(
+                {
+                    $IsContainer = Test-Path -Path ($_) -PathType Container
+                    if ($IsContainer)
+                    {
+                        $Item = Get-Item -Path $_
+                        if ($item.PsProvider.Name -eq 'FileSystem') {$true}
+                        else {$false}
+                    }
+                    else {$false}
+                }
+            )]
+            [string]$Path
+        )
+        try
+        {
+            $testPath = Join-Path -Path $Path -ChildPath ([IO.Path]::GetRandomFileName())
+                New-Item -Path $testPath -ItemType File -ErrorAction Stop > $null
+            $true
+        }
+        catch
+        {
+            $false
+        }
+        finally
+        {
+            Remove-Item -Path $testPath -ErrorAction SilentlyContinue
+        }
+    }
+#end function TestIsWriteableDirectory

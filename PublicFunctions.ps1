@@ -549,7 +549,7 @@ function Get-PublicFolderReplicationReport
             #region GenerateHTMLOutput
             if (('html' -in $outputformats) -or $HTMLBody)
             {
-                $html = GetHTMLReport -ReportObject -ResultMatrix -PublicFolderMailboxServer
+                $html = GetHTMLReport -ReportObject $ReportObject -ResultMatrix $ResultMatrix -PublicFolderMailboxServer $PublicFolderMailboxServer
             }#if to generate HTML output if required/requested
             #endregion GenerateHTMLOutput
             #region GenerateOutputFormats
