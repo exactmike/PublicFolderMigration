@@ -617,7 +617,7 @@ function Get-PublicFolderReplicationReport
                         }
                         LargestPublicFolders = $ReportObject.LargestPublicFolders | Select-Object FolderPath,TotalItemSize,ItemCount
                         PublicFoldersWithIncompleteReplication = $ReportObject.PublicFoldersWithIncompleteReplication
-                        ReplicationReportDetails = $ReportObject.ReplicationReportByServerPercentage
+                        ReplicationReportPerReplicaDetails = $ReportObject.ReplicationReportByServerPercentage
                         PublicFolderStatisticsFromAllReplicas = $resultMatrix | foreach-object {
                             $parent = $_
                             $parent.data | foreach-object {
