@@ -319,7 +319,6 @@ function Get-PublicFolderReplicationReport
                                 LastModificationTime = $null
                                 SizeInBytes = $null
                             }
-                        }
                             if ($FolderID.Replicas -contains $PublicFolderMailboxServerDatabases.$Server) 
                             {
                                 $count++
