@@ -293,7 +293,6 @@ function Get-PublicFolderReplicationReport
                                 AssociatedItemCount = $null
                                 ContactCount = $null
                                 CreationTime = $null
-                                DatabaseName = $null
                                 DeletedItemCount = 0
                                 EntryId = $FolderID.EntryID
                                 ExpiryTime = $null
@@ -316,7 +315,6 @@ function Get-PublicFolderReplicationReport
                                 TotalDeletedItemSize = $null
                                 TotalItemSize = $null
                                 DatabaseName = $($PublicFolderMailboxServerDatabases.$Server)
-                                LastModificationTime = $null
                                 SizeInBytes = $null
                             }
                             if ($FolderID.Replicas -contains $PublicFolderMailboxServerDatabases.$Server) 
@@ -425,7 +423,6 @@ function Get-PublicFolderReplicationReport
                                             AssociatedItemCount = $_.AssociatedItemCount
                                             ContactCount = $_.ContactCount
                                             CreationTime = $_.CreationTime
-                                            DatabaseName = $_.DatabaseName
                                             DeletedItemCount = $_.DeletedItemCount
                                             EntryId = $_.EntryID.tostring()
                                             ExpiryTime = $_.ExpiryTime
@@ -447,7 +444,6 @@ function Get-PublicFolderReplicationReport
                                             DatabaseName = $_.DatabaseName
                                             TotalItemSize = $_.TotalItemSize
                                             SizeInBytes = $_.SizeInBytes
-                                            LastModificationTime = $_.LastModificationTime
                                     }
                                 }
                             }
