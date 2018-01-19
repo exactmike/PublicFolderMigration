@@ -159,7 +159,7 @@ function Get-UserPublicFolderTree
         }
         try 
         {
-            $message = "Get All Mail Enabled Public Folder Objects"
+            $message = "Get All User (Not System) Public Folder Tree Objects"
             WriteLog -Message $message -EntryType Attempting -Verbose
             $ExchangePublicFolders = @(Invoke-ExchangeCommand @splat)
             WriteLog -Message $message -EntryType Succeeded -Verbose
