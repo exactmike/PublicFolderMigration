@@ -63,7 +63,7 @@ function Find-OrphanedMailEnabledPublicFolders
             {
                 if (-not $EPFMEHashByDN.ContainsKey($MEPF.DistinguishedName))
                 {
-                    Write-Output -InputObject $MEPF
+                    $MEPF
                 }
             }
         )
@@ -72,7 +72,7 @@ function Find-OrphanedMailEnabledPublicFolders
             {
                 if (-not $MEPFHashByDN.ContainsKey($EPFME.DistinguishedName))
                 {
-                    Write-Output -InputObject $EPFME
+                    $EPFME
                 }
             }
         )
@@ -163,7 +163,7 @@ function Get-UserPublicFolderTree
             WriteLog -Message $message -EntryType Attempting -Verbose
             $ExchangePublicFolders = @(Invoke-ExchangeCommand @splat)
             WriteLog -Message $message -EntryType Succeeded -Verbose
-            Write-Output -InputObject $ExchangePublicFolders
+            $ExchangePublicFolders
         }
         catch
         {
@@ -199,7 +199,7 @@ function Get-AllMailPublicFolder
             WriteLog -Message $message -EntryType Attempting -Verbose
             $MailEnabledPublicFolders = @(Invoke-ExchangeCommand @splat)
             WriteLog -Message $message -EntryType Succeeded -Verbose
-            Write-Output -InputObject $MailEnabledPublicFolders
+            $MailEnabledPublicFolders
         }
         catch
         {

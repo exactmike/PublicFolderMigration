@@ -138,6 +138,6 @@ $(
 </body>
 </html>
 "@
-        Write-Output -InputObject $html
+    $html
     }
 #end function Get-HTMLReport

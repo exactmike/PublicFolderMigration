@@ -131,7 +131,7 @@ function GetAllParametersWithAValue
                 }
             }
         )
-        Write-Output -InputObject $AllParametersWithAValue
+        $AllParametersWithAValue
     }
 #end function Get-AllParametersWithAValue
 function GetArrayIndexForIdentity
@@ -190,7 +190,7 @@ function GetExchangePSSession
         {
             Invoke-Command -Session $ExchangeSession -ScriptBlock {Set-ADServerSettings -ViewEntireForest $true -ErrorAction 'Stop'} -ErrorAction Stop
         }
-        Write-Output -InputObject $ExchangeSession
+        $ExchangeSession
     }
 #end Function Get-ExchangePSSession
 function GetGetExchangePSSessionParams
