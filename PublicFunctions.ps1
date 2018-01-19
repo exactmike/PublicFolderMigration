@@ -663,7 +663,7 @@ function Get-PublicFolderReplicationReport
                     {
                         $outputFileName = $BeginTimeStamp + $key + '.csv'
                         $outputFilePath = Join-Path -path $outputFolderPath -ChildPath $outputFileName 
-                        $CSVOutputReports.$key | Export-CSV -path $outputFilePath -Encoding UTF8 -ErrorAction -NoTypeInformation
+                        $CSVOutputReports.$key | Export-CSV -path $outputFilePath -Encoding UTF8 -NoTypeInformation
                         $outputFilePath
                     }
                 }
