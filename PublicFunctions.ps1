@@ -76,8 +76,6 @@ function Get-PublicFolderReplicationReport
         When SendEmail is used, this is the SMTP Server to send the report through.
         .PARAMETER Subject
         When SendEmail is used, this sets the subject of the email report.
-        .PARAMETER NoAttachment
-        When SendEmail is used, specifying this switch will set the email report to not include the HTML Report as an attachment. It will still be sent in the body of the email.
         .PARAMETER IncludeSystemPublicFolders
         This parameter specifies to include System Public Folders when scanning all public folders. If this is omitted, System Public Folders are omitted.
         .PARAMETER LargestPublicFolderReportCount
@@ -129,16 +127,42 @@ function Get-PublicFolderReplicationReport
             [string[]]$outputformats
             ,
             [parameter()]
-            [validateset('email','files')]
-            [string[]]$outputmethods
+            [switch]$SendEmail
             ,
             [parameter()]
             [int]$LargestPublicFolderReportCount = 10
         )
         Begin
         {
+            switch ($script:ConnectExchangeOrganizationCompleted)
+            {
+                $true
+                {
+                    switch (TestExchangePSSession -PSSession $script:PSSession)
+                    {
+                        $true
+                        {
+                            WriteLog -Message 'Using Existing PSSession' -EntryType Notification
+                        }
+                        $false
+                        {
+                            WriteLog -Message 'Removing Existing Failed PSSession' -EntryType Notification
+                            Remove-PSSession -Session $script:PsSession -ErrorAction SilentlyContinue
+                            WriteLog -Message 'Establishing New PSSession to Exchange Organization' -EntryType Notification
+                            $GetExchangePSSessionParams = GetGetExchangePSSessionParams
+                            $script:PsSession = GetExchangePSSession @GetExchangePSSessionParams
+                        }
+                    }
+                }
+                $false
+                {
+                    WriteUserInstructionError
+                }
+            }
+            $BeginTimeStamp = Get-Date -Format yyyyMMdd-HHmmss
+            $ExchangeOrganization = Invoke-Command -Session $Script:PSSession -ScriptBlock {Get-OrganizationConfig | Select-Object -ExpandProperty Identity | Select-Object -ExpandProperty Name}
             #region ValidateParameters
-                if ('email' -in $outputmethods)
+                if ($true -eq $SendEmail)
                 {
                        if (-not $To.Count -gt 0)
                     {
@@ -155,23 +179,16 @@ function Get-PublicFolderReplicationReport
                         Write-Error 'You must specify a SmtpServer. This parameter is required when including email as an output method.'
                         return
                     }
-                }#end if email in outputmethods
-                if ('files' -in $outputmethods -or 'email' -in $outputmethods)
-                {
-                    if (-not (Test-Path -Path $FileFolderPath))
-                    {
-                        Write-Error "$FileFolderPath failed validation."
-                        Return
-                    }
-                    if ($FileFolderPath -notlike '*\'){
-                        $FileFolderPath = $FileFolderPath + '\'
-                    }
-                }
+                }#end if $SendEmail
                 #if the user specified public folder mailbox servers, validate them:
                 if ($PublicFolderMailboxServer.Count -ge 1) 
                 {
                     foreach ($Server in $PublicFolderMailboxServer) {
-                        $VerifyPFDatabase = @(Get-PublicFolderDatabase -server $Server -IncludePreExchange2010)
+                        $VerifyPFDatabase = @(
+                            Invoke-Command -Session $script:PSSession -scriptblock {
+                                Get-PublicFolderDatabase -server $using:Server -IncludePreExchange2010 -ErrorAction SilentlyContinue
+                            }
+                        )
                         if ($VerifyPFDatabase.Count -ne 1) {
                             Write-Error "$server is either not a Mailbox server or does not host a public folder database."
                             Return
@@ -182,7 +199,9 @@ function Get-PublicFolderReplicationReport
                 if ($PublicFolderMailboxServer.Count -lt 1)
                 {
                     $PublicFolderMailboxServer = @(
-                        Get-PublicFolderDatabase -includePreExchange2010 | Select-Object -ExpandProperty ServerName
+                        Invoke-Command -Session $script:PSSession -ScriptBlock {
+                            Get-PublicFolderDatabase -includePreExchange2010 | Select-Object -ExpandProperty ServerName
+                        }
                     )
                 }
             #endregion ValidateParameters
@@ -197,8 +216,12 @@ function Get-PublicFolderReplicationReport
             $PublicFolderDatabaseMailboxServers = @{}
             foreach ($server in $PublicFolderMailboxServer) 
             {
-                $PublicFolderDatabase = Get-PublicFolderDatabase -Server $Server -includePreExchange2010
-                $PublicFolderMailboxServerDatabases.$Server = $PublicFolderDatabase | Select-Object -ExpandProperty Name
+                $PublicFolderDatabase = $(
+                    Invoke-Command -Session $script:PSSession -ScriptBlock {
+                        Get-PublicFolderDatabase -Server $Using:Server -includePreExchange2010   
+                    }
+                )
+                $PublicFolderMailboxServerDatabases.$Server = $PublicFolderDatabase.Name
                 $PublicFolderDatabaseMailboxServers.$($PublicFolderDatabase.Name) = $Server
             }
             #endregion BuildServerAndDatabaseLists
@@ -214,29 +237,35 @@ function Get-PublicFolderReplicationReport
                 if ($PublicFolderPath.Count -ge 1) 
                 {
                     $publicFolderPathString = $PublicFolderPath -join ', '
-                    WriteLog -Message "Retrieving Public Folders in the following Path(s): $publicFolderPathString" -EntryType Notification -Verbose
+                    WriteLog -Message "Retrieving Public Folders in the following Path(s): $publicFolderPathString" -EntryType Notification
                     foreach($Path in $PublicFolderPath) {
-                        Get-PublicFolder $Path @GetPublicFolderParams | Select-Object -property @{n='EntryID';e={$_.EntryID.tostring()}},@{n='Identity';e={$_.Identity.tostring()}},Name,Replicas
+                        Invoke-Command -Session $script:PSSession -ScriptBlock {
+                            Get-PublicFolder $using:Path @using:GetPublicFolderParams
+                        } | Select-Object -property @{n='EntryID';e={$_.EntryID.tostring()}},@{n='Identity';e={$_.Identity.tostring()}},Name,Replicas
                     }
                 }
                 #otherwise, get all default public folders
                 else 
                 {
-                    WriteLog -message 'Retrieving All Default (Non-System) Public Folders from IPM_SUBTREE' -EntryType Notification -Verbose
-                    Get-PublicFolder -Recurse -ResultSize Unlimited | Select-Object -property @{n='EntryID';e={$_.EntryID.tostring()}},@{n='Identity';e={$_.Identity.tostring()}},Name,Replicas
+                    WriteLog -message 'Retrieving All Default (Non-System) Public Folders from IPM_SUBTREE' -EntryType Notification
+                    Invoke-Command -Session $script:PSSession -ScriptBlock {
+                        Get-PublicFolder -Recurse -ResultSize Unlimited
+                    } | Select-Object -property @{n='EntryID';e={$_.EntryID.tostring()}},@{n='Identity';e={$_.Identity.tostring()}},Name,Replicas
                     if ($IncludeSystemPublicFolders) {
-                        WriteLog -Message 'Retrieving All System Public Folders from NON_IPM_SUBTREE' -EntryType Notification -Verbose
-                        Get-PublicFolder \Non_IPM_SUBTREE -Recurse -ResultSize Unlimited | Select-Object -property @{n='EntryID';e={$_.EntryID.tostring()}},@{n='Identity';e={$_.Identity.tostring()}},Name,Replicas
+                        WriteLog -Message 'Retrieving All System Public Folders from NON_IPM_SUBTREE' -EntryType Notification
+                        Invoke-Command -Session $script:PSSession -ScriptBlock {
+                            Get-PublicFolder \Non_IPM_SUBTREE -Recurse -ResultSize Unlimited
+                        } | Select-Object -property @{n='EntryID';e={$_.EntryID.tostring()}},@{n='Identity';e={$_.Identity.tostring()}},Name,Replicas
                     }
                 }
             )
             #filter any duplicates if the user specified public folder paths
-            WriteLog -Message 'Sorting and De-duplicating retrieved Public Folders.' -EntryType Notification -Verbose
+            WriteLog -Message 'Sorting and De-duplicating retrieved Public Folders.' -EntryType Notification
             if ($PublicFolderPath.Count -ge 1) {$FolderIDs = @($FolderIDs | Select-Object -Unique -Property *)}
             #sort folders by path
             $FolderIDs = @($FolderIDs | Sort-Object Identity)
             $publicFoldersRetrievedCount = $FolderIDs.Count
-            WriteLog -Message "Count of Public Folders Retrieved: $publicFoldersRetrievedCount" -EntryType Notification -Verbose
+            WriteLog -Message "Count of Public Folders Retrieved: $publicFoldersRetrievedCount" -EntryType Notification
             #endregion BuildPublicFolderList
             #region GetPublicFolderStats
             $publicFolderStatsFromSelectedServers = 
@@ -247,8 +276,10 @@ function Get-PublicFolderReplicationReport
                 {
                     $count = 0
                     $RecordCount = $FolderIDs.Count * $PublicFolderMailboxServer.Count
-                    foreach ($FolderID in $FolderIDs) { 
-                        foreach ($Server in $PublicFolderMailboxServer){
+                    foreach ($FolderID in $FolderIDs)
+                    { 
+                        foreach ($Server in $PublicFolderMailboxServer)
+                        {
                             $customProperties = 
                             @(
                                 '*'
@@ -273,9 +304,17 @@ function Get-PublicFolderReplicationReport
                                 Write-Progress -Activity 'Retrieving Public Folder Stats for Selected Public Folders' -CurrentOperation $currentOperationString -PercentComplete $($count/$RecordCount*100) -Status "Retrieving Stats for folder replica instance $count of $RecordCount"
                                 WriteLog -Message $currentOperationString -EntryType Notification -Verbose
                                 #Error Action Silently Continue because some servers may not have a replica and we don't care about that error in this context
-                                $thestats = Get-PublicFolderStatistics -Identity $FolderID.EntryID -Server $Server -ErrorAction SilentlyContinue 
-                                if ($thestats) {$thestats | Select-Object -ExcludeProperty ServerName -Property $customProperties}
-                                else {
+                                $thestats = $(
+                                    Invoke-Command -Session $script:PSSession -ScriptBlock {
+                                        Get-PublicFolderStatistics -Identity $($using:FolderID).EntryID -Server $using:Server -ErrorAction SilentlyContinue 
+                                    }
+                                )
+                                if ($null -ne $thestats)
+                                {
+                                    $thestats | Select-Object -ExcludeProperty ServerName -Property $customProperties
+                                }
+                                else
+                                {
                                     New-Object -TypeName psobject -Property $NOstatsProperties 
                                 }
                             }
@@ -302,8 +341,15 @@ function Get-PublicFolderReplicationReport
                         Write-Verbose "Retrieving Stats for all Public Folders from $Server"
                         Write-Progress -Activity 'Retrieving Public Folder Stats' -CurrentOperation $Server -PercentComplete $($count/$RecordCount*100) -Status "Retrieving Stats for Server $count of $RecordCount"
                         #avoid NULL output by testing for results while still suppressing errors with SilentlyContinue
-                        $thestats = Get-PublicFolderStatistics -Server $Server -ResultSize Unlimited -ErrorAction SilentlyContinue 
-                        if ($thestats) {$thestats | Select-Object -ExcludeProperty ServerName -Property $customProperties}
+                        $thestats = @(
+                            Invoke-Command -Session $script:PSSession -ScriptBlock {
+                                Get-PublicFolderStatistics -Server $using:Server -ResultSize Unlimited -ErrorAction SilentlyContinue 
+                            }
+                        )
+                        if ($thestats -ne $null)
+                        {
+                            $thestats | Select-Object -ExcludeProperty ServerName -Property $customProperties
+                        }
                     }
                 } 
             )
@@ -375,7 +421,9 @@ function Get-PublicFolderReplicationReport
                         if ($resultItem.ItemCount -eq 0 -or $resultItem.ItemCount -eq $null)
                         {
                             $progress = 100
-                        } else {
+                        }
+                        else
+                        {
                             try 
                             {
                                 $ErrorActionPreference = 'Stop'
@@ -501,44 +549,43 @@ function Get-PublicFolderReplicationReport
             #region GenerateHTMLOutput
             if (('html' -in $outputformats) -or $HTMLBody)
             {
-                $html = Get-HTMLReport -ReportObject -ResultMatrix -PublicFolderMailboxServer
+                $html = GetHTMLReport -ReportObject -ResultMatrix -PublicFolderMailboxServer
             }#if to generate HTML output if required/requested
             #endregion GenerateHTMLOutput
             #region GenerateOutputFormats
-            if ('files' -in $outputmethods -or 'email' -in $outputmethods) #files output to FileFolderpath requested
-            {
-                $outputfiles = @(
-                    if ('csv' -in $outputformats) {
-                        #Create the additional summary output object(s) for CSV
-                        $PubliFolderEnvironmentSummary = [pscustomobject]@{
-                            ReportTimeStamp = $ReportObject.TimeStamp
-                            IncludedPublicFolderServersAndDatabases = $ReportObject.IncludedPublicFolderServersAndDatabases
-                            IncludedPublicFoldersCount = $ReportObject.IncludedPublicFoldersCount
-                            TotalSizeOfIncludedPublicFoldersInBytes = $ReportObject.TotalSizeOfIncludedPublicFoldersInBytes
-                            TotalItemCountFromIncludedPublicFolders = $ReportObject.TotalItemCountFromIncludedPublicFolders
-                            IncludedContainerOrEmptyPublicFoldersCount = $ReportObject.IncludedContainerOrEmptyPublicFoldersCount
-                            IncludedReplicationIncompletePublicFolders = $ReportObject.IncludedReplicationIncompletePublicFolders
-                        }
-                        $LargestPublicFolders = $ReportObject.LargestPublicFolders | Select-Object FolderPath,TotalItemSize,ItemCount
-                        #create the csv files
-                        Export-Data -ExportFolderPath $FileFolderPath -DataToExportTitle PublicFolderEnvironmentSummary -DataToExport $PubliFolderEnvironmentSummary -DataType csv -ReturnExportFilePath
-                        Export-Data -ExportFolderPath $FileFolderPath -DataToExportTitle LargestPublicFolders -DataToExport $LargestPublicFolders -DataType csv -ReturnExportFilePath
-                        Export-Data -ExportFolderPath $FileFolderPath -DataToExportTitle PublicFoldersWithIncompleteReplication -DataToExport $ReportObject.PublicFoldersWithIncompleteReplication -DataType csv -ReturnExportFilePath
-                        Export-Data -ExportFolderPath $FileFolderPath -DataToExportTitle ReplicationReportByServerPercentage -DataToExport $ReportObject.ReplicationReportByServerPercentage -DataType csv -ReturnExportFilePath
+            $outputfiles = @(
+                if ('csv' -in $outputformats)
+                {
+                    #Create the additional summary output object(s) for CSV
+                    $PubliFolderEnvironmentSummary = [pscustomobject]@{
+                        ReportTimeStamp = $ReportObject.TimeStamp
+                        IncludedPublicFolderServersAndDatabases = $ReportObject.IncludedPublicFolderServersAndDatabases
+                        IncludedPublicFoldersCount = $ReportObject.IncludedPublicFoldersCount
+                        TotalSizeOfIncludedPublicFoldersInBytes = $ReportObject.TotalSizeOfIncludedPublicFoldersInBytes
+                        TotalItemCountFromIncludedPublicFolders = $ReportObject.TotalItemCountFromIncludedPublicFolders
+                        IncludedContainerOrEmptyPublicFoldersCount = $ReportObject.IncludedContainerOrEmptyPublicFoldersCount
+                        IncludedReplicationIncompletePublicFolders = $ReportObject.IncludedReplicationIncompletePublicFolders
                     }
-                    if ('html' -in $outputformats)
-                    {
-                        $HTMLFilePath = $FileFolderPath + $(Get-TimeStamp) + 'PublicFolderEnvironmentAndReplicationReport.html'
-                        $html | Out-File -FilePath $HTMLFilePath 
-                        $HTMLFilePath
-                    }
-                )
-            }#if files or email in outputmethods
+                    $LargestPublicFolders = $ReportObject.LargestPublicFolders | Select-Object FolderPath,TotalItemSize,ItemCount
+                    #create the csv files
+                    Export-Data -ExportFolderPath $outputFolderPath -DataToExportTitle PublicFolderEnvironmentSummary -DataToExport $PubliFolderEnvironmentSummary -DataType csv -ReturnExportFilePath
+                    Export-Data -ExportFolderPath $outputFolderPath -DataToExportTitle LargestPublicFolders -DataToExport $LargestPublicFolders -DataType csv -ReturnExportFilePath
+                    Export-Data -ExportFolderPath $outputFolderPath -DataToExportTitle PublicFoldersWithIncompleteReplication -DataToExport $ReportObject.PublicFoldersWithIncompleteReplication -DataType csv -ReturnExportFilePath
+                    Export-Data -ExportFolderPath $outputFolderPath -DataToExportTitle ReplicationReportByServerPercentage -DataToExport $ReportObject.ReplicationReportByServerPercentage -DataType csv -ReturnExportFilePath
+                }
+                if ('html' -in $outputformats)
+                {
+                    $HTMLFilePath = $outputFolderPath + $(Get-TimeStamp) + 'PublicFolderEnvironmentAndReplicationReport.html'
+                    $html | Out-File -FilePath $HTMLFilePath 
+                    $HTMLFilePath
+                }
+            )
             #endregion GenerateOutputFormats
             #region SendMail
-            if ('email' -in $outputmethods)
+            if ($true -eq $SendEmail)
             {
-                if ([string]::IsNullOrEmpty($Subject)) {
+                if ([string]::IsNullOrEmpty($Subject))
+                {
                     $Subject = 'Public Folder Environment and Replication Status Report'
                 }
                 $SendMailMessageParams = @{
@@ -550,7 +597,7 @@ function Get-PublicFolderReplicationReport
                     SMTPServer = $SmtpServer
                 }
                 Send-MailMessage @SendMailMessageParams
-            }#if email in outputmethods
+            }#end if $SendMail
             #endregion SendMail
         }#end
     }

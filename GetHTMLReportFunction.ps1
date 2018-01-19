@@ -1,4 +1,4 @@
-function Get-HTMLReport
+function GetHTMLReport
     {
         [cmdletbinding()]
         param
