@@ -289,13 +289,35 @@ function Get-PublicFolderReplicationReport
                             )
                             $NOstatsProperties = 
                             @{
-                                'ServerName'=$Server
-                                'SizeInBytes'=$null
-                                'Progress'=0
-                                'ItemCount'=0
-                                'TotalItemSize'=$null
-                                'DatabaseName'=$PublicFolderMailboxServerDatabases.$Server
-                                'LastModificationTime'=$null
+                                AdminDisplayName = $null
+                                AssociatedItemCount = $null
+                                ContactCount = $null
+                                CreationTime = $null
+                                DatabaseName = $null
+                                DeletedItemCount = 0
+                                EntryId = $FolderID.EntryID
+                                ExpiryTime = $null
+                                FolderPath = $null
+                                Identity = $FolderID.EntryID
+                                IsDeletePending = $null
+                                IsValid = $null
+                                ItemCount = 0
+                                LastAccessTime = $null
+                                LastModificationTime = $null
+                                LastUserAccessTime = $null
+                                LastUserModificationTime = $null
+                                MapiIdentity =  $FolderID.Name
+                                Name = $FolderID.Name
+                                OriginatingServer = $null
+                                OwnerCount = $null
+                                ServerName = $Server
+                                StorageGroupName = $null
+                                TotalAssociatedItemSize = $null
+                                TotalDeletedItemSize = $null
+                                TotalItemSize = $null
+                                DatabaseName = $($PublicFolderMailboxServerDatabases.$Server)
+                                LastModificationTime = $null
+                                SizeInBytes = $null
                         }
                             if ($FolderID.Replicas -contains $PublicFolderMailboxServerDatabases.$Server) 
                             {
@@ -320,7 +342,7 @@ function Get-PublicFolderReplicationReport
                             }
                             else 
                             {
-                                New-Object -TypeName psobject -Property $NOstatsProperties                    
+                                New-Object -TypeName psobject -Property $NOstatsProperties
                             }
                         }#foreach $Server
                     }#foreach $FolderID
@@ -399,12 +421,34 @@ function Get-PublicFolderReplicationReport
                                 $publicFolderStatsLookup.$($Folder.EntryID + '_' + $Server) | Where-Object -FilterScript {$_} |
                                 ForEach-Object {
                                     New-Object PSObject -Property @{
-                                            'ServerName' = $_.ServerName
-                                            'DatabaseName' = $_.DatabaseName
-                                            'TotalItemSize' = $_.TotalItemSize
-                                            'ItemCount' = $_.ItemCount
-                                            'SizeInBytes' = $_.SizeInBytes
-                                            'LastModificationTime' = $_.LastModificationTime
+                                            AdminDisplayName = $_.AdminDisplayName
+                                            AssociatedItemCount = $_.AssociatedItemCount
+                                            ContactCount = $_.ContactCount
+                                            CreationTime = $_.CreationTime
+                                            DatabaseName = $_.DatabaseName
+                                            DeletedItemCount = $_.DeletedItemCount
+                                            EntryId = $_.EntryID.tostring()
+                                            ExpiryTime = $_.ExpiryTime
+                                            FolderPath = $_.FolderPath
+                                            Identity = $_.Identity.tostring()
+                                            IsDeletePending = $_.IsDeletePending
+                                            IsValid = $_.IsValid
+                                            ItemCount = $_.ItemCount
+                                            LastAccessTime = $_.LastAccessTime
+                                            LastModificationTime = $_.LastModificationTime
+                                            LastUserAccessTime = $_.LastUserAccessTime
+                                            LastUserModificationTime = $_.LastUserModificationTime
+                                            MapiIdentity =  $_.MapiIdentity
+                                            Name = $_.Name
+                                            OwnerCount = $_.OwnerCount
+                                            TotalAssociatedItemSize = $_.TotalAssociatedItemSize
+                                            TotalDeletedItemSize = $_.TotalDeletedItemSize
+                                            ServerName = $_.ServerName
+                                            DatabaseName = $_.DatabaseName
+                                            TotalItemSize = $_.TotalItemSize
+                                            ItemCount = $_.ItemCount
+                                            SizeInBytes = $_.SizeInBytes
+                                            LastModificationTime = $_.LastModificationTime
                                     }
                                 }
                             }
@@ -415,7 +459,11 @@ function Get-PublicFolderReplicationReport
                     #Get Max Total Item Size human friendly based on max Bytes
                     $resultItem.TotalItemSize = $resultItem.Data | Where-Object -FilterScript {$_.SizeInBytes -eq $resultItem.TotalBytes} | Select-Object -First 1 -ExpandProperty TotalItemSize
                     #Get Max Item Count
-                    $resultItem.ItemCount = $resultItem.Data | Measure-Object -Property ItemCount -Maximum | Select-Object -ExpandProperty Maximum        
+                    $resultItem.ItemCount = $resultItem.Data | Measure-Object -Property ItemCount -Maximum | Select-Object -ExpandProperty Maximum
+                    $resultItem.LastAccessTime = $resultItem.Data | Measure-Object -Property LastAccessTime -Maximum | Select-Object -ExpandProperty Maximum
+                    $resultItem.LastModificationTime = $resultItem.Data | Measure-Object -Property LastModificationTime -Maximum | Select-Object -ExpandProperty Maximum
+                    $resultItem.LastUserAccessTime = $resultItem.Data | Measure-Object -Property LastUserAccessTime -Maximum | Select-Object -ExpandProperty Maximum
+                    $resultItem.LastUserModificationTime = $resultItem.Data | Measure-Object -Property LastUserModificationTime -Maximum | Select-Object -ExpandProperty Maximum
                     $replCheck = $true
                     foreach($dataRecord in $resultItem.Data) {
                         if ($resultItem.ItemCount -eq 0 -or $resultItem.ItemCount -eq $null)
@@ -466,6 +514,7 @@ function Get-PublicFolderReplicationReport
                     Foreach ($result in ($ResultMatrix | Where-Object -FilterScript {$_.ReplicationCompleteOnIncludedServers -eq $false})) 
                     {
                         [pscustomobject]@{
+                            EntryID = $result.EntryID
                             FolderPath = $Result.FolderPath
                             ItemCount = $Result.ItemCount
                             TotalItemSize = $Result.TotalItemSize
@@ -593,8 +642,16 @@ function Get-PublicFolderReplicationReport
                     Attachments = $outputfiles
                     To = $to
                     From = $from
-                    Body = if ($HTMLBody) {$html} else {"Public Folder Environment and Replication Status Report Attached."}
                     SMTPServer = $SmtpServer
+                }
+                if ($HTMLBody)
+                {
+                    $SendMailMessageParams.BodyAsHTML
+                    $SendMailMessageParams.Body = $html
+                }
+                else
+                {
+                    $SendMailMessageParams.Body = "Public Folder Environment and Replication Status Report Attached."
                 }
                 Send-MailMessage @SendMailMessageParams
             }#end if $SendMail
