@@ -318,6 +318,7 @@ function Get-PublicFolderReplicationReport
                                 DatabaseName = $($PublicFolderMailboxServerDatabases.$Server)
                                 LastModificationTime = $null
                                 SizeInBytes = $null
+                            }
                         }
                             if ($FolderID.Replicas -contains $PublicFolderMailboxServerDatabases.$Server) 
                             {
@@ -446,7 +447,6 @@ function Get-PublicFolderReplicationReport
                                             ServerName = $_.ServerName
                                             DatabaseName = $_.DatabaseName
                                             TotalItemSize = $_.TotalItemSize
-                                            ItemCount = $_.ItemCount
                                             SizeInBytes = $_.SizeInBytes
                                             LastModificationTime = $_.LastModificationTime
                                     }
