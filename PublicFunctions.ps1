@@ -669,8 +669,9 @@ function Get-PublicFolderReplicationReport
                 }
                 if ('html' -in $outputformats)
                 {
-                    $HTMLFilePath = $outputFolderPath + $(Get-TimeStamp) + 'PublicFolderEnvironmentAndReplicationReport.html'
-                    $html | Out-File -FilePath $HTMLFilePath 
+                    $HTMLFileName = $BeginTimeStamp + 'PublicFolderEnvironmentAndReplicationReport.html'
+                    $HTMLFilePath = Join-Path -path $outputFolderPath -ChildPath $HTMLFileName
+                    $html | Out-File -FilePath $HTMLFilePath -Encoding utf8
                     $HTMLFilePath
                 }
             )
