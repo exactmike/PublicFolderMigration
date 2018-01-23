@@ -154,6 +154,7 @@ function Get-UserPublicFolderTree
             Splat = @{
                 Recurse = $true
                 Identity = '\'
+                ResultSize = 'Unlimited'
             }
             ExchangeOrganization = $ExchangeOrganization
         }
