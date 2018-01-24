@@ -906,11 +906,11 @@ Function Export-PublicFolderPermission
                         {
                             'Scoped'
                             { 
-                                WriteLog -Message "Operation: Scoped Permission retrieval for Public Folders with $($Identity.Count) Identities provided."
-                                $message = "Get Public Folder object for each provided Identity in Exchange Organization $ExchangeOrganization."
+                                WriteLog -Message "Operation: Scoped Permission retrieval for Public Folders with $($PublicFolderPath.Count) Public Folder Path(s) provided."
+                                $message = "Get Public Folder object(s) for each provided Identity in Exchange Organization $ExchangeOrganization."
                                 WriteLog -Message $message -EntryType Attempting
                                 $InScopeFolders = @(
-                                    $Identity | ForEach-Object {
+                                    $PublicFolderPath | ForEach-Object {
                                         $Splat = @{
                                             Identity = $_
                                             ErrorAction = 'Stop'
