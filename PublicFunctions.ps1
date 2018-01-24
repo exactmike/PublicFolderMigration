@@ -784,7 +784,7 @@ Function Export-PublicFolderPermission
             $BeginTimeStamp = Get-Date -Format yyyyMMdd-HHmmss
             $ExchangeOrganization = Invoke-Command -Session $Script:PSSession -ScriptBlock {Get-OrganizationConfig | Select-Object -ExpandProperty Identity | Select-Object -ExpandProperty Name}
             $ExchangeOrganizationIsInExchangeOnline = $ExchangeOrganization -like '*.onmicrosoft.com'
-            $HRPropertySet = @('EntryID','Identity','Name','ParentPath','HasSubFolders','FolerType','Has*','HiddenFromAddressListsEnabled','*Quota','MailEnabled','Replicas','ReplicationSchedule','RetainDeletedItemsFor','Use*')
+            $HRPropertySet = @('EntryID','Identity','Name','ParentPath','FolderType','Has*','HiddenFromAddressListsEnabled','*Quota','MailEnabled','Replicas','ReplicationSchedule','RetainDeletedItemsFor','Use*')
             switch ($PSCmdlet.ParameterSetName -eq 'Resume')
             {
                 $true
