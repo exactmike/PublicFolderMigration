@@ -940,7 +940,7 @@ Function Export-PublicFolderPermission
                         throw("Failed: $Message")
                     }
                     $InScopeFolderCount = $InScopeFolders.count
-                    WriteLog -Message "Got $InScopeFolderCount In Scope Foler Objects" -EntryType Notification
+                    WriteLog -Message "Got $InScopeFolderCount In Scope Folder Objects" -EntryType Notification
                     #EndRegion GetInScopeFolders
 
                     #Region GetInScopeMailPublicFolders
@@ -949,6 +949,7 @@ Function Export-PublicFolderPermission
                     $InScopeMailPublicFolders = @(GetMailPublicFolderPerUserPublicFolder -ExchangeSession $script:PSSession -PublicFolder $InScopeFolders -HRPropertySet $HRPropertySet -ErrorAction Stop)
                     WriteLog -message $message -entryType Succeeded
                     $InScopeMailPublicFoldersHash = $InScopeMailPublicFolders | Group-Object -AsHashTable -Property EntryID -AsString
+                    if ($null -eq $InScopeMailPublicFoldersHash) {$InScopeMailPublicFoldersHash = @{}}
                     #Region GetInScopeMailPublicFolders
 
                     #Region GetSIDHistoryData
