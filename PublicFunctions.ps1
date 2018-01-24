@@ -1041,6 +1041,10 @@ Function Export-PublicFolderPermission
                     {
                         $ISRR = $InScopeMailPublicFoldersHash.$ID
                     }
+                    else 
+                    {
+                        $ISRR = $null
+                    }
                     $message = "Collect permissions for $($ID)"
                     Write-Progress -Activity $message -status "Items processed: $($ISRCounter) of $($InScopeFolderCount)" -percentComplete (($ISRCounter / $InScopeFolderCount)*100)
                     Try
@@ -1050,12 +1054,12 @@ Function Export-PublicFolderPermission
                             If ($IncludeSendOnBehalf -and $InScopeMailPublicFoldersHash.ContainsKey($ID))
                             {
                                 Write-Verbose -Message "Getting SendOnBehalf Permissions for Target $ID"
-                                GetSendOnBehalfPermission -TargetPublicFolder $ISRR -ObjectGUIDHash $ObjectGUIDHash -ExchangeSession $Script:PSSession -ExcludedTrusteeGUIDHash $excludedTrusteeGUIDHash -ExchangeOrganization $ExchangeOrganization -HRPropertySet $HRPropertySet -DomainPrincipalHash $DomainPrincipalHash -UnfoundIdentitiesHash $UnfoundIdentitiesHash
+                                GetSendOnBehalfPermission -TargetPublicFolder $ISR -TargetMailPublicFolder $ISRR -ObjectGUIDHash $ObjectGUIDHash -ExchangeSession $Script:PSSession -ExcludedTrusteeGUIDHash $excludedTrusteeGUIDHash -ExchangeOrganization $ExchangeOrganization -HRPropertySet $HRPropertySet -DomainPrincipalHash $DomainPrincipalHash -UnfoundIdentitiesHash $UnfoundIdentitiesHash
                             }
                             If ($IncludeClientPermission)
                             {
                                 Write-Verbose -Message "Getting Client Permissions for Target $ID"
-                                GetFullAccessPermission -TargetMailbox $ISR -ObjectGUIDHash $ObjectGUIDHash -ExchangeSession $Script:PSSession -excludedTrusteeGUIDHash $excludedTrusteeGUIDHash -ExchangeOrganization $ExchangeOrganization -DomainPrincipalHash $DomainPrincipalHash -HRPropertySet $HRPropertySet -dropInheritedPermissions $dropInheritedPermissions -UnfoundIdentitiesHash $UnfoundIdentitiesHash
+                                GetClientPermission -TargetPublicFolder $ISR -TargetMailPublicFolder $ISRR -ObjectGUIDHash $ObjectGUIDHash -ExchangeSession $Script:PSSession -excludedTrusteeGUIDHash $excludedTrusteeGUIDHash -ExchangeOrganization $ExchangeOrganization -DomainPrincipalHash $DomainPrincipalHash -HRPropertySet $HRPropertySet -dropInheritedPermissions $dropInheritedPermissions -UnfoundIdentitiesHash $UnfoundIdentitiesHash
                             }
                             If ($IncludeSendAs -and $InScopeMailPublicFoldersHash.ContainsKey($ID))
                             {
@@ -1083,7 +1087,8 @@ Function Export-PublicFolderPermission
                                 UnfoundIdentitiesHash = $UnfoundIdentitiesHash
                                 HRPropertySet = $HRPropertySet
                                 exchangeSession = $Script:PSSession
-                                TargetMailbox = $ISR
+                                TargetPublicFolder = $ISR
+                                TargetMailPublicFolder = $ISRR
                             }
                             if ($dropExpandedParentGroupPermissions -eq $true)
                             {$splat.dropExpandedParentGroupPermissions = $true}
@@ -1096,7 +1101,8 @@ Function Export-PublicFolderPermission
                             if ($PermissionExportObjects.Count -eq 0 -and -not $ExcludeNonePermissionOutput -eq $true)
                             {
                                 $GPEOParams = @{
-                                    TargetMailbox = $ISR
+                                    TargetPublicFolder = $ISR
+                                    TargetMailPublicFolder = $ISRR
                                     TrusteeIdentity = 'Not Applicable'
                                     TrusteeRecipientObject = $null
                                     PermissionType = 'None'

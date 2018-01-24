@@ -175,6 +175,10 @@ Function GetSendOnBehalfPermission
         (
             $TargetPublicFolder
             ,
+            [parameter()]
+            [AllowNull()]
+            $TargetMailPublicFolder
+            ,
             [System.Management.Automation.Runspaces.PSSession]$ExchangeSession
             ,
             [hashtable]$ObjectGUIDHash
@@ -190,11 +194,11 @@ Function GetSendOnBehalfPermission
             $HRPropertySet #Property set for recipient object inclusion in object lookup hashtables
         )
         GetCallerPreference -Cmdlet $PSCmdlet -SessionState $ExecutionContext.SessionState -Name VerbosePreference
-        if ($null -ne $TargetPublicFolder.GrantSendOnBehalfTo -and $TargetPublicFolder.GrantSendOnBehalfTo.ToArray().count -ne 0)
+        if ($null -ne $TargetMailPublicFolder -and $null -ne $TargetMailPublicFolder.GrantSendOnBehalfTo -and $TargetMailPublicFolder.GrantSendOnBehalfTo.ToArray().count -ne 0)
         {
             #Write-Verbose -message "Target Mailbox has entries in GrantSendOnBehalfTo"
             $splat = @{
-                Identity = $TargetPublicFolder.PFIdentity
+                Identity = $TargetMailPublicFolder.PFIdentity
                 ErrorAction = 'Stop'
             }
             #Write-Verbose -Message "Getting Trustee Objects from GrantSendOnBehalfTo"
@@ -223,7 +227,8 @@ Function GetSendOnBehalfPermission
                     $true
                     {
                         $npeoParams = @{
-                            TargetMailbox = $TargetPublicFolder
+                            TargetPublicFolder = $TargetPublicFolder
+                            TargetMailPublicFolder = $TargetMailPublicFolder
                             TrusteeIdentity = $sb.objectguid.guid
                             TrusteeRecipientObject = $null
                             PermissionType = 'SendOnBehalf'
@@ -238,7 +243,8 @@ Function GetSendOnBehalfPermission
                         if (-not $excludedTrusteeGUIDHash.ContainsKey($trusteeRecipient.guid.guid))
                         {
                             $npeoParams = @{
-                                TargetMailbox = $TargetPublicFolder
+                                TargetPublicFolder = $TargetPublicFolder
+                                TargetMailPublicFolder = $TargetMailPublicFolder
                                 TrusteeIdentity = $sb.objectguid.guid
                                 TrusteeRecipientObject = $trusteeRecipient
                                 PermissionType = 'SendOnBehalf'
@@ -260,6 +266,10 @@ function GetClientPermission
         param
         (
             $TargetPublicFolder
+            ,
+            [parameter()]
+            [AllowNull()]
+            $TargetMailPublicFolder
             ,
             [System.Management.Automation.Runspaces.PSSession]$ExchangeSession
             ,
@@ -305,10 +315,12 @@ function GetClientPermission
                 $true
                 {
                     $npeoParams = @{
-                        TargetMailbox = $TargetPublicFolder
+                        TargetPublicFolder = $TargetPublicFolder
+                        TargetMailPublicFolder = $TargetMailPublicFolder
                         TrusteeIdentity = $cp.User
                         TrusteeRecipientObject = $null
                         PermissionType = 'ClientPermission'
+                        AccessRights = $cp.AccessRights -join '|'
                         AssignmentType = 'Undetermined'
                         IsInherited = $fa.IsInherited
                         SourceExchangeOrganization = $ExchangeOrganization
@@ -320,10 +332,12 @@ function GetClientPermission
                     if (-not $excludedTrusteeGUIDHash.ContainsKey($trusteeRecipient.guid.guid))
                     {
                         $npeoParams = @{
-                            TargetMailbox = $TargetPublicFolder
+                            TargetPublicFolder = $TargetPublicFolder
+                            TargetMailPublicFolder = $TargetMailPublicFolder
                             TrusteeIdentity = $cp.User
                             TrusteeRecipientObject = $trusteeRecipient
                             PermissionType = 'ClientPermission'
+                            AccessRights = $cp.AccessRights -join '|'
                             AssignmentType = switch -Wildcard ($trusteeRecipient.RecipientTypeDetails) {'*group*' {'GroupMembership'} $null {'Undetermined'} Default {'Direct'}}
                             IsInherited = $fa.IsInherited
                             SourceExchangeOrganization = $ExchangeOrganization
@@ -650,7 +664,11 @@ function ExpandGroupPermission
         (
             [psobject[]]$Permission
             ,
-            $TargetMailbox
+            $TargetPublicFolder
+            ,
+            [parameter()]
+            [AllowNull()]
+            $TargetMailPublicFolder
             ,
             [hashtable]$ObjectGUIDHash
             ,
@@ -716,11 +734,13 @@ function ExpandGroupPermission
                                 if (-not $excludedTrusteeGUIDHash.ContainsKey($trusteeRecipient.guid.guid))
                                 {
                                     $npeoParams = @{
-                                        TargetMailbox = $TargetMailbox
+                                        TargetPublicFolder = $TargetPublicFolder
+                                        TargetMailPublicFolder = $TargetMailPublicFolder
                                         TrusteeIdentity = $trusteeRecipient.guid.guid
                                         TrusteeRecipientObject = $trusteeRecipient
                                         TrusteeGroupObjectGUID = $gp.TrusteeObjectGUID
                                         PermissionType = $gp.PermissionType
+                                        AccessRights = $gp.AccessRights
                                         AssignmentType = 'GroupMembership'
                                         SourceExchangeOrganization = $ExchangeOrganization
                                         IsInherited = $gp.IsInherited
@@ -778,6 +798,9 @@ function NewPermissionExportObject
         [ValidateSet('FullAccess','SendOnBehalf','SendAs','None','ClientPermission')]
         $PermissionType
         ,
+        [parameter()]
+        [AllowNull()]
+        [AllowEmptyString()]
         [string]$AccessRights
         ,
         [parameter()]
@@ -801,13 +824,15 @@ function NewPermissionExportObject
                 PermissionIdentity = $Script:PermissionIdentity
                 ParentPermissionIdentity = $ParentPermissionIdentity
                 SourceExchangeOrganization = $SourceExchangeOrganization
-                TargetObjectGUID = $TargetMailbox.Guid.Guid
-                TargetObjectExchangeGUID = $TargetMailbox.ExchangeGuid.Guid
-                TargetDistinguishedName = $TargetMailbox.DistinguishedName
-                TargetPrimarySMTPAddress = $TargetMailbox.PrimarySmtpAddress.ToString()
-                TargetRecipientType = $TargetMailbox.RecipientType
-                TargetRecipientTypeDetails = $TargetMailbox.RecipientTypeDetails
+                TargetEntryID = $TargetPublicFolder.EntryID
+                TargetObjectGUID = $null
+                TargetObjectExchangeGUID = $null
+                TargetDistinguishedName = $null
+                TargetPrimarySMTPAddress = $null
+                TargetRecipientType = $null
+                TargetRecipientTypeDetails = $null
                 PermissionType = $PermissionType
+                AccessRights = $AccessRights
                 AssignmentType = $AssignmentType
                 TrusteeGroupObjectGUID = $TrusteeGroupObjectGUID
                 TrusteeIdentity = $TrusteeIdentity
@@ -819,6 +844,14 @@ function NewPermissionExportObject
                 TrusteeRecipientType = $null
                 TrusteeRecipientTypeDetails = $null
             }
+        if ($null -ne $TargetMailPublicFolder)
+        {
+            $PermissionExportObject.TargetObjectGUID = $TargetMailPublicFolder.Guid.Guid
+            $PermissionExportObject.TargetDistinguishedName = $TargetMailPublicFolder.DistinguishedName
+            $PermissionExportObject.TargetPrimarySMTPAddress = $TargetMailPublicFolder.PrimarySmtpAddress.ToString()
+            $PermissionExportObject.TargetRecipientType = $TargetMailPublicFolder.RecipientType
+            $PermissionExportObject.TargetRecipientTypeDetails = $TargetMailPublicFolder.RecipientTypeDetails
+        }
         if ($null -ne $TrusteeRecipientObject)
         {
             $PermissionExportObject.TrusteeObjectGUID = $TrusteeRecipientObject.guid.Guid
