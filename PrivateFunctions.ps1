@@ -286,7 +286,7 @@ function GetClientPermission
             $HRPropertySet #Property set for recipient object inclusion in object lookup hashtables
         )
         GetCallerPreference -Cmdlet $PSCmdlet -SessionState $ExecutionContext.SessionState -Name VerbosePreference
-        $splat = @{Identity = $TargetPublicFolder.EntryID; ErrorAction = 'Stop'}
+        $splat = @{Identity = $TargetPublicFolder.EntryID.tostring(); ErrorAction = 'Stop'}
         try
         {
             $RawClientPermissions = @(Invoke-Command -Session $ExchangeSession -ScriptBlock {Get-PublicFolderClientPermission @using:splat} -ErrorAction Stop)
