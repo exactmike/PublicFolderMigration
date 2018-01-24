@@ -297,18 +297,18 @@ function GetClientPermission
             WriteLog -Message $myerror.tostring() -ErrorLog -Verbose -EntryType Failed
             $RawClientPermissions = @()
         }
-        foreach ($cp in $RawClientPermissions)
+        foreach ($rcp in $RawClientPermissions)
         {
-            switch -Wildcard ($cp.User)
+            switch -Wildcard ($rcp.User)
             {
                 'Default'
                 {$trusteeRecipient = $null}
                 'Anonymous'
                 {$trusteeRecipient = $null}
                 'NT User:S-*'
-                {$trusteeRecipient = GetTrusteeObject -TrusteeIdentity $user -HRPropertySet $HRPropertySet -ObjectGUIDHash $ObjectGUIDHash -DomainPrincipalHash $DomainPrincipalHash -SIDHistoryHash $SIDHistoryRecipientHash -ExchangeSession $ExchangeSession -ExchangeOrganizationIsInExchangeOnline $ExchangeOrganizationIsInExchangeOnline -UnfoundIdentitiesHash $UnFoundIdentitiesHash}
+                {$trusteeRecipient = GetTrusteeObject -TrusteeIdentity $rcp.user -HRPropertySet $HRPropertySet -ObjectGUIDHash $ObjectGUIDHash -DomainPrincipalHash $DomainPrincipalHash -SIDHistoryHash $SIDHistoryRecipientHash -ExchangeSession $ExchangeSession -ExchangeOrganizationIsInExchangeOnline $ExchangeOrganizationIsInExchangeOnline -UnfoundIdentitiesHash $UnFoundIdentitiesHash}
                 Default
-                {$trusteeRecipient = GetTrusteeObject -TrusteeIdentity $user -HRPropertySet $HRPropertySet -ObjectGUIDHash $ObjectGUIDHash -DomainPrincipalHash $DomainPrincipalHash -SIDHistoryHash $SIDHistoryRecipientHash -ExchangeSession $ExchangeSession -ExchangeOrganizationIsInExchangeOnline $ExchangeOrganizationIsInExchangeOnline -UnfoundIdentitiesHash $UnFoundIdentitiesHash}
+                {$trusteeRecipient = GetTrusteeObject -TrusteeIdentity $rcp.user -HRPropertySet $HRPropertySet -ObjectGUIDHash $ObjectGUIDHash -DomainPrincipalHash $DomainPrincipalHash -SIDHistoryHash $SIDHistoryRecipientHash -ExchangeSession $ExchangeSession -ExchangeOrganizationIsInExchangeOnline $ExchangeOrganizationIsInExchangeOnline -UnfoundIdentitiesHash $UnFoundIdentitiesHash}
             }
             switch ($null -eq $trusteeRecipient)
             {
@@ -317,10 +317,10 @@ function GetClientPermission
                     $npeoParams = @{
                         TargetPublicFolder = $TargetPublicFolder
                         TargetMailPublicFolder = $TargetMailPublicFolder
-                        TrusteeIdentity = $cp.User
+                        TrusteeIdentity = $rcp.User
                         TrusteeRecipientObject = $null
                         PermissionType = 'ClientPermission'
-                        AccessRights = $cp.AccessRights -join '|'
+                        AccessRights = $rcp.AccessRights -join '|'
                         AssignmentType = 'Undetermined'
                         IsInherited = $false
                         SourceExchangeOrganization = $ExchangeOrganization
@@ -334,10 +334,10 @@ function GetClientPermission
                         $npeoParams = @{
                             TargetPublicFolder = $TargetPublicFolder
                             TargetMailPublicFolder = $TargetMailPublicFolder
-                            TrusteeIdentity = $cp.User
+                            TrusteeIdentity = $rcp.User
                             TrusteeRecipientObject = $trusteeRecipient
                             PermissionType = 'ClientPermission'
-                            AccessRights = $cp.AccessRights -join '|'
+                            AccessRights = $rcp.AccessRights -join '|'
                             AssignmentType = switch -Wildcard ($trusteeRecipient.RecipientTypeDetails) {'*group*' {'GroupMembership'} $null {'Undetermined'} Default {'Direct'}}
                             IsInherited = $false
                             SourceExchangeOrganization = $ExchangeOrganization
