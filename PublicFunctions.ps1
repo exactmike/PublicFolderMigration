@@ -716,6 +716,9 @@ Function Export-PublicFolderPermission
             $OutputFolderPath
             ,
             [parameter(ParameterSetName = 'Scoped')]
+            [switch]$Recurse
+            ,
+            [parameter(ParameterSetName = 'Scoped')]
             [string[]]$PublicFolderPath = @()
             ,
             #Public Folder identities to exclude from permissions gathering (use folder name, full path, or EntryID).  EntryID is preferred as it is guaranteed to be unique.
@@ -908,10 +911,11 @@ Function Export-PublicFolderPermission
                                 WriteLog -Message $message -EntryType Attempting
                                 $InScopeFolders = @(
                                     $Identity | ForEach-Object {
-                                        $splat = @{
+                                        $Splat = @{
                                             Identity = $_
                                             ErrorAction = 'Stop'
                                         }
+                                        if ($Recurse -eq $true) {$Splat.Recurse = $true}
                                         Invoke-Command -Session $Script:PSSession -ScriptBlock {Get-PublicFolder @Using:splat | Select-Object -Property $Using:HRPropertySet} -ErrorAction Stop
                                     }
                                 )
@@ -1053,7 +1057,7 @@ Function Export-PublicFolderPermission
                             If ($IncludeClientPermission)
                             {
                                 Write-Verbose -Message "Getting Client Permissions for Target $ID"
-                                GetClientPermission -TargetPublicFolder $ISR -TargetMailPublicFolder $ISRR -ObjectGUIDHash $ObjectGUIDHash -ExchangeSession $Script:PSSession -excludedTrusteeGUIDHash $excludedTrusteeGUIDHash -ExchangeOrganization $ExchangeOrganization -DomainPrincipalHash $DomainPrincipalHash -HRPropertySet $HRPropertySet -dropInheritedPermissions $dropInheritedPermissions -UnfoundIdentitiesHash $UnfoundIdentitiesHash
+                                GetClientPermission -TargetPublicFolder $ISR -TargetMailPublicFolder $ISRR -ObjectGUIDHash $ObjectGUIDHash -ExchangeSession $Script:PSSession -excludedTrusteeGUIDHash $excludedTrusteeGUIDHash -ExchangeOrganization $ExchangeOrganization -DomainPrincipalHash $DomainPrincipalHash -HRPropertySet $HRPropertySet -UnfoundIdentitiesHash $UnfoundIdentitiesHash
                             }
                             If ($IncludeSendAs -and $InScopeMailPublicFoldersHash.ContainsKey($ID))
                             {
