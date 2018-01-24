@@ -944,18 +944,11 @@ Function Export-PublicFolderPermission
                     #EndRegion GetInScopeFolders
 
                     #Region GetInScopeMailPublicFolders
-                    if ($IncludeSendAs -eq $true -or $IncludeSendOnBehalf -eq $true)
-                    {
-                        $message = 'Get Mail Enabled Public Folders To support retrieval of SendAS and/or SendOnBehalf Permissions.'
-                        WriteLog -message $message -entryType Attempting
-                        $InScopeMailPublicFolders = @(GetMailPublicFolderPerUserPublicFolder -ExchangeSession $script:PSSession -PublicFolder $InScopeFolders -HRPropertySet $HRPropertySet -ErrorAction Stop)
-                        WriteLog -message $message -entryType Succeeded
-                        $InScopeMailPublicFoldersHash = $InScopeMailPublicFolders | Group-Object -AsHashTable -Property EntryID -AsString
-                    }
-                    else
-                    {
-                        $InScopeMailPublicFoldersHash = @{}
-                    }
+                    $message = 'Get Mail Enabled Public Folders To support retrieval of SendAS and/or SendOnBehalf Permissions and more information for ClientPermissions.'
+                    WriteLog -message $message -entryType Attempting
+                    $InScopeMailPublicFolders = @(GetMailPublicFolderPerUserPublicFolder -ExchangeSession $script:PSSession -PublicFolder $InScopeFolders -HRPropertySet $HRPropertySet -ErrorAction Stop)
+                    WriteLog -message $message -entryType Succeeded
+                    $InScopeMailPublicFoldersHash = $InScopeMailPublicFolders | Group-Object -AsHashTable -Property EntryID -AsString
                     #Region GetInScopeMailPublicFolders
 
                     #Region GetSIDHistoryData

@@ -977,7 +977,7 @@ Function GetMailPublicFolderPerUserPublicFolder
             $PFCount++
             $Params.Identity = $pf.Identity
             $InnerMessage = "Get-MailPublicFolder -Identity $($params.Identity)"
-            Write-Progress -Activity $message -Status $InnerMessage -CurrentOperation "$PFCount of $($PublicFolder.Count)" -PercentComplete $PFCount/$($PublicFolder.Count)*100
+            Write-Progress -Activity $message -Status $InnerMessage -CurrentOperation "$PFCount of $($PublicFolder.Count)" -PercentComplete $PFCount/$PublicFolder.Count*100
             try
             {
                 Invoke-Command @splat | Select-Object -Property $HRPropertySet | Select-Object -Property *,@{n='EntryID';e={$pf.EntryID}},@{n='PFIdentity';e={$pf.Identity}}
