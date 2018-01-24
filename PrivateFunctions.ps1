@@ -322,7 +322,7 @@ function GetClientPermission
                         PermissionType = 'ClientPermission'
                         AccessRights = $cp.AccessRights -join '|'
                         AssignmentType = 'Undetermined'
-                        IsInherited = $fa.IsInherited
+                        IsInherited = $false
                         SourceExchangeOrganization = $ExchangeOrganization
                     }
                     NewPermissionExportObject @npeoParams
@@ -339,7 +339,7 @@ function GetClientPermission
                             PermissionType = 'ClientPermission'
                             AccessRights = $cp.AccessRights -join '|'
                             AssignmentType = switch -Wildcard ($trusteeRecipient.RecipientTypeDetails) {'*group*' {'GroupMembership'} $null {'Undetermined'} Default {'Direct'}}
-                            IsInherited = $fa.IsInherited
+                            IsInherited = $false
                             SourceExchangeOrganization = $ExchangeOrganization
                         }
                         NewPermissionExportObject @npeoParams
