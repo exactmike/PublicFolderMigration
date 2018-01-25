@@ -217,6 +217,26 @@ function GetGetExchangePSSessionParams
         $GetExchangePSSessionParams
     }
 #end Function GetGetExchangePSSessionParams
+
+Function RemoveExchangePSSession
+    {
+        [CmdletBinding()]
+        param
+        (
+            [System.Management.Automation.Runspaces.PSSession]$PSSession = $script:PSSession
+        )
+        Remove-PSSession -Session $PsSession -ErrorAction SilentlyContinue
+    }
+#end Function RemoveExchangePSSession
+function WriteUserInstructionError
+    {
+        $message = "You must call the Connect-ExchangeOrganization function before calling any other cmdlets which require an active Exchange Organization connection."
+        throw($message)
+    }
+#end function WriteUserInstructionError
+###############################################################################################
+#Test (True/False) Functions
+###############################################################################################
 Function TestExchangePSSession
     {
         [CmdletBinding()]
@@ -245,25 +265,6 @@ Function TestExchangePSSession
         }
     }
 #end Function TestExchangePSSession
-Function RemoveExchangePSSession
-    {
-        [CmdletBinding()]
-        param
-        (
-            [System.Management.Automation.Runspaces.PSSession]$PSSession = $script:PSSession
-        )
-        Remove-PSSession -Session $PsSession -ErrorAction SilentlyContinue
-    }
-#end Function RemoveExchangePSSession
-function WriteUserInstructionError
-    {
-        $message = "You must call the Connect-ExchangeOrganization function before calling any other cmdlets which require an active Exchange Organization connection."
-        throw($message)
-    }
-#end function WriteUserInstructionError
-###############################################################################################
-#Test (True/False) Functions
-###############################################################################################
 function TestTCPConnection
     {
         <#
@@ -433,3 +434,43 @@ function TestIsWriteableDirectory
         }
     }
 #end function TestIsWriteableDirectory
+function TestADPsDrive
+    {
+        [cmdletbinding()]
+        param
+        (
+            [string]$Name
+            ,
+            [switch]$IsRootofDirectory
+        )
+        
+        #Check PSDrive:  Should be AD, Should be Root of the PSDrive
+        Try
+        {
+            $ADPSDrive = Get-PSDrive -name $name -PSProvider ActiveDirectory -ErrorAction Stop
+        }
+        Catch
+        {
+            Write-Verbose -message "No PSDrive with Name $name and PSProviderType ActiveDirectory exists."
+            $false
+        }
+
+        $PSDriveTests = @{
+            ProviderIsActiveDirectory = $($ADPSDrive.Provider.name -eq 'ActiveDirectory')
+        }
+
+        if ($IsRootDSE)
+        {
+            $psdriveTests.RootIsRootOfDirectory = ($ADPSDrive.Root -eq '//RootDSE/')
+        }
+
+        if ($PSDriveTests.Values -contains $false)
+        {
+            $false
+        }
+        else
+        {
+            $true
+        }
+    }
+#end function Test-ADPSDrive
