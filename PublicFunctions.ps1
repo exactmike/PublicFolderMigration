@@ -715,6 +715,10 @@ Function Export-PublicFolderPermission
             [ValidateScript({TestIsWriteableDirectory -Path $_})]
             $OutputFolderPath
             ,
+            [parameter()]
+            [ValidateScript({TestADPSDrive -name $_ -IsRootofDirectory})]
+            $ADPSDriveName
+            ,
             [parameter(ParameterSetName = 'Scoped')]
             [switch]$Recurse
             ,
@@ -740,11 +744,13 @@ Function Export-PublicFolderPermission
             [Parameter(ParameterSetName = 'AllPublicFolders')]
             [bool]$IncludeSendOnBehalf = $true
             ,
-            [bool]$expandGroups = $true
+            [bool]$ExpandGroups = $true
             ,
-            [bool]$dropExpandedParentGroupPermissions = $false
+            [bool]$DropExpandedParentGroupPermissions = $false
             ,
-            [bool]$dropInheritedPermissions = $false
+            [bool]$DropInheritedPermissions = $false
+            ,
+            [switch]$IncludeSIDHistory
             ,
             [switch]$ExcludeNonePermissionOutput
             ,
@@ -772,7 +778,7 @@ Function Export-PublicFolderPermission
                         $false
                         {
                             WriteLog -Message 'Removing Existing Failed PSSession' -EntryType Notification
-                            Remove-PSSession -Session $script:PsSession -ErrorAction SilentlyContinue
+                            RemoveExchangePSSession -Session $script:PsSession
                             WriteLog -Message 'Establishing New PSSession to Exchange Organization' -EntryType Notification
                             $GetExchangePSSessionParams = GetGetExchangePSSessionParams
                             $script:PsSession = GetExchangePSSession @GetExchangePSSessionParams
@@ -787,6 +793,17 @@ Function Export-PublicFolderPermission
             $BeginTimeStamp = Get-Date -Format yyyyMMdd-HHmmss
             $ExchangeOrganization = Invoke-Command -Session $Script:PSSession -ScriptBlock {Get-OrganizationConfig | Select-Object -ExpandProperty Identity | Select-Object -ExpandProperty Name}
             $ExchangeOrganizationIsInExchangeOnline = $ExchangeOrganization -like '*.onmicrosoft.com'
+
+            if ($ExchangeOrganizationIsInExchangeOnline -eq $false -and $null -eq $ADPSDriveName -and ($includeSidHistory -or $IncludeSendAs -or $ExpandGroups))
+            {
+                throw ('You need to use the ADPSDrive name parameter to provide an existing PowerShell Active Directory PSdrive connection to the AD forest where Exchange is installed')
+            }
+            if ($ExchangeOrganizationIsInExchangeOnline -eq $true -and $IncludeSIDHistory)
+            {
+                throw ('You cannot include SidHistory when your Exchange Organization is in Exchange Online.')
+            }
+
+            #Configure properties to retain in memory / hashtables for retrieved public folders
             $HRPropertySet = @('EntryID','Identity','Name','ParentPath','FolderType','Has*','HiddenFromAddressListsEnabled','*Quota','MailEnabled','Replicas','ReplicationSchedule','RetainDeletedItemsFor','Use*')
             switch ($PSCmdlet.ParameterSetName -eq 'Resume')
             {
@@ -959,7 +976,7 @@ Function Export-PublicFolderPermission
                     #Region GetSIDHistoryData
                     if ($IncludeSIDHistory -eq $true)
                     {
-                        $SIDHistoryRecipientHash = GetSIDHistoryRecipientHash -ActiveDirectoryDrive $ActiveDirectoryDrive -ExchangeSession $Script:PSSession -ErrorAction Stop
+                        $SIDHistoryRecipientHash = GetSIDHistoryRecipientHash -ADPSDriveName $ADPSDriveName -ExchangeSession $Script:PSSession -ErrorAction Stop
                     }
                     else 
                     {
@@ -1062,15 +1079,15 @@ Function Export-PublicFolderPermission
                             If ($IncludeSendAs -and $InScopeMailPublicFoldersHash.ContainsKey($ID))
                             {
                                 Write-Verbose -Message "Getting SendAS Permissions for Target $ID"
-                                if ($ExchangeOrganizationIsInExchangeOnline -or $UseExchangeCommandsInsteadOfADOrLDAP)
+                                if ($ExchangeOrganizationIsInExchangeOnline)
                                 {
                                     Write-Verbose -Message "Getting SendAS Permissions for Target $ID Via Exchange Commands"
-                                    GetSendASPermissionsViaExchange -TargetPublicFolder $ISRR -ExchangeSession $Script:PSSession -ObjectGUIDHash $ObjectGUIDHash -excludedTrusteeGUIDHash $ -dropInheritedPermissions $dropInheritedPermissions -DomainPrincipalHash $DomainPrincipalHash -ExchangeOrganization $ExchangeOrganization -ExchangeOrganizationIsInExchangeOnline $ExchangeOrganizationIsInExchangeOnline -HRPropertySet $HRPropertySet -UnfoundIdentitiesHash $UnfoundIdentitiesHash
+                                    GetSendASPermissionsViaExchange -TargetPublicFolder $ISRR -TargetMailPublicFolder $ISRR -ExchangeSession $Script:PSSession -ObjectGUIDHash $ObjectGUIDHash -excludedTrusteeGUIDHash $ -dropInheritedPermissions $dropInheritedPermissions -DomainPrincipalHash $DomainPrincipalHash -ExchangeOrganization $ExchangeOrganization -ExchangeOrganizationIsInExchangeOnline $ExchangeOrganizationIsInExchangeOnline -HRPropertySet $HRPropertySet -UnfoundIdentitiesHash $UnfoundIdentitiesHash
                                 }
                                 else
                                 {
                                     Write-Verbose -Message "Getting SendAS Permissions for Target $ID Via LDAP Commands"
-                                    GetSendASPermisssionsViaLocalLDAP -TargetPublicFolder $ISR -ExchangeSession $Script:PSSession -ObjectGUIDHash $ObjectGUIDHash -excludedTrusteeGUIDHash $excludedTrusteeGUIDHash -dropInheritedPermissions $dropInheritedPermissions -DomainPrincipalHash $DomainPrincipalHash -ExchangeOrganization $ExchangeOrganization -ExchangeOrganizationIsInExchangeOnlin $ExchangeOrganizationIsInExchangeOnline -HRPropertySet $HRPropertySet -UnfoundIdentitiesHash $UnfoundIdentitiesHash
+                                    GetSendASPermisssionsViaADPSDrive -TargetPublicFolder $ISR -TargetMailPublicFolder $ISRR -ExchangeSession $Script:PSSession -ObjectGUIDHash $ObjectGUIDHash -excludedTrusteeGUIDHash $excludedTrusteeGUIDHash -dropInheritedPermissions $dropInheritedPermissions -DomainPrincipalHash $DomainPrincipalHash -ExchangeOrganization $ExchangeOrganization -ExchangeOrganizationIsInExchangeOnlin $ExchangeOrganizationIsInExchangeOnline -HRPropertySet $HRPropertySet -UnfoundIdentitiesHash $UnfoundIdentitiesHash -ADPSDriveName $ADPSDriveName
                                 }
                             }
                         )
@@ -1090,8 +1107,14 @@ Function Export-PublicFolderPermission
                             }
                             if ($dropExpandedParentGroupPermissions -eq $true)
                             {$splat.dropExpandedParentGroupPermissions = $true}
-                            if ($ExchangeOrganizationIsInExchangeOnline -or $UseExchangeCommandsInsteadOfADOrLDAP)
-                            {$splat.UseExchangeCommandsInsteadOfADOrLDAP = $true}
+                            if ($ExchangeOrganizationIsInExchangeOnline)
+                            {
+                                $splat.UseExchangeCommandsInsteadOfADOrLDAP = $true
+                            }
+                            else
+                            {
+                                $splat.ADPSDriveName = $ADPSDriveName    
+                            }
                             $PermissionExportObjects = @(ExpandGroupPermission @splat)
                         }
                         if (TestExchangePSSession -PSSession $Script:PSSession)

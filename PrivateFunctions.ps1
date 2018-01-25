@@ -7,21 +7,24 @@ Function GetSIDHistoryRecipientHash
         param
         (
             [parameter(Mandatory)]
-            $ActiveDirectoryDrive
+            [string]$ADPSDriveName
             ,
             [System.Management.Automation.Runspaces.PSSession]$ExchangeSession
-        )#End param
+        )
 
+        $ldapfilter = "(&(legacyExchangeDN=*)(sidhistory=*))"
+
+        GetCallerPreference -Cmdlet $PSCmdlet -SessionState $ExecutionContext.SessionState -Name VerbosePreference
         Push-Location
-        WriteLog -Message "Operation: Retrieve Mapping for all User Recipients with SIDHistory."
+        $ADPSDrivePath = $ADPSDriveName + ':\'
+        Set-Location -Path $ADPSDrivePath -ErrorAction Stop
 
         #Region GetSIDHistoryUsers
-        Set-Location $($ActiveDirectoryDrive.Name + ':\') -ErrorAction Stop
         Try
         {
-            $message = "Get AD Users with SIDHistory from AD Drive $($activeDirectoryDrive.Name)"
+            $message = "Get AD Objects with Exchange Attributes and SIDHistory from AD Drive $ADPSDriveName"
             WriteLog -Message $message -EntryType Attempting
-            $sidHistoryUsers = @(Get-Aduser -ldapfilter "(&(legacyExchangeDN=*)(sidhistory=*))" -Properties sidhistory,legacyExchangeDN -ErrorAction Stop)
+            $sidHistoryUsers = @(Get-adobject -ldapfilter $ldapfilter -Properties sidhistory,legacyExchangeDN -ErrorAction Stop)
             WriteLog -Message $message -EntryType Succeeded
         }
         Catch
@@ -32,8 +35,8 @@ Function GetSIDHistoryRecipientHash
             throw("Failed: $Message")
         }
         Pop-Location
-        WriteLog -Message "Got $($sidHistoryUsers.count) Users with SID History from AD $($ActiveDirectoryDrive.name)" -EntryType Notification
-        #EndRegion GetSIDHistoryUsers
+        WriteLog -Message "Got $($sidHistoryUsers.count) AD Objects with Exchange Attributes and SIDHistory from AD Drive $ADPSDriveName" -EntryType Notification
+        #EndRegion GetSIDHistoryObjects
 
         $sidhistoryusercounter = 0
         $SIDHistoryRecipientHash = @{}
@@ -354,7 +357,9 @@ function GetSendASPermissionsViaExchange
         [cmdletbinding()]
         param
         (
-            $TargetMailbox
+            $TargetPublicFolder
+            ,
+            $TargetMailPublicFolder
             ,
             [System.Management.Automation.Runspaces.PSSession]$ExchangeSession
             ,
@@ -383,7 +388,7 @@ function GetSendASPermissionsViaExchange
                 $splat = @{
                     ErrorAction = 'Stop'
                     ResultSize = 'Unlimited'
-                    Identity = $TargetMailbox.guid.guid
+                    Identity = $TargetMailPublicFolder.guid.guid
                     AccessRights = 'SendAs'
                 }
                 try
@@ -402,7 +407,7 @@ function GetSendASPermissionsViaExchange
                 $command = 'Get-ADPermission'
                 $splat = @{
                     ErrorAction = 'Stop'
-                    Identity = $TargetMailbox.distinguishedname
+                    Identity = $TargetMailPublicFolder.distinguishedname
                 }
                 #Get All AD Permissions
                 try
@@ -436,7 +441,8 @@ function GetSendASPermissionsViaExchange
                 $true
                 {
                     $npeoParams = @{
-                        TargetMailbox = $TargetMailbox
+                        TargetPublicFolder = $TargetPublicFolder
+                        TargetMailPublicFolder = $TargetMailPublicFolder
                         TrusteeIdentity = $sa.$IdentityProperty
                         TrusteeRecipientObject = $null
                         PermissionType = 'SendAs'
@@ -451,7 +457,8 @@ function GetSendASPermissionsViaExchange
                     if (-not $excludedTrusteeGUIDHash.ContainsKey($trusteeRecipient.guid.guid))
                     {
                         $npeoParams = @{
-                            TargetMailbox = $TargetMailbox
+                            TargetPublicFolder = $TargetPublicFolder
+                            TargetMailPublicFolder = $TargetMailPublicFolder
                             TrusteeIdentity = $sa.$IdentityProperty
                             TrusteeRecipientObject = $trusteeRecipient
                             PermissionType = 'SendAs'
@@ -466,14 +473,19 @@ function GetSendASPermissionsViaExchange
         }#end foreach
     }
 #end function Get-SendASPermissionViaExchange
-function GetSendASPermisssionsViaLocalLDAP
+function GetSendASPermisssionsViaADPSDrive
     {
         [cmdletbinding()]
         param
         (
-            $TargetMailbox
+            $TargetPublicFolder
+            ,
+            $TargetMailPublicFolder
             ,
             [System.Management.Automation.Runspaces.PSSession]$ExchangeSession
+            ,
+            [parameter(Mandatory)]
+            [string]$ADPSDriveName
             ,
             [hashtable]$ObjectGUIDHash
             ,
@@ -492,32 +504,51 @@ function GetSendASPermisssionsViaLocalLDAP
             $HRPropertySet #Property set for recipient object inclusion in object lookup hashtables
         )
         GetCallerPreference -Cmdlet $PSCmdlet -SessionState $ExecutionContext.SessionState -Name VerbosePreference
+        
+        #use the AD Drive Provided
+        Push-Location
+        $ADPSDrivePath = $ADPSDriveName + ':\'
+        Set-Location -Path $ADPSDrivePath -ErrorAction Stop
+
         #Well-known GUID for Send As Permissions, see function Get-SendASRightGUID
         $SendASRight = [GUID]'ab721a54-1e2f-11d0-9819-00aa0040529b'
-        $userDN = [ADSI]("LDAP://$($TargetMailbox.DistinguishedName)")
+        
         $saRawPermissions = @(
-            $userDN.psbase.ObjectSecurity.Access | Where-Object -FilterScript { (($_.ObjectType -eq $SendASRight) -or ($_.ActiveDirectoryRights -eq 'GenericAll')) -and ($_.AccessControlType -eq 'Allow')} | Where-Object -FilterScript {$_.IdentityReference -notlike "NT AUTHORITY\SELF"}| Select-Object identityreference,IsInherited 
-            # Where-Object -FilterScript {($_.identityreference.ToString().split('\')[0]) -notin $ExcludedTrusteeDomains}
-            # Where-Object -FilterScript {$_.identityreference -notin $ExcludedTrustees}|
+            Try 
+            {
+                (Get-ACL -Path $TargetMailPublicFolder.DistinguishedName -ErrorAction Stop).Access |
+                Where-Object -FilterScript {(($_.ObjectType -eq $SendASRight) -or ($_.ActiveDirectoryRights -eq 'GenericAll')) -and ($_.AccessControlType -eq 'Allow')} |
+                Where-Object -FilterScript {$_.IdentityReference.tostring() -ne "NT AUTHORITY\SELF"} |
+                Select-Object -Property identityreference,IsInherited 
+                # Where-Object -FilterScript {($_.identityreference.ToString().split('\')[0]) -notin $ExcludedTrusteeDomains} #not doing this part yet
+                # Where-Object -FilterScript {$_.identityreference.tostring() -notin $ExcludedTrustees} #we do this below now
+            }
+            Catch
+            {
+                $myerror = $_
+                WriteLog -Message $myerror.tostring() -ErrorLog -Verbose -EntryType Failed
+            }
         )
+
+        Pop-Location
+
         if ($dropInheritedPermissions -eq $true)
         {
             $saRawPermissions = @($saRawPermissions | Where-Object -FilterScript {$_.IsInherited -eq $false})
         }
-        $IdentityProperty = switch ($ExchangeOrganizationIsInExchangeOnline) {$true {'Trustee'} $false {'User'}}
-        #Drop Self Permissions
-        $saRawPermissions = @($saRawPermissions | Where-Object -FilterScript {$_.$IdentityProperty -ne 'NT AUTHORITY\SELF'})
+
         #Lookup Trustee Recipients and export permission if found
         foreach ($sa in $saRawPermissions)
         {
-            $trusteeRecipient = GetTrusteeObject -TrusteeIdentity $sa.$IdentityProperty -HRPropertySet $HRPropertySet -ObjectGUIDHash $ObjectGUIDHash -DomainPrincipalHash $DomainPrincipalHash -SIDHistoryHash $SIDHistoryRecipientHash -ExchangeSession $ExchangeSession -ExchangeOrganizationIsInExchangeOnline $ExchangeOrganizationIsInExchangeOnline -UnfoundIdentitiesHash $UnFoundIdentitiesHash
+            $trusteeRecipient = GetTrusteeObject -TrusteeIdentity $sa.IdentityReference.tostring() -HRPropertySet $HRPropertySet -ObjectGUIDHash $ObjectGUIDHash -DomainPrincipalHash $DomainPrincipalHash -SIDHistoryHash $SIDHistoryRecipientHash -ExchangeSession $ExchangeSession -ExchangeOrganizationIsInExchangeOnline $ExchangeOrganizationIsInExchangeOnline -UnfoundIdentitiesHash $UnFoundIdentitiesHash
             switch ($null -eq $trusteeRecipient)
             {
                 $true
                 {
                     $npeoParams = @{
-                        TargetMailbox = $TargetMailbox
-                        TrusteeIdentity = $sa.$IdentityProperty
+                        TargetPublicFolder = $TargetPublicFolder
+                        TargetMailPublicFolder = $TargetMailPublicFolder
+                        TrusteeIdentity = $sa.IdentityReference.tostring()
                         TrusteeRecipientObject = $null
                         PermissionType = 'SendAs'
                         AssignmentType = 'Undetermined'
@@ -531,8 +562,9 @@ function GetSendASPermisssionsViaLocalLDAP
                     if (-not $excludedTrusteeGUIDHash.ContainsKey($trusteeRecipient.guid.guid))
                     {
                         $npeoParams = @{
-                            TargetMailbox = $TargetMailbox
-                            TrusteeIdentity = $sa.$IdentityProperty
+                            TargetPublicFolder = $TargetPublicFolder
+                            TargetMailPublicFolder = $TargetMailPublicFolder
+                            TrusteeIdentity = $sa.IdentityReference.tostring()
                             TrusteeRecipientObject = $trusteeRecipient
                             PermissionType = 'SendAs'
                             AssignmentType = switch -Wildcard ($trusteeRecipient.RecipientTypeDetails) {$null {'Undetermined'} '*group*' {'GroupMembership'} Default {'Direct'}}
@@ -603,14 +635,18 @@ function GetGroupMemberExpandedViaExchange
         $AllResolvedMembers
     }
 #end function GetGroupMemberExpandedViaExchange
-function GetGroupMemberExpandedViaLocalLDAP
+function GetGroupMemberExpandedViaADPSDrive
     {
         [CmdletBinding()]
         param
         (
             [string]$Identity #distinguishedName
             ,
+            [parameter(Mandatory)]            
             [System.Management.Automation.Runspaces.PSSession]$ExchangeSession
+            ,
+            [parameter(Mandatory)]
+            [string]$ADPSDriveName
             ,
             $hrPropertySet
             ,
@@ -624,36 +660,33 @@ function GetGroupMemberExpandedViaLocalLDAP
             ,
             $ExchangeOrganizationIsInExchangeOnline
         )
-        if (-not (Test-Path -Path variable:script:dsLookFor))
-        {
-            #enumerate groups: http://stackoverflow.com/questions/8055338/listing-users-in-ad-group-recursively-with-powershell-script-without-cmdlets/8055996#8055996
-            $script:dse = [ADSI]"LDAP://Rootdse"
-            $script:dn = [ADSI]"LDAP://$($script:dse.DefaultNamingContext)"
-            $script:dsLookFor = New-Object System.DirectoryServices.DirectorySearcher($script:dn)
-            $script:dsLookFor.SearchScope = "subtree" 
-        }
-        $script:dsLookFor.Filter = "(&(memberof:1.2.840.113556.1.4.1941:=$($Identity))(objectCategory=user))"
-        Try
-        {
-            $OriginalErrorActionPreference = $ErrorActionPreference
-            $ErrorActionPreference = 'Stop'
-            $TrusteeUserObjects = @($dsLookFor.findall())
-            $ErrorActionPreference = $OriginalErrorActionPreference
-        }
-        Catch
-        {
-            $myError = $_
-            $ErrorActionPreference = $OriginalErrorActionPreference
-            $TrusteeUserObjects = @()
-            WriteLog -Message $myError.tostring() -ErrorLog -EntryType Failed -Verbose
-        }
+        #enumerate groups: http://stackoverflow.com/questions/8055338/listing-users-in-ad-group-recursively-with-powershell-script-without-cmdlets/8055996#8055996
+        $LDAPFilter = "(&(memberof:1.2.840.113556.1.4.1941:=$($Identity))(objectCategory=user))"
 
-        foreach ($u in $TrusteeUserObjects)
+        GetCallerPreference -Cmdlet $PSCmdlet -SessionState $ExecutionContext.SessionState -Name VerbosePreference
+        Push-Location
+        $ADPSDrivePath = $ADPSDriveName + ':\'
+        Set-Location -Path $ADPSDrivePath -ErrorAction Stop
+        
+        $TrusteeObjects = @(
+            Try
+            {
+                Get-ADObject -ldapfilter $LDAPFilter -ErrorAction Stop
+            }
+            Catch
+            {
+                $myError = $_
+                WriteLog -Message $myError.tostring() -ErrorLog -EntryType Failed -Verbose
+            }    
+        )
+
+        Pop-Location
+
+        foreach ($to in $TrusteeObjects)
         {
-            $TrusteeIdentity = $(GetGuidFromByteArray -GuidByteArray $($u.Properties.objectguid)).guid
+            $TrusteeIdentity = $to.objectguid.guid
             $trusteeRecipient = GetTrusteeObject -TrusteeIdentity $TrusteeIdentity -HRPropertySet $HRPropertySet -ObjectGUIDHash $ObjectGUIDHash -DomainPrincipalHash $DomainPrincipalHash -SIDHistoryHash $SIDHistoryRecipientHash -ExchangeSession $ExchangeSession -ExchangeOrganizationIsInExchangeOnline $ExchangeOrganizationIsInExchangeOnline -UnfoundIdentitiesHash $UnFoundIdentitiesHash
-            if ($null -ne $trusteeRecipient)
-            {$trusteeRecipient}
+            if ($null -ne $trusteeRecipient) { $trusteeRecipient }
         }
     }
 #end function GetGroupMemberExpandedViaExchange
@@ -681,6 +714,8 @@ function ExpandGroupPermission
             $HRPropertySet
             ,
             [System.Management.Automation.Runspaces.PSSession]$ExchangeSession
+            ,
+            [string]$ADPSDriveName
             ,
             $dropExpandedParentGroupPermissions
             ,
@@ -713,7 +748,7 @@ function ExpandGroupPermission
                             }
                             else
                             {
-                                $UserTrustees = @(GetGroupMemberExpandedViaLocalLDAP -Identity $gp.TrusteeDistinguishedName -ExchangeSession $exchangeSession -hrPropertySet $HRPropertySet -ObjectGUIDHash $ObjectGUIDHash -DomainPrincipalHash $DomainPrincipalHash -SIDHistoryRecipientHash $SIDHistoryRecipientHash -ExchangeOrganizationIsInExchangeOnline $ExchangeOrganizationIsInExchangeOnline -UnfoundIdentitiesHash $UnfoundIdentitiesHash)
+                                $UserTrustees = @(GetGroupMemberExpandedViaADPSDrive -Identity $gp.TrusteeDistinguishedName -ExchangeSession $exchangeSession -hrPropertySet $HRPropertySet -ObjectGUIDHash $ObjectGUIDHash -DomainPrincipalHash $DomainPrincipalHash -SIDHistoryRecipientHash $SIDHistoryRecipientHash -ExchangeOrganizationIsInExchangeOnline $ExchangeOrganizationIsInExchangeOnline -UnfoundIdentitiesHash $UnfoundIdentitiesHash -ADPSDriveName $ADPSDriveName)
                             }
                             #and add them to the expansion hashtable
                             $script:ExpandedGroupsNonGroupMembershipHash.$($gp.TrusteeObjectGUID) = $UserTrustees
