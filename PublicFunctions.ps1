@@ -521,7 +521,7 @@ function Get-PublicFolderReplicationReport
                             ConfiguredReplicaServers = 
                             $(
                                 $databases = $result.ConfiguredReplicas.split(',')
-                                $servers = $databases | foreach {$PublicFolderDatabaseMailboxServers.$_}
+                                $servers = $databases | ForEach-Object {$PublicFolderDatabaseMailboxServers.$_}
                                 $Servers -join ','
                             )
                             CompleteServers = 
