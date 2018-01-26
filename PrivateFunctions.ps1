@@ -1000,15 +1000,16 @@ Function GetMailPublicFolderPerUserPublicFolder
             $CurrentPF++
             $GetMailPublicFolderParams = @{
                 Identity = $pf.Identity.tostring()
-                #ErrorAction = 'SilentlyContinue'
-                #WarningAction = 'SilentlyContinue'
+                ErrorAction = 'SilentlyContinue'
+                WarningAction = 'SilentlyContinue'
             }
             $InnerMessage = "Get-MailPublicFolder -Identity $($pf.Identity.tostring())"
             Write-Progress -Activity $message -Status $InnerMessage -CurrentOperation "$CurrentPF of $PublicFolderCount" -PercentComplete $($CurrentPF/$PublicFolderCount*100)
             try
             {
-                Invoke-Command -Session $ExchangeSession -ScriptBlock { Get-MailPublicFolder @using:GetMailPublicFolderParams } | Select-Object -Property *,@{n='EntryID';e={$pf.EntryID}},@{n='PFIdentity';e={$pf.Identity}}
                 #output Selected object with additional properties from the Pf object
+                Invoke-Command -Session $ExchangeSession -ScriptBlock { Get-MailPublicFolder @using:GetMailPublicFolderParams } -ErrorAction SilentlyContinue -WarningAction SilentlyContinue | 
+                Select-Object -Property *,@{n='EntryID';e={$pf.EntryID}},@{n='PFIdentity';e={$pf.Identity}}
             }
             catch
             {
