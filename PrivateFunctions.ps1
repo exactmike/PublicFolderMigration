@@ -1011,7 +1011,7 @@ Function GetMailPublicFolderPerUserPublicFolder
             {
                 $rawMailFolderObject = Invoke-Command -Session $ExchangeSession -ScriptBlock { Get-MailPublicFolder @using:GetMailPublicFolderParams } #-ErrorAction SilentlyContinue =WarningAction SilentlyContinue
                 #output Selected object with additional properties from the Pf object
-                $rawMailFolderObject | Select-Object -Property $HRPropertySet | Select-Object -Property *,@{n='EntryID';e={$pf.EntryID}},@{n='PFIdentity';e={$pf.Identity}}
+                $rawMailFolderObject | Select-Object -Property $HRPropertySet | Select-Object -Property *,@{n='EntryID';e={$pf.EntryID}},@{n='PFIdentity';e={$pf.Identity}} -ExcludeProperty EntryID
             }
             catch
             {
