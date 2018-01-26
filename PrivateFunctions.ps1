@@ -1014,7 +1014,7 @@ Function GetMailPublicFolderPerUserPublicFolder
             {
                 $myerror = $_
                 WriteLog -message $InnerMessage -EntryType Failed
-                WriteLog -message $myerror.tostring -ErrorLog
+                WriteLog -message $myerror.tostring() -ErrorLog
             }
         }
         WriteLog -Message $message -EntryType Succeeded
