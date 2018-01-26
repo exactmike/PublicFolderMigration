@@ -197,7 +197,7 @@ Function GetSendOnBehalfPermission
             $HRPropertySet #Property set for recipient object inclusion in object lookup hashtables
         )
         GetCallerPreference -Cmdlet $PSCmdlet -SessionState $ExecutionContext.SessionState -Name VerbosePreference
-        if ($null -ne $TargetMailPublicFolder -and $null -ne $TargetMailPublicFolder.GrantSendOnBehalfTo -and $TargetMailPublicFolder.GrantSendOnBehalfTo.ToArray().count -ne 0)
+        if ($null -ne $TargetMailPublicFolder -and $null -ne $TargetMailPublicFolder.GrantSendOnBehalfTo -and $TargetMailPublicFolder.GrantSendOnBehalfTo.count -ge 1)
         {
             #Write-Verbose -message "Target Mailbox has entries in GrantSendOnBehalfTo"
             $splat = @{
