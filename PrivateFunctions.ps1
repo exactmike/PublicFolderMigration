@@ -1005,7 +1005,7 @@ Function GetMailPublicFolderPerUserPublicFolder
                 ErrorAction = 'SilentlyContinue'
                 WarningAction = 'SilentlyContinue'
             }
-            $InnerMessage = "Get-MailPublicFolder -Identity $($params.Identity)"
+            $InnerMessage = "Get-MailPublicFolder -Identity $($pf.Identity)"
             Write-Progress -Activity $message -Status $InnerMessage -CurrentOperation "$CurrentPF of $PublicFolderCount" -PercentComplete $($CurrentPF/$PublicFolderCount*100)
             try
             {
