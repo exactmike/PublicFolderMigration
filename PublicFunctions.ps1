@@ -967,7 +967,7 @@ Function Export-PublicFolderPermission
                     #Region GetInScopeMailPublicFolders
                     $message = 'Get Mail Enabled Public Folders To support retrieval of SendAS and/or SendOnBehalf Permissions and more information for ClientPermissions.'
                     WriteLog -message $message -entryType Attempting
-                    $InScopeMailPublicFolders = @(GetMailPublicFolderPerUserPublicFolder -ExchangeSession $script:PSSession -PublicFolder $InScopeFolders -HRPropertySet $HRPropertySet -ErrorAction Stop)
+                    $InScopeMailPublicFolders = @(GetMailPublicFolderPerUserPublicFolder -ExchangeSession $script:PSSession -PublicFolder $InScopeFolders -ErrorAction Stop)
                     WriteLog -message $message -entryType Succeeded
                     $InScopeMailPublicFoldersHash = $InScopeMailPublicFolders | Group-Object -AsHashTable -Property EntryID -AsString
                     if ($null -eq $InScopeMailPublicFoldersHash) {$InScopeMailPublicFoldersHash = @{}}
