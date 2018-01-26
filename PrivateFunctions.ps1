@@ -994,28 +994,24 @@ Function GetMailPublicFolderPerUserPublicFolder
             ,
             $HRPropertySet
         )
-        $splat = @{
-            scriptblock = 'Get-MailPublicFolder @using:params'
-            ErrorAction = 'Stop'
-            Session = $ExchangeSession
-        }
-        $Params = @{
-            Identity = ''
-            ErrorAction = 'SilentlyContinue'
-            WarningAction = 'SilentlyContinue'
-        }
         $message = "Get-MailPublicFolder for each Public Folder"
         WriteLog -Message $message -EntryType Attempting
         $PublicFolderCount = $PublicFolder.Count
         foreach ($pf in $PublicFolder)
         {
             $CurrentPF++
-            $Params.Identity = $pf.Identity
+            $GetMailPublicFolderParams = @{
+                Identity = $pf.Identity
+                ErrorAction = 'SilentlyContinue'
+                WarningAction = 'SilentlyContinue'
+            }
             $InnerMessage = "Get-MailPublicFolder -Identity $($params.Identity)"
             Write-Progress -Activity $message -Status $InnerMessage -CurrentOperation "$CurrentPF of $PublicFolderCount" -PercentComplete $($CurrentPF/$PublicFolderCount*100)
             try
             {
-                Invoke-Command @splat | Select-Object -Property $HRPropertySet | Select-Object -Property *,@{n='EntryID';e={$pf.EntryID}},@{n='PFIdentity';e={$pf.Identity}}
+                $rawMailFolderObject = Invoke-Command -Session $ExchangeSession -ScriptBlock { Get-MailPublicFolder @using:GetMailPublicFolderParams } -ErrorAction SilentlyContinue =WarningAction SilentlyContinue
+                #output Selected object with additional properties from the Pf object
+                $rawMailFolderObject | Select-Object -Property $HRPropertySet | Select-Object -Property *,@{n='EntryID';e={$pf.EntryID}},@{n='PFIdentity';e={$pf.Identity}}
             }
             catch
             {
