@@ -1047,8 +1047,8 @@ Function Export-PublicFolderPermission
                     $Recovering = $false
                     $ISRCounter++
                     $ISR = $InScopeFolders[$i]
-                    $ID = $ISR.EntryID
-                    if ($excludedPublicFoldersEntryIDHash.ContainsKey($ISR.EntryID))
+                    $ID = $ISR.EntryID.tostring()
+                    if ($excludedPublicFoldersEntryIDHash.ContainsKey($ID))
                     {
                         WriteLog -Message "Excluding Excluded Folder with EntryID $ID"
                         continue nextISR
