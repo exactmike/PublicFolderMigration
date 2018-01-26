@@ -1069,25 +1069,25 @@ Function Export-PublicFolderPermission
                         $PermissionExportObjects = @(
                             If ($IncludeSendOnBehalf -and $InScopeMailPublicFoldersHash.ContainsKey($ID))
                             {
-                                Write-Verbose -Message "Getting SendOnBehalf Permissions for Target $ID"
+                                WriteLog -Message "Getting SendOnBehalf Permissions for Target $ID" -entryType Notification
                                 GetSendOnBehalfPermission -TargetPublicFolder $ISR -TargetMailPublicFolder $ISRR -ObjectGUIDHash $ObjectGUIDHash -ExchangeSession $Script:PSSession -ExcludedTrusteeGUIDHash $excludedTrusteeGUIDHash -ExchangeOrganization $ExchangeOrganization -HRPropertySet $HRPropertySet -DomainPrincipalHash $DomainPrincipalHash -UnfoundIdentitiesHash $UnfoundIdentitiesHash
                             }
                             If ($IncludeClientPermission)
                             {
-                                Write-Verbose -Message "Getting Client Permissions for Target $ID"
+                                WriteLog -Message "Getting Client Permissions for Target $ID" -entryType Notification
                                 GetClientPermission -TargetPublicFolder $ISR -TargetMailPublicFolder $ISRR -ObjectGUIDHash $ObjectGUIDHash -ExchangeSession $Script:PSSession -excludedTrusteeGUIDHash $excludedTrusteeGUIDHash -ExchangeOrganization $ExchangeOrganization -DomainPrincipalHash $DomainPrincipalHash -HRPropertySet $HRPropertySet -UnfoundIdentitiesHash $UnfoundIdentitiesHash
                             }
                             If ($IncludeSendAs -and $InScopeMailPublicFoldersHash.ContainsKey($ID))
                             {
-                                Write-Verbose -Message "Getting SendAS Permissions for Target $ID"
+                                WriteLog -Message "Getting SendAS Permissions for Target $ID" -entryType Notification
                                 if ($ExchangeOrganizationIsInExchangeOnline)
                                 {
-                                    Write-Verbose -Message "Getting SendAS Permissions for Target $ID Via Exchange Commands"
+                                    WriteLog -Message "Getting SendAS Permissions for Target $ID Via Exchange Commands" -entryType Notification
                                     GetSendASPermissionsViaExchange -TargetPublicFolder $ISRR -TargetMailPublicFolder $ISRR -ExchangeSession $Script:PSSession -ObjectGUIDHash $ObjectGUIDHash -excludedTrusteeGUIDHash $ -dropInheritedPermissions $dropInheritedPermissions -DomainPrincipalHash $DomainPrincipalHash -ExchangeOrganization $ExchangeOrganization -ExchangeOrganizationIsInExchangeOnline $ExchangeOrganizationIsInExchangeOnline -HRPropertySet $HRPropertySet -UnfoundIdentitiesHash $UnfoundIdentitiesHash
                                 }
                                 else
                                 {
-                                    Write-Verbose -Message "Getting SendAS Permissions for Target $ID Via LDAP Commands"
+                                    WriteLog -Message "Getting SendAS Permissions for Target $ID Via AD Commands" -entryType Notification
                                     GetSendASPermisssionsViaADPSDrive -TargetPublicFolder $ISR -TargetMailPublicFolder $ISRR -ExchangeSession $Script:PSSession -ObjectGUIDHash $ObjectGUIDHash -excludedTrusteeGUIDHash $excludedTrusteeGUIDHash -dropInheritedPermissions $dropInheritedPermissions -DomainPrincipalHash $DomainPrincipalHash -ExchangeOrganization $ExchangeOrganization -ExchangeOrganizationIsInExchangeOnlin $ExchangeOrganizationIsInExchangeOnline -HRPropertySet $HRPropertySet -UnfoundIdentitiesHash $UnfoundIdentitiesHash -ADPSDriveName $ADPSDriveName
                                 }
                             }

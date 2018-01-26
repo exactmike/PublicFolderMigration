@@ -577,7 +577,7 @@ function GetSendASPermisssionsViaADPSDrive
             }#end switch
         }#end foreach
     }
-#end function Get-SendASPermissionsViaLocalLDAP
+#end function GetSendASPermisssionsViaADPSDrive
 function GetGroupMemberExpandedViaExchange
     {
         [CmdletBinding()]
