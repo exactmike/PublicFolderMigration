@@ -969,6 +969,7 @@ Function Export-PublicFolderPermission
                     WriteLog -message $message -entryType Attempting
                     $InScopeMailPublicFolders = @(GetMailPublicFolderPerUserPublicFolder -ExchangeSession $script:PSSession -PublicFolder $InScopeFolders -ErrorAction Stop)
                     WriteLog -message $message -entryType Succeeded
+                    WriteLog -Message "Got $($InScopeMailPublicFolders.count) In Scope Mail Public Folder Objects" -EntryType Notification
                     $InScopeMailPublicFoldersHash = $InScopeMailPublicFolders | Group-Object -AsHashTable -Property EntryID -AsString
                     if ($null -eq $InScopeMailPublicFoldersHash) {$InScopeMailPublicFoldersHash = @{}}
                     #Region GetInScopeMailPublicFolders
