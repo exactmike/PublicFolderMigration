@@ -162,9 +162,15 @@ function GetTrusteeObject
             }
         }
         #if we found nothing, add the Identity to the UnfoundIdentitiesHash
-        if ($null -eq $trusteeObject -and $null -ne $TrusteeIdentity -and -not [string]::IsNullOrEmpty($TrusteeIdentity) -and -not $UnfoundIdentitiesHash.ContainsKey($TrusteeIdentity))
+        if ($null -eq $trusteeObject -and $null -ne $TrusteeIdentity) 
         {
-            $UnfoundIdentitiesHash.$TrusteeIdentity = $null
+            if (-not [string]::IsNullOrEmpty($TrusteeIdentity))
+            {
+                if (-not $UnfoundIdentitiesHash.ContainsKey($TrusteeIdentity))
+                {
+                    $UnfoundIdentitiesHash.$TrusteeIdentity = $null
+                }
+            }
         }
         if ($null -ne $trusteeObject -and $trusteeObject.Count -ge 2)
         {
