@@ -91,6 +91,12 @@ function GetTrusteeObject
             Write-Verbose -Message "Getting Object for TrusteeIdentity $TrusteeIdentity"
             switch ($TrusteeIdentity)
             {
+                {$null -eq $TrusteeIdentity}
+                {
+                    $null
+                    Write-Verbose -Message 'Trustee Identity is NULL'
+                    break
+                }
                 {$UnfoundIdentitiesHash.ContainsKey($_)}
                 {
                     $null
@@ -113,12 +119,6 @@ function GetTrusteeObject
                 {
                     $SIDHistoryHash.$($_)
                     Write-Verbose -Message 'Found Trustee in SIDHistoryHash'
-                    break
-                }
-                {$null -eq $TrusteeIdentity}
-                {
-                    $null
-                    Write-Verbose -Message 'Trustee Identity is NULL'
                     break
                 }
                 Default
