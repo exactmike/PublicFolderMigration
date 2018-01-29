@@ -803,7 +803,8 @@ Function Export-PublicFolderPermission
                 throw ('You cannot include SidHistory when your Exchange Organization is in Exchange Online.')
             }
 
-            #Configure properties to retain in memory / hashtables for retrieved public folders
+            #Configure properties to retain in memory / hashtables for retrieved public folders and Recipients
+            $PFPropertySet = @('*name*','*addr*','RecipientType*','*Id','Identity','GrantSendOnBehalfTo')
             $HRPropertySet = @('EntryID','Identity','Name','ParentPath','FolderType','Has*','HiddenFromAddressListsEnabled','*Quota','MailEnabled','Replicas','ReplicationSchedule','RetainDeletedItemsFor','Use*')
             switch ($PSCmdlet.ParameterSetName -eq 'Resume')
             {
@@ -861,7 +862,7 @@ Function Export-PublicFolderPermission
                                         Identity = $_
                                         ErrorAction = 'Stop'
                                     }
-                                    Invoke-Command -Session $Script:PSSession -ScriptBlock {Get-PublicFolder @Using:splat | Select-Object -Property $using:HRPropertySet} -ErrorAction 'Stop'
+                                    Invoke-Command -Session $Script:PSSession -ScriptBlock {Get-PublicFolder @Using:splat | Select-Object -Property $using:PFPropertySet} -ErrorAction 'Stop'
                                 }
                             )
                             WriteLog -Message $message -EntryType Succeeded
@@ -933,7 +934,7 @@ Function Export-PublicFolderPermission
                                             ErrorAction = 'Stop'
                                         }
                                         if ($Recurse -eq $true) {$Splat.Recurse = $true}
-                                        Invoke-Command -Session $Script:PSSession -ScriptBlock {Get-PublicFolder @Using:splat | Select-Object -Property $Using:HRPropertySet} -ErrorAction Stop
+                                        Invoke-Command -Session $Script:PSSession -ScriptBlock {Get-PublicFolder @Using:splat | Select-Object -Property $Using:PFPropertySet} -ErrorAction Stop
                                     }
                                 )
                                 WriteLog -Message $message -EntryType Succeeded
@@ -948,7 +949,7 @@ Function Export-PublicFolderPermission
                                     ErrorAction = 'Stop'
                                     Recurse = $true
                                 }
-                                $InScopeFolders = @(Invoke-Command -Session $Script:PSSession -ScriptBlock {Get-PublicFolder @Using:splat | Select-Object -Property $Using:HRPropertySet} -ErrorAction Stop)
+                                $InScopeFolders = @(Invoke-Command -Session $Script:PSSession -ScriptBlock {Get-PublicFolder @Using:splat | Select-Object -Property $Using:PFPropertySet} -ErrorAction Stop)
                                 WriteLog -Message $message -EntryType Succeeded
                             }#end AllMailboxes
                         }#end Switch
