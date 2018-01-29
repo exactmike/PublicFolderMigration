@@ -804,8 +804,8 @@ Function Export-PublicFolderPermission
             }
 
             #Configure properties to retain in memory / hashtables for retrieved public folders and Recipients
-            $PFPropertySet = @('*name*','*addr*','RecipientType*','*Id','Identity','GrantSendOnBehalfTo')
-            $HRPropertySet = @('EntryID','Identity','Name','ParentPath','FolderType','Has*','HiddenFromAddressListsEnabled','*Quota','MailEnabled','Replicas','ReplicationSchedule','RetainDeletedItemsFor','Use*')
+            $PFPropertySet = @('EntryID','Identity','Name','ParentPath','FolderType','Has*','HiddenFromAddressListsEnabled','*Quota','MailEnabled','Replicas','ReplicationSchedule','RetainDeletedItemsFor','Use*')
+            $HRPropertySet = @('*name*','*addr*','RecipientType*','*Id','Identity','GrantSendOnBehalfTo')
             switch ($PSCmdlet.ParameterSetName -eq 'Resume')
             {
                 $true
