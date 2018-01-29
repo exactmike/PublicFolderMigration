@@ -541,7 +541,7 @@ function GetSendASPermisssionsViaADPSDrive
                 WriteLog -Message $myerror.tostring() -ErrorLog -Verbose -EntryType Failed
             }
         )
-        WriteLog -message "Found $($saRawPermissions.Count) SendAS Permisisons"
+        #WriteLog -message "Found $($saRawPermissions.Count) SendAS Permisisons"
         Pop-Location
 
         if ($dropInheritedPermissions -eq $true)

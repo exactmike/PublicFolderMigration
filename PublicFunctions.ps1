@@ -1083,12 +1083,12 @@ Function Export-PublicFolderPermission
                                 WriteLog -Message "Getting SendAS Permissions for Target $ID" -entryType Notification
                                 if ($ExchangeOrganizationIsInExchangeOnline)
                                 {
-                                    WriteLog -Message "Getting SendAS Permissions for Target $ID Via Exchange Commands" -entryType Notification
+                                    #WriteLog -Message "Getting SendAS Permissions for Target $ID Via Exchange Commands" -entryType Notification
                                     GetSendASPermissionsViaExchange -TargetPublicFolder $ISRR -TargetMailPublicFolder $ISRR -ExchangeSession $Script:PSSession -ObjectGUIDHash $ObjectGUIDHash -excludedTrusteeGUIDHash $ -dropInheritedPermissions $dropInheritedPermissions -DomainPrincipalHash $DomainPrincipalHash -ExchangeOrganization $ExchangeOrganization -ExchangeOrganizationIsInExchangeOnline $ExchangeOrganizationIsInExchangeOnline -HRPropertySet $HRPropertySet -UnfoundIdentitiesHash $UnfoundIdentitiesHash
                                 }
                                 else
                                 {
-                                    WriteLog -Message "Getting SendAS Permissions for Target $ID Via AD Commands" -entryType Notification
+                                    #WriteLog -Message "Getting SendAS Permissions for Target $ID Via AD Commands" -entryType Notification
                                     GetSendASPermisssionsViaADPSDrive -TargetPublicFolder $ISR -TargetMailPublicFolder $ISRR -ExchangeSession $Script:PSSession -ObjectGUIDHash $ObjectGUIDHash -excludedTrusteeGUIDHash $excludedTrusteeGUIDHash -dropInheritedPermissions $dropInheritedPermissions -DomainPrincipalHash $DomainPrincipalHash -ExchangeOrganization $ExchangeOrganization -ExchangeOrganizationIsInExchangeOnlin $ExchangeOrganizationIsInExchangeOnline -HRPropertySet $HRPropertySet -UnfoundIdentitiesHash $UnfoundIdentitiesHash -ADPSDriveName $ADPSDriveName
                                 }
                             }
