@@ -1094,7 +1094,7 @@ Function Export-PublicFolderPermission
                         )
                         if ($expandGroups -eq $true)
                         {
-                            Write-Verbose -Message "Expanding Group Based Permissions for Target $ID"
+                            WriteLog -Message "Expanding Group Based Permissions for Target $ID" -entryType Notification
                             $splat = @{
                                 Permission = $PermissionExportObjects
                                 ObjectGUIDHash = $ObjectGUIDHash

@@ -570,6 +570,7 @@ function GetSendASPermisssionsViaADPSDrive
                 }#end $true
                 $false
                 {
+                    Write-Verbose -Message "Trustee Recipient for SendAs Permission is NOT Null. guid is $($trusteeRecipient.guid.guid)"
                     if (-not $excludedTrusteeGUIDHash.ContainsKey($trusteeRecipient.guid.guid))
                     {
                         $npeoParams = @{
