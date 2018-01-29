@@ -1024,8 +1024,11 @@ Function GetMailPublicFolderPerUserPublicFolder
             try
             {
                 #output Selected object with additional properties from the Pf object
-                Invoke-Command -Session $ExchangeSession -ScriptBlock { Get-MailPublicFolder @using:GetMailPublicFolderParams } -ErrorAction SilentlyContinue -WarningAction SilentlyContinue | 
-                Select-Object -Property *,@{n='EntryID';e={$pf.EntryID}},@{n='PFIdentity';e={$pf.Identity}}
+                $MEPF = @(Invoke-Command -Session $ExchangeSession -ScriptBlock { Get-MailPublicFolder @using:GetMailPublicFolderParams } -ErrorAction SilentlyContinue -WarningAction SilentlyContinue)
+                if ($null -ne $MEPF -and $MEPF.Count -eq 1)
+                {
+                   $MEPF | Select-Object -Property *,@{n='EntryID';e={$pf.EntryID}},@{n='PFIdentity';e={$pf.Identity}}
+                }
             }
             catch
             {
