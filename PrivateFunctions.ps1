@@ -189,8 +189,7 @@ Function GetSendOnBehalfPermission
         (
             $TargetPublicFolder
             ,
-            [parameter()]
-            [AllowNull()]
+            [parameter(Mandatory)]
             $TargetMailPublicFolder
             ,
             [System.Management.Automation.Runspaces.PSSession]$ExchangeSession
@@ -370,6 +369,7 @@ function GetSendASPermissionsViaExchange
         (
             $TargetPublicFolder
             ,
+            [parameter(Mandatory)]
             $TargetMailPublicFolder
             ,
             [System.Management.Automation.Runspaces.PSSession]$ExchangeSession
@@ -491,6 +491,7 @@ function GetSendASPermisssionsViaADPSDrive
         (
             $TargetPublicFolder
             ,
+            [parameter(Mandatory)]
             $TargetMailPublicFolder
             ,
             [System.Management.Automation.Runspaces.PSSession]$ExchangeSession
@@ -527,10 +528,10 @@ function GetSendASPermisssionsViaADPSDrive
         $saRawPermissions = @(
             Try 
             {
-                (Get-ACL -Path $TargetMailPublicFolder.DistinguishedName -ErrorAction Stop).Access |
-                Where-Object -FilterScript {(($_.ObjectType -eq $SendASRight) -or ($_.ActiveDirectoryRights -eq 'GenericAll')) -and ($_.AccessControlType -eq 'Allow')} |
-                Where-Object -FilterScript {$_.IdentityReference.tostring() -ne "NT AUTHORITY\SELF"} |
-                Select-Object -Property identityreference,IsInherited 
+                $RawACEs = @((Get-ACL -Path $TargetMailPublicFolder.DistinguishedName -ErrorAction Stop).Access)
+                $SendASACEs = $RawACEs | Where-Object -FilterScript {(($_.ObjectType -eq $SendASRight) -or ($_.ActiveDirectoryRights -eq 'GenericAll')) -and ($_.AccessControlType -eq 'Allow')} 
+                $SendASNotSelf = $SendASACEs | Where-Object -FilterScript {$_.IdentityReference.tostring() -ne "NT AUTHORITY\SELF"}
+                $SendAsNotSelf | Select-Object -Property identityreference,IsInherited
                 # Where-Object -FilterScript {($_.identityreference.ToString().split('\')[0]) -notin $ExcludedTrusteeDomains} #not doing this part yet
                 # Where-Object -FilterScript {$_.identityreference.tostring() -notin $ExcludedTrustees} #we do this below now
             }
