@@ -873,24 +873,25 @@ function NewPermissionExportObject
                 ParentPermissionIdentity = $ParentPermissionIdentity
                 SourceExchangeOrganization = $SourceExchangeOrganization
                 TargetEntryID = $TargetPublicFolder.EntryID
-                TargetObjectGUID = $null
-                TargetObjectExchangeGUID = $null
-                TargetDistinguishedName = $null
-                TargetPrimarySMTPAddress = $null
-                TargetRecipientType = $null
-                TargetRecipientTypeDetails = $null
+                TargetPublicFolderPath = $TargetPublicFolder.Identity
+                TargetObjectGUID = ''
+                TargetObjectExchangeGUID = ''
+                TargetDistinguishedName = ''
+                TargetPrimarySMTPAddress = ''
+                TargetRecipientType = ''
+                TargetRecipientTypeDetails = ''
                 PermissionType = $PermissionType
                 AccessRights = $AccessRights
                 AssignmentType = $AssignmentType
                 TrusteeGroupObjectGUID = $TrusteeGroupObjectGUID
                 TrusteeIdentity = $TrusteeIdentity
                 IsInherited = $IsInherited
-                TrusteeObjectGUID = $null
-                TrusteeExchangeGUID = $null
-                TrusteeDistinguishedName = if ($None) {'none'} else {$null}
-                TrusteePrimarySMTPAddress = if ($None) {'none'} else {$null}
-                TrusteeRecipientType = $null
-                TrusteeRecipientTypeDetails = $null
+                TrusteeObjectGUID = ''
+                TrusteeExchangeGUID = ''
+                TrusteeDistinguishedName = if ($None) {'none'} else {''}
+                TrusteePrimarySMTPAddress = if ($None) {'none'} else {''}
+                TrusteeRecipientType = ''
+                TrusteeRecipientTypeDetails = ''
             }
         if ($null -ne $TargetMailPublicFolder)
         {
