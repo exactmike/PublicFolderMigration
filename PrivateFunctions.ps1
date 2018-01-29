@@ -1010,35 +1010,44 @@ Function GetMailPublicFolderPerUserPublicFolder
             ,
             [psobject[]]$PublicFolder
         )
-        $message = "Get-MailPublicFolder for each Public Folder"
-        WriteLog -Message $message -EntryType Attempting
-        $PublicFolderCount = $PublicFolder.Count
-        foreach ($pf in $PublicFolder)
+        begin
         {
-            $CurrentPF++
-            $GetMailPublicFolderParams = @{
-                Identity = $pf.Identity.tostring()
-                ErrorAction = 'SilentlyContinue'
-                WarningAction = 'SilentlyContinue'
-            }
-            $InnerMessage = "Get-MailPublicFolder -Identity $($pf.Identity.tostring())"
-            Write-Progress -Activity $message -Status $InnerMessage -CurrentOperation "$CurrentPF of $PublicFolderCount" -PercentComplete $($CurrentPF/$PublicFolderCount*100)
-            try
+            $message = "Get-MailPublicFolder for each Public Folder"
+            WriteLog -Message $message -EntryType Attempting
+            $PublicFolderCount = $PublicFolder.Count    
+        } # end begin
+        process
+        {
+            foreach ($pf in $PublicFolder)
             {
-                #output Selected object with additional properties from the Pf object
-                $MEPF = @(Invoke-Command -Session $ExchangeSession -ScriptBlock { Get-MailPublicFolder @using:GetMailPublicFolderParams } -ErrorAction SilentlyContinue -WarningAction SilentlyContinue)
-                if ($null -ne $MEPF -and $MEPF.Count -eq 1)
-                {
-                   $MEPF | Select-Object -Property *,@{n='EntryID';e={$pf.EntryID}},@{n='PFIdentity';e={$pf.Identity}}
+                $CurrentPF++
+                $GetMailPublicFolderParams = @{
+                    Identity = $pf.Identity.tostring()
+                    ErrorAction = 'SilentlyContinue'
+                    WarningAction = 'SilentlyContinue'
                 }
-            }
-            catch
-            {
-                $myerror = $_
-                WriteLog -message $InnerMessage -EntryType Failed
-                WriteLog -message $myerror.tostring() -ErrorLog
-            }
+                $InnerMessage = "Get-MailPublicFolder -Identity $($pf.Identity.tostring())"
+                Write-Progress -Activity $message -Status $InnerMessage -CurrentOperation "$CurrentPF of $PublicFolderCount" -PercentComplete $($CurrentPF/$PublicFolderCount*100)
+                try
+                {
+                    #output Selected object with additional properties from the Pf object
+                    $MEPF = @(Invoke-Command -Session $ExchangeSession -ScriptBlock { Get-MailPublicFolder @using:GetMailPublicFolderParams } -ErrorAction SilentlyContinue -WarningAction SilentlyContinue)
+                    if ($null -ne $MEPF -and $MEPF.Count -eq 1)
+                    {
+                       $MEPF | Select-Object -Property *,@{n='EntryID';e={$pf.EntryID}},@{n='PFIdentity';e={$pf.Identity}}
+                    }
+                }
+                catch
+                {
+                    $myerror = $_
+                    WriteLog -message $InnerMessage -EntryType Failed
+                    WriteLog -message $myerror.tostring() -ErrorLog
+                }
+            }    
+        } # end Process
+        end
+        {
+            WriteLog -Message $message -EntryType Succeeded
         }
-        WriteLog -Message $message -EntryType Succeeded
     }
 #end function GetMailPublicFolderPerUserPublicFolder
