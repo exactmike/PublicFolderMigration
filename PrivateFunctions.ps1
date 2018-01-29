@@ -211,7 +211,7 @@ Function GetSendOnBehalfPermission
         {
             #Write-Verbose -message "Target Mailbox has entries in GrantSendOnBehalfTo"
             $splat = @{
-                Identity = $TargetMailPublicFolder.PFIdentity
+                Identity = $TargetMailPublicFolder.guid.guid
                 ErrorAction = 'Stop'
             }
             #Write-Verbose -Message "Getting Trustee Objects from GrantSendOnBehalfTo"
