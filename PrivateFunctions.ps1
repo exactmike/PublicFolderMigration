@@ -149,7 +149,7 @@ function GetTrusteeObject
             }
         )
         #if we found a 'new' object add it to the lookup hashtables
-        if ($null -ne $AddToLookup -and $AddToLookup.count -gt 0)
+        if ($null -ne $AddToLookup -and $AddToLookup.count -eq 1)
         {
             Write-Verbose -Message "Found Trustee $TrusteeIdentity via new lookup"
             $AddToLookup | Select-Object -Property $HRPropertySet | ForEach-Object -Process {$ObjectGUIDHash.$($_.ExchangeGuid.Guid) = $_} -ErrorAction SilentlyContinue
@@ -540,12 +540,13 @@ function GetSendASPermisssionsViaADPSDrive
                 WriteLog -Message $myerror.tostring() -ErrorLog -Verbose -EntryType Failed
             }
         )
-
+        WriteLog -message "Found $($saRawPermissions.Count) SendAS Permisisons"
         Pop-Location
 
         if ($dropInheritedPermissions -eq $true)
         {
             $saRawPermissions = @($saRawPermissions | Where-Object -FilterScript {$_.IsInherited -eq $false})
+            WritLog -message "Found $($saRawPermissions.count) non-inherited SendAS Permissions"
         }
 
         #Lookup Trustee Recipients and export permission if found
@@ -570,7 +571,6 @@ function GetSendASPermisssionsViaADPSDrive
                 }#end $true
                 $false
                 {
-                    Write-Verbose -Message "Trustee Recipient for SendAs Permission is NOT Null. guid is $($trusteeRecipient.guid.guid)"
                     if (-not $excludedTrusteeGUIDHash.ContainsKey($trusteeRecipient.guid.guid))
                     {
                         $npeoParams = @{
