@@ -819,6 +819,7 @@ Function Export-PublicFolderPermission
                     $ResumeIdentity = $ImportedExchangePermissionsExportResumeData.ResumeID
                     [uint32]$Script:PermissionIdentity = $ImportedExchangePermissionsExportResumeData.NextPermissionIdentity
                     $ExportedExchangePublicFolderPermissionsFile = $ImportedExchangePermissionsExportResumeData.ExportedExchangePublicFolderPermissionsFile
+                    $ResumeIndex = $ImportedExchangePermissionsExportResumeData.ResumeIndex
                     foreach ($v in $ImportedExchangePermissionsExportResumeData.ExchangePermissionsExportParameters)
                     {
                         if ($v.name -ne 'ExchangeSession') #why are we doing this?
@@ -830,7 +831,6 @@ Function Export-PublicFolderPermission
                     $script:ErrorLogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'ExchangePublicFolderPermissionsExportOperations-ERRORS.log')
                     WriteLog -Message "Calling Invocation = $($MyInvocation.Line)" -EntryType Notification
                     WriteLog -Message "Exchange Session is Running in Exchange Organzation $ExchangeOrganization" -EntryType Notification
-                    $ResumeIndex = getarrayIndexForIdentity -array $InScopeFolders -property 'guid' -Value $ResumeIdentity -ErrorAction Stop
                     if ($null -eq $ResumeIndex -or $ResumeIndex.gettype().name -notlike '*int*')
                     {
                         $message = "ResumeIndex is invalid.  Check/Edit the *ResumeID.xml file for a valid ResumeIdentity GUID."
@@ -1153,7 +1153,7 @@ Function Export-PublicFolderPermission
                                 Start-Sleep -Seconds 10
                                 $script:PsSession = GetExchangePSSession @GetExchangePSSessionParams
                                 WriteLog -Message 'Establish New PSSession to Exchange Organization' -EntryType Succeeded
-                                $ResumeIndex = getarrayIndexForIdentity -array $InScopeFolders -property 'guid' -Value $ID -ErrorAction Stop
+                                $ResumeIndex = $i
                                 $ISRCounter--
                                 $Recovering = $true
                                 continue nextISR
@@ -1170,7 +1170,7 @@ Function Export-PublicFolderPermission
                                 {
                                     WriteLog -Message "Resume File $ResumeFile is available to resume this operation after you have re-connected the Exchange Session" -Verbose
                                     WriteLog -Message "Resume Recipient ID is $ID" -Verbose
-                                    $ResumeIDFile = ExportResumeID -ID $ID -outputFolderPath $OutputFolderPath -TimeStamp $BeginTimeStamp -NextPermissionID $Script:PermissionIdentity
+                                    $ResumeIDFile = ExportResumeID -ID $ID -outputFolderPath $OutputFolderPath -TimeStamp $BeginTimeStamp -NextPermissionID $Script:PermissionIdentity -ResumeIndex $i
                                     WriteLog -Message "Resume ID $ID exported to file $resumeIDFile" -Verbose
                                     WriteLog -Message "Next Permission Identity $($Script:PermissionIdentity) exported to file $resumeIDFile" -Verbose
                                     $message = "Run `'Get-ExchangePermission -ResumeFile $ResumeFile`' and also specify any common parameters desired (such as -verbose) since common parameters are not included in the Resume Data File."
@@ -1196,7 +1196,7 @@ Function Export-PublicFolderPermission
                             Start-Sleep -Seconds 10
                             $script:PsSession = GetExchangePSSession @GetExchangePSSessionParams
                             WriteLog -Message 'Establish New PSSession to Exchange Organization' -EntryType Succeeded
-                            $ResumeIndex = getarrayIndexForIdentity -array $InScopeFolders -property 'guid' -Value $ID -ErrorAction Stop
+                            $ResumeIndex = $i
                             $ISRCounter--
                             $Recovering = $true
                             continue nextISR
@@ -1213,7 +1213,7 @@ Function Export-PublicFolderPermission
                             {
                                 WriteLog -Message "Resume File $ResumeFile is available to resume this operation after you have re-connected the Exchange Session" -Verbose
                                 WriteLog -Message "Resume Recipient ID is $ID" -Verbose
-                                $ResumeIDFile = ExportResumeID -ID $ID -outputFolderPath $OutputFolderPath -TimeStamp $BeginTimeStamp -NextPermissionID $Script:PermissionIdentity
+                                $ResumeIDFile = ExportResumeID -ID $ID -outputFolderPath $OutputFolderPath -TimeStamp $BeginTimeStamp -NextPermissionID $Script:PermissionIdentity -ResumeIndex $i
                                 WriteLog -Message "Resume ID $ID exported to file $resumeIDFile" -Verbose
                                 WriteLog -Message "Next Permission Identity $($Script:PermissionIdentity) exported to file $resumeIDFile" -Verbose
                                 $message = "Run `'Get-ExchangePermission -ResumeFile $ResumeFile`' and also specify any common parameters desired (such as -verbose) since common parameters are not included in the Resume Data File."

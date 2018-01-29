@@ -967,6 +967,7 @@ Function ImportExchangePermissionExportResumeData
         $ResumeIDs = Import-Clixml -Path $ResumeIDFilePath -ErrorAction Stop
         $ImportedExchangePermissionsExportResumeData.ResumeID = $ResumeIDs.ResumeID
         $ImportedExchangePermissionsExportResumeData.NextPermissionIdentity = $ResumeIDs.NextPermissionIdentity
+        $ImportedExchangePermissionsExportResumeData.ResumeIndex = $ResumeIDs.ResumeIndex
         $ImportedExchangePermissionsExportResumeData
     }
 #End function ImportExchangePermissionExportResumeData
@@ -982,11 +983,14 @@ Function ExportResumeID
             $outputFolderPath
             ,
             $TimeStamp
+            ,
+            $ResumeIndex
         )
         $ExportFilePath = Join-Path -Path $outputFolderPath -ChildPath $($TimeStamp + "ExchangePermissionExportResumeID.xml")
         $Identities = @{
             NextPermissionIdentity = $nextPermissionID
             ResumeID = $ID
+            ResumeIndex = $ResumeIndex
         }
         Export-Clixml -Depth 1 -Path $ExportFilePath -InputObject $Identities -Encoding UTF8
         $ExportFilePath
