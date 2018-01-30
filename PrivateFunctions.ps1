@@ -547,7 +547,7 @@ function GetSendASPermisssionsViaADPSDrive
         if ($dropInheritedPermissions -eq $true)
         {
             $saRawPermissions = @($saRawPermissions | Where-Object -FilterScript {$_.IsInherited -eq $false})
-            WritLog -message "Found $($saRawPermissions.count) non-inherited SendAS Permissions"
+            #WriteLog -message "Found $($saRawPermissions.count) non-inherited SendAS Permissions"
         }
 
         #Lookup Trustee Recipients and export permission if found
