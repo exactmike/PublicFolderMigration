@@ -937,7 +937,7 @@ Function Export-PublicFolderPermission
                                         Invoke-Command -Session $Script:PSSession -ScriptBlock {Get-PublicFolder @Using:splat | Select-Object -Property $Using:PFPropertySet} -ErrorAction Stop
                                     }
                                 )
-                                WriteLog -Message $message -EntryType Succeeded
+                                WriteLog -Message $message -EntryType Succeeded -verbose
                             }#end Scoped
                             'AllPublicFolders'
                             {
