@@ -811,7 +811,7 @@ Function Export-PublicFolderPermission
                 $true
                 {
                     $ImportedExchangePermissionsExportResumeData = ImportExchangePermissionExportResumeData -Path $ResumeFile
-                    $excludedPublicFoldersEntryIDHash = $ImportedExchangePermissionsExportResumeData.ExcludedPublicFoldersEntryIDHash
+                    $ExcludedPublicFoldersEntryIDHash = $ImportedExchangePermissionsExportResumeData.ExcludedPublicFoldersEntryIDHash
                     $ExcludedTrusteeGuidHash = $ImportedExchangePermissionsExportResumeData.ExcludedTrusteeGuidHash
                     $InScopeFolders = $ImportedExchangePermissionsExportResumeData.InScopeFolders
                     $InScopeMailPublicFoldersHash = $ImportedExchangePermissionsExportResumeData.InScopeMailPublicFoldersHash

@@ -923,7 +923,7 @@ Function ExportExchangePermissionExportResumeData
         (
             $ExchangePermissionsExportParameters
             ,
-            $ExcludedRecipientGuidHash
+            $ExcludedPublicFoldersEntryIDHash
             ,
             $ExcludedTrusteeGuidHash
             ,
@@ -944,7 +944,7 @@ Function ExportExchangePermissionExportResumeData
         GetCallerPreference -Cmdlet $PSCmdlet -SessionState $ExecutionContext.SessionState -Name VerbosePreference
         $ExchangePermissionExportResumeData = @{
             ExchangePermissionsExportParameters = $ExchangePermissionsExportParameters
-            ExcludedRecipientGuidHash = $ExcludedRecipientGuidHash
+            ExcludedPublicFoldersEntryIDHash = $ExcludedPublicFoldersEntryIDHash
             ExcludedTrusteeGuidHash = $ExcludedTrusteeGuidHash
             SIDHistoryRecipientHash = $SIDHistoryRecipientHash
             InScopeFolders = $InScopeFolders
