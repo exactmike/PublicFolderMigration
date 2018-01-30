@@ -929,7 +929,9 @@ Function ExportExchangePermissionExportResumeData
             ,
             $SIDHistoryRecipientHash
             ,
-            $InScopeRecipients
+            $InScopeFolders
+            ,
+            $InScopeMailPublicFolderHash
             ,
             $ObjectGUIDHash
             ,
@@ -945,7 +947,8 @@ Function ExportExchangePermissionExportResumeData
             ExcludedRecipientGuidHash = $ExcludedRecipientGuidHash
             ExcludedTrusteeGuidHash = $ExcludedTrusteeGuidHash
             SIDHistoryRecipientHash = $SIDHistoryRecipientHash
-            InScopeRecipients = $InScopeRecipients
+            InScopeFolders = $InScopeFolders
+            InScopeMailPublicFolderHash = $InScopeMailPublicFolderHash
             ObjectGUIDHash = $ObjectGUIDHash
             ExportedExchangePermissionsFile = $ExportedExchangePermissionsFile
             TimeStamp = $TimeStamp
