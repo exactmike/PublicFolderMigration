@@ -1144,15 +1144,15 @@ Function Export-PublicFolderPermission
                         }
                         else
                         {
-                            WriteLog -Message 'Removing Existing Failed PSSession' -EntryType Notification
+                            WriteLog -Message 'Removing Existing Failed PSSession' -EntryType Notification -verbose
                             Remove-PSSession -Session $script:PsSession -ErrorAction SilentlyContinue
-                            WriteLog -Message 'Establish New PSSession to Exchange Organization' -EntryType Attempting
+                            WriteLog -Message 'Establish New PSSession to Exchange Organization' -EntryType Attempting -verbose
                             $GetExchangePSSessionParams = GetGetExchangePSSessionParams
                             try
                             {
                                 Start-Sleep -Seconds 10
                                 $script:PsSession = GetExchangePSSession @GetExchangePSSessionParams
-                                WriteLog -Message 'Establish New PSSession to Exchange Organization' -EntryType Succeeded
+                                WriteLog -Message 'Establish New PSSession to Exchange Organization' -EntryType Succeeded -verbose
                                 $ResumeIndex = $i
                                 $ISRCounter--
                                 $Recovering = $true
@@ -1229,7 +1229,7 @@ Function Export-PublicFolderPermission
                 Try
                 {
                     $message = "Export $($ExportedPermissions.Count) Exported Permissions to File $ExportedExchangePublicFolderPermissionsFile."
-                    WriteLog -Message $message -EntryType Attempting
+                    WriteLog -Message $message -EntryType Attempting -verbose
                     switch ($PSCmdlet.ParameterSetName -eq 'Resume')
                     {
                         $true
@@ -1241,10 +1241,10 @@ Function Export-PublicFolderPermission
                             $ExportedPermissions | Export-Csv -Path $ExportedExchangePublicFolderPermissionsFile -NoClobber -Encoding UTF8 -ErrorAction Stop -NoTypeInformation
                         }
                     }
-                    WriteLog -Message $message -EntryType Succeeded
+                    WriteLog -Message $message -EntryType Succeeded -verbose
                     if ($KeepExportedPermissionsInGlobalVariable -eq $true)
                     {
-                        WriteLog -Message "Saving Exported Permissions to Global Variable $($BeginTimeStamp + "ExportedExchangePermissions") for recovery/manual export."
+                        WriteLog -Message "Saving Exported Permissions to Global Variable $($BeginTimeStamp + "ExportedExchangePermissions") for recovery/manual export." -Verbose
                         Set-Variable -Name $($BeginTimeStamp + "ExportedExchangePermissions") -Value $ExportedPermissions -Scope Global
                     }
                 }
