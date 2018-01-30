@@ -937,7 +937,7 @@ Function ExportExchangePermissionExportResumeData
             ,
             $outputFolderPath
             ,
-            $ExportedExchangePermissionsFile
+            $ExportedExchangePublicFolderPermissionsFile
             ,
             $TimeStamp
         )
@@ -950,7 +950,7 @@ Function ExportExchangePermissionExportResumeData
             InScopeFolders = $InScopeFolders
             InScopeMailPublicFoldersHash = $InScopeMailPublicFoldersHash
             ObjectGUIDHash = $ObjectGUIDHash
-            ExportedExchangePermissionsFile = $ExportedExchangePermissionsFile
+            ExportedExchangePublicFolderPermissionsFile = $ExportedExchangePublicFolderPermissionsFile
             TimeStamp = $TimeStamp
         }
         $ExportFilePath = Join-Path -Path $outputFolderPath -ChildPath $($TimeStamp + "ExchangePermissionExportResumeData.xml")
