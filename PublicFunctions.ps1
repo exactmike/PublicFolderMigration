@@ -844,7 +844,7 @@ Function Export-PublicFolderPermission
                     $script:LogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'ExchangePublicFolderPermissionsExportOperations.log')
                     $script:ErrorLogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'ExchangePublicFolderPermissionsExportOperations-ERRORS.log')
                     WriteLog -Message "Calling Invocation = $($MyInvocation.Line)" -EntryType Notification
-                    WriteLog -Message "Provided Exchange Session is Running in Exchange Organzation $ExchangeOrganization" -EntryType Notification
+                    WriteLog -Message "Exchange Session is Running in Exchange Organzation $ExchangeOrganization" -EntryType Notification
                     $ExportedExchangePublicFolderPermissionsFile = Join-Path -Path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'ExportedExchangePublicFolderPermissions.csv')
                     $ResumeIndex = 0
                     [uint32]$Script:PermissionIdentity = 0
@@ -855,7 +855,7 @@ Function Export-PublicFolderPermission
                         try
                         {
                             $message = "Get public folder object(s) from Exchange Organization $ExchangeOrganization for the $($ExcludedIdentities.Count) ExcludedIdentities provided."
-                            WriteLog -Message $message -EntryType Attempting
+                            WriteLog -Message $message -EntryType Attempting -verbose
                             $excludedPublicFolders = @(
                                 $ExcludedIdentities | ForEach-Object {
                                     $splat = @{
@@ -865,7 +865,7 @@ Function Export-PublicFolderPermission
                                     Invoke-Command -Session $Script:PSSession -ScriptBlock {Get-PublicFolder @Using:splat | Select-Object -Property $using:PFPropertySet} -ErrorAction 'Stop'
                                 }
                             )
-                            WriteLog -Message $message -EntryType Succeeded
+                            WriteLog -Message $message -EntryType Succeeded -verbose
                         }
                         Catch
                         {
@@ -889,7 +889,7 @@ Function Export-PublicFolderPermission
                         try
                         {
                             $message = "Get recipent object(s) from Exchange Organization $ExchangeOrganization for the $($ExcludedTrusteeIdentities.Count) ExcludedTrusteeIdentities provided."
-                            WriteLog -Message $message -EntryType Attempting
+                            WriteLog -Message $message -EntryType Attempting -verbose
                             $excludedTrusteeRecipients = @(
                                 $ExcludedTrusteeIdentities | ForEach-Object {
                                     $splat = @{
@@ -899,7 +899,7 @@ Function Export-PublicFolderPermission
                                     Invoke-Command -Session $Script:PSSession -ScriptBlock {Get-Recipient @Using:splat | Select-Object -Property $using:HRPropertySet} -ErrorAction 'Stop'
                                 }
                             )
-                            WriteLog -Message $message -EntryType Succeeded
+                            WriteLog -Message $message -EntryType Succeeded -verbose
                         }
                         Catch
                         {
@@ -908,7 +908,7 @@ Function Export-PublicFolderPermission
                             WriteLog -Message $myError.tostring() -ErrorLog
                             throw("Failed: $Message")
                         }
-                        WriteLog -Message "Got $($excludedTrusteeRecipients.count) Excluded Trustee Objects" -EntryType Notification
+                        WriteLog -Message "Got $($excludedTrusteeRecipients.count) Excluded Trustee Objects" -EntryType Notification -verbose
                         $excludedTrusteeGUIDHash = $excludedTrusteeRecipients | Group-Object -Property GUID -AsString -AsHashTable -ErrorAction Stop
                     }
                     else
@@ -926,7 +926,7 @@ Function Export-PublicFolderPermission
                             { 
                                 WriteLog -Message "Operation: Scoped Permission retrieval for Public Folders with $($PublicFolderPath.Count) Public Folder Path(s) provided."
                                 $message = "Get Public Folder object(s) for each provided Identity in Exchange Organization $ExchangeOrganization."
-                                WriteLog -Message $message -EntryType Attempting
+                                WriteLog -Message $message -EntryType Attempting -verbose
                                 $InScopeFolders = @(
                                     $PublicFolderPath | ForEach-Object {
                                         $Splat = @{
@@ -942,15 +942,15 @@ Function Export-PublicFolderPermission
                             'AllPublicFolders'
                             {
                                 WriteLog -Message "Operation: Permission retrieval for all Public Folders."
-                                $message = "Get all available Public Folder objects in Exchange Organization $ExchangeOrganization."
-                                WriteLog -Message $message -EntryType Attempting
+                                $message = "Get all available Public Folder objects (from the non-system subtree) in Exchange Organization $ExchangeOrganization."
+                                WriteLog -Message $message -EntryType Attempting -verbose
                                 $splat = @{
                                     ResultSize = 'Unlimited'
                                     ErrorAction = 'Stop'
                                     Recurse = $true
                                 }
                                 $InScopeFolders = @(Invoke-Command -Session $Script:PSSession -ScriptBlock {Get-PublicFolder @Using:splat | Select-Object -Property $Using:PFPropertySet} -ErrorAction Stop)
-                                WriteLog -Message $message -EntryType Succeeded
+                                WriteLog -Message $message -EntryType Succeeded -verbose
                             }#end AllMailboxes
                         }#end Switch
                     }#end try
@@ -966,11 +966,11 @@ Function Export-PublicFolderPermission
                     #EndRegion GetInScopeFolders
 
                     #Region GetInScopeMailPublicFolders
-                    $message = 'Get Mail Enabled Public Folders To support retrieval of SendAS and/or SendOnBehalf Permissions and more information for ClientPermissions.'
-                    WriteLog -message $message -entryType Attempting
+                    $message = 'Get Mail Enabled Public Folders To support retrieval of SendAS and/or SendOnBehalf Permissions and for additional output information for ClientPermissions.'
+                    WriteLog -message $message -entryType Attempting -verbose
                     $InScopeMailPublicFolders = @(GetMailPublicFolderPerUserPublicFolder -ExchangeSession $script:PSSession -PublicFolder $InScopeFolders -ErrorAction Stop)
-                    WriteLog -message $message -entryType Succeeded
-                    WriteLog -Message "Got $($InScopeMailPublicFolders.count) In Scope Mail Public Folder Objects" -EntryType Notification
+                    WriteLog -message $message -entryType Succeeded -verbose
+                    WriteLog -Message "Got $($InScopeMailPublicFolders.count) In Scope Mail Public Folder Objects" -EntryType Notification -verbose
                     $InScopeMailPublicFoldersHash = $InScopeMailPublicFolders | Group-Object -AsHashTable -Property EntryID -AsString
                     if ($null -eq $InScopeMailPublicFoldersHash) {$InScopeMailPublicFoldersHash = @{}}
                     #Region GetInScopeMailPublicFolders
