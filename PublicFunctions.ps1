@@ -764,6 +764,9 @@ Function Export-PublicFolderPermission
         )#End Param
         Begin
         {
+            $BeginTimeStamp = Get-Date -Format yyyyMMdd-HHmmss
+            $script:LogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'ExchangePublicFolderPermissionsExportOperations.log')
+            $script:ErrorLogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'ExchangePublicFolderPermissionsExportOperations-ERRORS.log')
             #$Stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
             switch ($script:ConnectExchangeOrganizationCompleted)
             {
@@ -790,7 +793,6 @@ Function Export-PublicFolderPermission
                     WriteUserInstructionError
                 }
             }
-            $BeginTimeStamp = Get-Date -Format yyyyMMdd-HHmmss
             $ExchangeOrganization = Invoke-Command -Session $Script:PSSession -ScriptBlock {Get-OrganizationConfig | Select-Object -ExpandProperty Identity | Select-Object -ExpandProperty Name}
             $ExchangeOrganizationIsInExchangeOnline = $ExchangeOrganization -like '*.onmicrosoft.com'
 
@@ -827,8 +829,6 @@ Function Export-PublicFolderPermission
                             Set-Variable -Name $v.name -Value $v.value -Force
                         }
                     }
-                    $script:LogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'ExchangePublicFolderPermissionsExportOperations.log')
-                    $script:ErrorLogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'ExchangePublicFolderPermissionsExportOperations-ERRORS.log')
                     WriteLog -Message "Calling Invocation = $($MyInvocation.Line)" -EntryType Notification
                     WriteLog -Message "Exchange Session is Running in Exchange Organzation $ExchangeOrganization" -EntryType Notification
                     if ($null -eq $ResumeIndex -or $ResumeIndex.gettype().name -notlike '*int*')
@@ -841,8 +841,6 @@ Function Export-PublicFolderPermission
                 }
                 $false
                 {
-                    $script:LogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'ExchangePublicFolderPermissionsExportOperations.log')
-                    $script:ErrorLogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'ExchangePublicFolderPermissionsExportOperations-ERRORS.log')
                     WriteLog -Message "Calling Invocation = $($MyInvocation.Line)" -EntryType Notification
                     WriteLog -Message "Exchange Session is Running in Exchange Organzation $ExchangeOrganization" -EntryType Notification
                     $ExportedExchangePublicFolderPermissionsFile = Join-Path -Path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'ExportedExchangePublicFolderPermissions.csv')
