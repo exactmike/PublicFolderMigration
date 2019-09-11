@@ -11,8 +11,11 @@ Find-OrphanedMailEnabledPublicFolders
     Compares Recipient Objects from Get-MailPublicFolder with the Public Folder Tree to identify Mail Enabled Public Folder Recipient Objects that are no longer associated with a Public Folder.  These orphaned objects need to be fixed or removed before a Public Folder Migration can be completed successfully.
 
 Get-AllMailPublicFolder
+
 Get-UserPublicFolderTree
+
 Export-MailbPublicFolder
+
 Export-UserPublicFolderTree
 
 ## Improvements and How it Works
