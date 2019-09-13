@@ -188,7 +188,7 @@ This parameter allows control of the count largest public folders data in the re
         @(
             # if the user specified public folder path then only retrieve stats for the specified folders.
             # This can be significantly faster than retrieving stats for all public folders
-            if ($PublicFolderPath.Count -ge 1)
+            if ($PublicFolderPath.Count -ge 2)
             {
                 $count = 0
                 $RecordCount = $FolderIDs.Count * $PublicFolderMailboxServer.Count
