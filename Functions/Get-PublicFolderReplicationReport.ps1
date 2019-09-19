@@ -112,7 +112,7 @@ This parameter allows control of the count largest public folders data in the re
         {
             foreach ($Server in $PublicFolderMailboxServer)
             {
-                $VerifyPFDatabase = @(Get-PublicFolderDatabase -server $Server -IncludePreExchange2010)
+                $VerifyPFDatabase = @(Get-PublicFolderDatabase -server $Server)
                 if ($VerifyPFDatabase.Count -ne 1)
                 {
                     Write-Error "$server is either not a Mailbox server or does not host a public folder database."
@@ -154,7 +154,7 @@ This parameter allows control of the count largest public folders data in the re
         }
         $FolderIDs = @(
             #if the user specified specific public folder paths, get those
-            if ($PublicFolderPath.Count -ge 1)
+            if ($PublicFolderPath.Count -ge 2)
             {
                 $publicFolderPathString = $PublicFolderPath -join ', '
                 Write-Information -Message "Retrieving Public Folders in the following Path(s): $publicFolderPathString" -Tags Notification -InformationAction Continue
@@ -177,7 +177,7 @@ This parameter allows control of the count largest public folders data in the re
         )
         #filter any duplicates if the user specified public folder paths
         Write-Information -Message 'Sorting and De-duplicating retrieved Public Folders.' -Tags Notification -InformationAction Continue
-        if ($PublicFolderPath.Count -ge 1) { $FolderIDs = @($FolderIDs | Select-Object -Unique -Property *) }
+        if ($PublicFolderPath.Count -ge 2) { $FolderIDs = @($FolderIDs | Select-Object -Unique -Property *) }
         #sort folders by path
         $FolderIDs = @($FolderIDs | Sort-Object Identity)
         $publicFoldersRetrievedCount = $FolderIDs.Count
