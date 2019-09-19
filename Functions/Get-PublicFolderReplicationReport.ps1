@@ -60,6 +60,12 @@ This parameter allows control of the count largest public folders data in the re
     )
     Begin
     {
+        Function GetTimeStamp
+        {
+            [string]$Stamp = Get-Date -Format yyyyMMdd-HHmmss
+            #$([DateTime]::Now.ToShortDateString()) $([DateTime]::Now.ToShortTimeString()) #check if this is faster to use than Get-Date
+            $Stamp
+        }
         #region ValidateParameters
         if ('email' -in $outputmethods)
         {
@@ -602,7 +608,7 @@ foreach($rItem in $ResultMatrix)
                 }
                 if ('html' -in $outputformats)
                 {
-                    $HTMLFilePath = $FileFolderPath + $(Get-TimeStamp) + 'PublicFolderEnvironmentAndReplicationReport.html'
+                    $HTMLFilePath = $FileFolderPath + $(GetTimeStamp) + 'PublicFolderEnvironmentAndReplicationReport.html'
                     $html | Out-File -FilePath $HTMLFilePath
                     $HTMLFilePath
                 }
