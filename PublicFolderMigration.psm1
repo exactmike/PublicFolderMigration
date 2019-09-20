@@ -7,4 +7,4 @@ $script:ConnectExchangeOrganizationCompleted = $false
 . $(Join-Path $PSScriptRoot 'SupportingFunctions.ps1')
 . $(Join-Path $PSScriptRoot 'ThirdPartyFunctions.ps1')
 . $(Join-Path $PSScriptRoot 'ModuleVariableFunctions.ps1')
-. $(Join-Path $PSScriptRoot 'GetHTMLReportFunction.ps1')
+. $(Join-Path $PSScriptRoot '\Functions\Private\GetHTMLReportFunction.ps1')
