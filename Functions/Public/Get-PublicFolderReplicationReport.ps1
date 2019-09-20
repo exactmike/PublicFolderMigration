@@ -12,22 +12,10 @@ function Get-PublicFolderReplicationReport
     This parameter specifies the Public Folder(s) to scan. If this is omitted, all public folders are scanned.
     .PARAMETER Recurse
     When used in conjunction with the FolderPath parameter, this will include all child Public Folders of the Folders listed in Folder Path.
-    .PARAMETER AsHTML
-    Specifying this switch will have this script output HTML, rather than the result objects. This is independent of the Filename or SendEmail parameters and only controls the console output of the script.
-    .PARAMETER Passthrough
-    Controls whether the ReportMatrix of Public Folder Stats is returned to the pipeline instead of just being consumed in output to email, file, or html.
-    .PARAMETER Filename
-    Providing a Filename will save the HTML report to a file.
+    .PARAMETER PipelineData
+    Controls whether any data is returned to the PowerShell pipeline for further processing.  Choices are RawReplicationData (in case you want to anyalyze replication differently than this function does natively), or the ReportObject, which includes all the data that is exported into the html or csv reports, but in object form.
     .PARAMETER SendEmail
     This switch will set the script to send an HTML email report. If this switch is specified, then the To, From and SmtpServers are required.
-    .PARAMETER To
-    When SendEmail is used, this sets the recipients of the email report.
-    .PARAMETER From
-    When SendEmail is used, this sets the sender of the email report.
-    .PARAMETER SmtpServer
-    When SendEmail is used, this is the SMTP Server to send the report through.
-    .PARAMETER Subject
-    When SendEmail is used, this sets the subject of the email report.
     .PARAMETER IncludeSystemPublicFolders
     This parameter specifies to include System Public Folders when scanning all public folders. If this is omitted, System Public Folders are omitted.
     .PARAMETER LargestPublicFolderReportCount
@@ -54,35 +42,26 @@ function Get-PublicFolderReplicationReport
         ,
         [parameter(Mandatory)]
         [ValidateScript({TestIsWriteableDirectory -path $_})]
-        [string]$outputFolderPath
-        ,
-        [parameter()]
-        [ValidateScript({$_ | TestEmailAddress})]
-        [string[]]$To
-        ,
-        [parameter()]
-        [ValidateScript({TestEmailAddress -EmailAddress $_})]
-        [string]$From
-        ,
-        [parameter()]
-        [ValidateScript({TestTCPConnection -port 25 -ComputerName $_})]
-        [string]$SmtpServer
-        ,
-        [parameter()]
-        [string]$Subject
-        ,
-        [parameter()]
-        [switch]$HTMLBody
+        [string]$OutputFolderPath
         ,
         [parameter()]
         [validateset('html','csv')]
-        [string[]]$outputformats
+        [string[]]$Outputformats
         ,
         [parameter()]
+        #Add ValidateScript to verify Email Configuration is set
+        [ValidateScript({
+            if ($null -eq $script:EmailConfiguration)
+            {
+                Write-Warning -message 'You must run Set-EmailConfiguration before use the sendemail parameter'
+                $false
+            } else {
+                $true
+            }})]
         [switch]$SendEmail
         ,
         [parameter()]
-        [int]$LargestPublicFolderReportCount = 10
+        [int]$LargestPublicFolderReportCount = 100
     )
     Begin
     {
@@ -118,31 +97,14 @@ function Get-PublicFolderReplicationReport
         $ExchangeOrganization = Invoke-Command -Session $Script:PSSession -ScriptBlock {Get-OrganizationConfig | Select-Object -ExpandProperty Identity | Select-Object -ExpandProperty Name}
         WriteLog -Message "Exchange Session is Running in Exchange Organzation $ExchangeOrganization" -EntryType Notification
         #region ValidateParameters
-            if ($true -eq $SendEmail)
-            {
-                   if (-not $To.Count -gt 0)
-                {
-                    Write-Error 'The -To parameter is required when including email as an output method. If this parameter was used, verify that valid email addresses were specified.'
-                    return
-                }
-                if ([string]::IsNullOrEmpty($From))
-                {
-                    Write-Error 'The -From parameter is not valid. This parameter is required when including email as an output method.'
-                    return
-                }
-                if ([string]::IsNullOrEmpty($SmtpServer))
-                {
-                    Write-Error 'You must specify a SmtpServer. This parameter is required when including email as an output method.'
-                    return
-                }
-            }#end if $SendEmail
+
             #if the user specified public folder mailbox servers, validate them:
             if ($PublicFolderMailboxServer.Count -ge 1)
             {
                 foreach ($Server in $PublicFolderMailboxServer) {
                     $VerifyPFDatabase = @(
                         Invoke-Command -Session $script:PSSession -scriptblock {
-                            Get-PublicFolderDatabase -server $using:Server -IncludePreExchange2010 -ErrorAction SilentlyContinue
+                            Get-PublicFolderDatabase -server $using:Server -ErrorAction SilentlyContinue
                         }
                     )
                     if ($VerifyPFDatabase.Count -ne 1) {
