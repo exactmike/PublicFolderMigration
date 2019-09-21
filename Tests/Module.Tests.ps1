@@ -1,14 +1,19 @@
-#$Script:ModuleRoot = Split-Path -Path (Split-Path -Path $PSScriptRoot -Parent) -Parent
-#$Script:ModuleName = $Script:ModuleName = Get-ChildItem $ModuleRoot\*\*.psm1 | Select-object -ExpandProperty BaseName
-$ModuleName = 'PublicFolderMigration'
-$SourceRoot = 'Functions'
-$ModuleRoot = Split-Path $(split-path -Path $PSCommandPath -Parent) -Parent
-#$Script:SourceRoot = Join-Path -Path $ModuleRoot -ChildPath $ModuleName
+$Script:ModuleRoot = (Split-Path -Path $PSScriptRoot -Parent)
+Write-Information -MessageData "Module Root is $script:ModuleRoot" -InformationAction Continue
+$Script:ModuleFile = $Script:ModuleFile = Get-Item $Script:ModuleRoot\*.psm1
+Write-Information -MessageData "Module File is $($script:ModuleFile.FullName)" -InformationAction Continue
+$Script:ModuleName = $Script:ModuleFile.BaseName
+Write-Information -MessageData "Module Name is $Script:ModuleName" -InformationAction Continue
+$script:ModuleFullPath = $Script:ModuleFile.FullName
+Write-Information -MessageData "Removing Module $Script:ModuleName" -InformationAction Continue
+Remove-Module -Name $Script:ModuleName -Force -ErrorAction SilentlyContinue
+Write-Information -MessageData "Import Module $Script:ModuleName" -InformationAction Continue
+Import-Module -Name $Script:ModuleFullPath -Force
 
 Describe "All commands pass PSScriptAnalyzer rules" -Tag 'Build' {
-    $rules = "$ModuleRoot\ScriptAnalyzerSettings.psd1"
-    $scripts = Get-ChildItem -Path $SourceRoot -Include '*.ps1', '*.psm1', '*.psd1' -Recurse |
-        Where-Object FullName -notmatch 'Classes'
+    $rules = "$Script:ModuleRoot\PSScriptAnalyzerSettings.psd1"
+    $scripts = Get-ChildItem -Path $ModuleRoot -Include '*.ps1', '*.psm1', '*.psd1' -Recurse |
+        Where-Object -filterscript {$_.FullName -notmatch 'Classes' -and $_.FullName -notmatch 'Tests'}
 
     foreach ($script in $scripts)
     {
@@ -18,8 +23,8 @@ Describe "All commands pass PSScriptAnalyzer rules" -Tag 'Build' {
             {
                 foreach ($rule in $results)
                 {
-                    It $rule.RuleName {
-                        $message = "{0} Line {1}: {2}" -f $rule.Severity, $rule.Line, $rule.Message
+                    It $("Should {0} Severity:{1} Line {2}: {3}" -f $rule.RuleName, $rule.Severity, $rule.Line, $rule.Message) {
+                        $message = "violated"
                         $message | Should Be ""
                     }
                 }
@@ -45,3 +50,6 @@ Describe "Public commands have Pester tests" -Tag 'Build' {
         }
     }
 }
+
+Write-Information -MessageData "Removing Module $Script:ModuleName" -InformationAction Continue
+Remove-Module -Name $Script:ModuleName -Force -ErrorAction SilentlyContinue

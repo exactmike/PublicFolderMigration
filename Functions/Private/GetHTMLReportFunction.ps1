@@ -1,16 +1,16 @@
 function GetHTMLReport
-    {
-        [cmdletbinding()]
-        param
-        (
-            $ReportObject
-            ,
-            $ResultMatrix
-            ,
-            $PublicFolderMailboxServer
-        )
-        $html =
-@"
+{
+    [cmdletbinding()]
+    param
+    (
+        $ReportObject
+        ,
+        $ResultMatrix
+        ,
+        $PublicFolderMailboxServer
+    )
+    $html =
+    @"
 <html>
 <style>
     body
@@ -139,5 +139,5 @@ $(
 </html>
 "@
     $html
-    }
+}
 #end function Get-HTMLReport

@@ -1,4 +1,5 @@
-function Set-EmailConfiguration {
+function Set-EmailConfiguration
+{
     <#
 .PARAMETER To
     When SendEmail is used, this sets the recipients of the email report.
@@ -14,15 +15,15 @@ function Set-EmailConfiguration {
     [CmdletBinding()]
     param (
         [parameter(Mandatory)]
-        [ValidateScript({$_ | TestEmailAddress})]
+        [ValidateScript( { $_ | TestEmailAddress })]
         [string[]]$To
         ,
         [parameter(Mandatory)]
-        [ValidateScript({TestEmailAddress -EmailAddress $_})]
+        [ValidateScript( { TestEmailAddress -EmailAddress $_ })]
         [string]$From
         ,
         [parameter(Mandatory)]
-        [ValidateScript({TestTCPConnection -port 25 -ComputerName $_})]
+        [ValidateScript( { TestTCPConnection -port 25 -ComputerName $_ })]
         [string]$SMTPServer
         ,
         [parameter()]
@@ -37,11 +38,11 @@ function Set-EmailConfiguration {
     )
 
     $script:EmailConfiguration = [PSCustomObject]@{
-        SMTPServer = $SMTPServer
-        To = $To
-        From = $From
-        Subject = $Subject
-        HTMLBody = $HTMLBody
+        SMTPServer        = $SMTPServer
+        To                = $To
+        From              = $From
+        Subject           = $Subject
+        HTMLBody          = $HTMLBody
         IncludeAttachment = @($IncludeAttachment)
     }
 

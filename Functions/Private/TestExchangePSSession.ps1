@@ -1,30 +1,29 @@
-    Function TestExchangePSSession
+Function TestExchangePSSession
+{
+
+    [CmdletBinding()]
+    param
+    (
+        [System.Management.Automation.Runspaces.PSSession]$PSSession = $script:PSSession
+    )
+    switch ($PSSession.State -eq 'Opened')
     {
-        
-        [CmdletBinding()]
-        param
-        (
-            [System.Management.Automation.Runspaces.PSSession]$PSSession = $script:PSSession
-        )
-        switch ($PSSession.State -eq 'Opened')
+        $true
         {
-            $true
+            Try
             {
-                Try
-                {
-                    $TestCommandResult = invoke-command -Session $PSSession -ScriptBlock {Get-OrganizationConfig -ErrorAction Stop | Select-Object -ExpandProperty Identity | Select-Object -ExpandProperty Name} -ErrorAction Stop
-                    $(-not [string]::IsNullOrEmpty($TestCommandResult))
-                }
-                Catch
-                {
-                    $false
-                }
+                $TestCommandResult = invoke-command -Session $PSSession -ScriptBlock { Get-OrganizationConfig -ErrorAction Stop | Select-Object -ExpandProperty Identity | Select-Object -ExpandProperty Name } -ErrorAction Stop
+                $(-not [string]::IsNullOrEmpty($TestCommandResult))
             }
-            $false
+            Catch
             {
                 $false
             }
         }
-    
+        $false
+        {
+            $false
+        }
     }
 
+}

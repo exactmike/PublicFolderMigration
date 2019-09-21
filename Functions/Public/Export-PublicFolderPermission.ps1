@@ -1,6 +1,6 @@
     Function Export-PublicFolderPermission
     {
-        
+
         [cmdletbinding(DefaultParameterSetName = 'AllPublicFolders')]
         param
         (
@@ -554,6 +554,6 @@
                 WriteLog -Message "No Permissions were generated for export by this operation.  Check the logs for errors if this is unexpected." -EntryType Notification -Verbose
             }
         }#end End
-    
+
     }
 

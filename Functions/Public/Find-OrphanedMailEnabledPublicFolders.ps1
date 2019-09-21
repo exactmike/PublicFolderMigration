@@ -158,7 +158,7 @@ function Get-UserPublicFolderTree
             }
             ExchangeOrganization = $ExchangeOrganization
         }
-        try 
+        try
         {
             $message = "Get All User (Not System) Public Folder Tree Objects"
             WriteLog -Message $message -EntryType Attempting -Verbose
@@ -194,7 +194,7 @@ function Get-AllMailPublicFolder
             }
             ExchangeOrganization = $ExchangeOrganization
         }
-        try 
+        try
         {
             $message = "Get All Mail Enabled Public Folder Objects"
             WriteLog -Message $message -EntryType Attempting -Verbose
@@ -295,8 +295,8 @@ function Get-PFMMoveRequestReport
             {
                 'All'
                 {
-                    $logstring = "Getting request statistics for all $BatchName move requests." 
-                    WriteLog -Message $logstring -EntryType Attempting 
+                    $logstring = "Getting request statistics for all $BatchName move requests."
+                    WriteLog -Message $logstring -EntryType Attempting
                     $RecordCount=$Script:mr.count
                     $b=0
                     $Script:mrs = @(
@@ -383,7 +383,7 @@ function Get-PFMMoveRequestReport
                 }
                 'NotCompleted'
                 {
-                    $logstring = "Getting move request statistics for not completed $BatchName move requests." 
+                    $logstring = "Getting move request statistics for not completed $BatchName move requests."
                     WriteLog -Message $logstring -EntryType Attempting
                     $RecordCount=$Script:ncmr.count
                     $b=0
@@ -407,7 +407,7 @@ function Get-PFMMoveRequestReport
                 }
                 'LargeItemFailure'
                 {
-                    $logstring = "Getting Statistics for all failed $BatchName move requests." 
+                    $logstring = "Getting Statistics for all failed $BatchName move requests."
                     WriteLog -Message $logstring -EntryType Attempting -Verbose
                     $RecordCount=$Script:fmr.count
                     $b=0
@@ -453,7 +453,7 @@ function Get-PFMMoveRequestReport
                             Identity = $($request.requestguid)
                             IncludeReport = $true
                             }
-                            $request | ForEach-Object {Invoke-ExchangeCommand -cmdlet Get-PublicFolderMailboxMigrationRequestStatistics -splat $splat -ExchangeOrganization $ExchangeOrganization} | 
+                            $request | ForEach-Object {Invoke-ExchangeCommand -cmdlet Get-PublicFolderMailboxMigrationRequestStatistics -splat $splat -ExchangeOrganization $ExchangeOrganization} |
                             Select-Object -Property Alias,AllowLargeItems,ArchiveDomain,ArchiveGuid,BadItemLimit,BadItemsEncountered,BatchName,BytesTransferred,BytesTransferredPerMinute,CompleteAfter,CompletedRequestAgeLimit,CompletionTimestamp,DiagnosticInfo,Direction,DisplayName,DistinguishedName,DoNotPreserveMailboxSignature,ExchangeGuid,FailureCode,FailureSide,FailureTimestamp,FailureType,FinalSyncTimestamp,Flags,Identity,IgnoreRuleLimitErrors,InitialSeedingCompletedTimestamp,InternalFlags,IsOffline,IsValid,ItemsTransferred,LargeItemLimit,LargeItemsEncountered,LastUpdateTimestamp,MailboxIdentity,Message,MRSServerName,OverallDuration,PercentComplete,PositionInQueue,Priority,Protect,QueuedTimestamp,RecipientTypeDetails,RemoteArchiveDatabaseGuid,RemoteArchiveDatabaseName,RemoteCredentialUsername,RemoteDatabaseGuid,RemoteDatabaseName,RemoteGlobalCatalog,RemoteHostName,SourceArchiveDatabase,SourceArchiveServer,SourceArchiveVersion,SourceDatabase,SourceServer,SourceVersion,StartAfter,StartTimestamp,Status,StatusDetail,Suspend,SuspendedTimestamp,SuspendWhenReadyToComplete,SyncStage,TargetArchiveDatabase,TargetArchiveServer,TargetArchiveVersion,TargetDatabase,TargetDeliveryDomain,TargetServer,TargetVersion,TotalArchiveItemCount,TotalArchiveSize,TotalDataReplicationWaitDuration,TotalFailedDuration,TotalFinalizationDuration,TotalIdleDuration,TotalInProgressDuration,TotalMailboxItemCount,TotalMailboxSize,TotalProxyBackoffDuration,TotalQueuedDuration,TotalStalledDueToCIDuration,TotalStalledDueToHADuration,TotalStalledDueToMailboxLockedDuration,TotalStalledDueToReadCpu,TotalStalledDueToReadThrottle,TotalStalledDueToReadUnknown,TotalStalledDueToWriteCpu,TotalStalledDueToWriteThrottle,TotalStalledDueToWriteUnknown,TotalSuspendedDuration,TotalTransientFailureDuration,ValidationMessage,WorkloadType,
                             @{n="BadItemList";e={@($_.Report.BadItems)}},@{n="LargeItemList";e={@($_.Report.LargeItems)}}
                         }

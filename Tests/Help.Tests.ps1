@@ -1,12 +1,15 @@
-$Script:ModuleRoot = Split-Path -Path (Split-Path -Path $PSScriptRoot -Parent) -Parent
-$Script:ModuleFile = $Script:ModuleFile = Get-ChildItem $ModuleRoot\*\*.psm1
+$Script:ModuleRoot = (Split-Path -Path $PSScriptRoot -Parent)
+Write-Information -MessageData "Module Root is $script:ModuleRoot" -InformationAction Continue
+$Script:ModuleFile = $Script:ModuleFile = Get-Item $ModuleRoot\*.psm1
+Write-Information -MessageData "Module File is $($script:ModuleFile.FullName)" -InformationAction Continue
 $Script:ModuleName = $Script:ModuleFile.BaseName
+Write-Information -MessageData "Module Name is $Script:ModuleName" -InformationAction Continue
 $script:ModuleFullPath = $Script:ModuleFile.FullName
-$Script:ModuleName
-$script:ModuleFullPath
+Write-Information -MessageData "Removing Module $Script:ModuleName" -InformationAction Continue
 Remove-Module -Name $Script:ModuleName -Force -ErrorAction SilentlyContinue
+Write-Information -MessageData "Import Module $Script:ModuleName" -InformationAction Continue
 Import-Module -Name $Script:ModuleFullPath -Force
-Describe "Public commands have comment-based or external help" -Tags 'Build' {
+Describe "Public commands in $script:ModuleName have comment-based or external help" -Tags 'Build' {
     $functions = Get-Command -Module $Script:ModuleName
     $help = foreach ($function in $functions) {
         Get-Help -Name $function.Name
@@ -36,3 +39,6 @@ Describe "Public commands have comment-based or external help" -Tags 'Build' {
         }
     }
 }
+
+Write-Information -MessageData "Removing Module $Script:ModuleName" -InformationAction Continue
+Remove-Module -Name $Script:ModuleName -Force -ErrorAction SilentlyContinue
