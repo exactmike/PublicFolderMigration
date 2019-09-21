@@ -12,7 +12,7 @@
     RootModule        = 'PublicFolderMigration.psm1'
 
     # Version number of this module.
-    ModuleVersion     = '2.0'
+    ModuleVersion     = '3.0.0.0'
 
     # ID used to uniquely identify this module
     GUID              = '821e8a2b-080b-4d8d-a9d4-29f431935878'
@@ -21,16 +21,16 @@
     Author            = 'Mike Campbell and Joe Sutherland'
 
     # Company or vendor of this module
-    CompanyName       = 'Exact Solutions'
+    CompanyName       = 'themodulecollective'
 
     # Copyright statement for this module
-    Copyright         = '(c) 2018. All rights reserved.'
+    Copyright         = '(c) 2019. All rights reserved.'
 
     # Description of the functionality provided by this module
     # Description = ''
 
     # Minimum version of the Windows PowerShell engine required by this module
-    PowerShellVersion = '3.0'
+    PowerShellVersion = '5.1'
 
     # Name of the Windows PowerShell host required by this module
     # PowerShellHostName = ''
