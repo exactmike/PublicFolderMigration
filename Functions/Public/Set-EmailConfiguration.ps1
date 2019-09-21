@@ -13,6 +13,14 @@ function Set-EmailConfiguration
     When SendEmail is used, specifying this switch will set the email report to not include the HTML Report as an attachment. It will still be sent in the body of the email.
     #>
     [CmdletBinding()]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute(
+        "PSUseShouldProcessForStateChangingFunctions",
+        "",
+        Justification = "Creates in-memory object only."
+    )]
+    [CmdletBinding(
+        ConfirmImpact = 'None'
+    )]
     param (
         [parameter(Mandatory)]
         [ValidateScript( { $_ | TestEmailAddress })]

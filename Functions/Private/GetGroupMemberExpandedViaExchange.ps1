@@ -2,6 +2,7 @@ Function GetGroupMemberExpandedViaExchange
 {
 
     [CmdletBinding()]
+    [OutputType([PSObject[]], [System.Object[]])]
     param
     (
         [string]$Identity

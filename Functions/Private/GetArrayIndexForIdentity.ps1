@@ -2,6 +2,7 @@ Function GetArrayIndexForIdentity
 {
 
     [cmdletbinding()]
+    [OutputType([System.Int32])]
     param(
         [parameter(mandatory = $true)]
         $array #The array for which you want to find a value's index

@@ -2,6 +2,7 @@ Function ExpandGroupPermission
 {
 
     [CmdletBinding()]
+    [OutputType([PSObject[]], [System.Array])]
     param
     (
         [psobject[]]$Permission
@@ -113,7 +114,7 @@ Function ExpandGroupPermission
     }
     else
     {
-        $permission
+        $Permission
     }
 
 }

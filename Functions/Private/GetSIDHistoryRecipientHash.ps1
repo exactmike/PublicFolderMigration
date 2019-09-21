@@ -2,6 +2,7 @@ Function GetSIDHistoryRecipientHash
 {
 
     [cmdletbinding()]
+    [OutputType([System.Collections.Hashtable])]
     param
     (
         [parameter(Mandatory)]

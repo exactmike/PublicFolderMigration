@@ -21,7 +21,13 @@ function Get-PublicFolderReplicationReport
     .PARAMETER LargestPublicFolderReportCount
     This parameter allows control of the count largest public folders data in the report object.
     #>
-    [cmdletbinding()]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute(
+        "PSAvoidInvokingEmptyMembers",
+        "",
+        Justification = "Intentionally Uses Non-Constant Members for Stats Processing from multiple servers"
+    )]
+    [CmdletBinding(ConfirmImpact = 'None')]
+    [OutputType([System.Object[]])]
     param
     (
         [parameter()]
@@ -292,7 +298,7 @@ function Get-PublicFolderReplicationReport
                             Get-PublicFolderStatistics -Server $using:Server -ResultSize Unlimited -ErrorAction SilentlyContinue
                         }
                     )
-                    if ($thestats -ne $null)
+                    if ($null -ne $thestats)
                     {
                         $thestats | Select-Object -ExcludeProperty ServerName -Property $customProperties
                     }
@@ -316,7 +322,7 @@ function Get-PublicFolderReplicationReport
         #create the hash table
         $publicFolderStatsLookup = @{ }
         #Populate the hashtable - one key/value pair per EntryID plus Server
-        foreach ($Stats in ($publicFolderStatsFromSelectedServers | where-object -FilterScript { $_.EntryID -ne $NULL }))
+        foreach ($Stats in ($publicFolderStatsFromSelectedServers | where-object -FilterScript { $Null -ne $_.EntryID }))
         {
             $Key = $($Stats.EntryID.tostring() + '_' + $Stats.ServerName)
             $Value = $Stats;
@@ -389,7 +395,7 @@ function Get-PublicFolderReplicationReport
                 $replCheck = $true
                 foreach ($dataRecord in $resultItem.Data)
                 {
-                    if ($resultItem.ItemCount -eq 0 -or $resultItem.ItemCount -eq $null)
+                    if ($resultItem.ItemCount -eq 0 -or $null -eq $resultItem.ItemCount)
                     {
                         $progress = 100
                     }
@@ -486,7 +492,7 @@ function Get-PublicFolderReplicationReport
                         $PropertyName1 = $Server + '-%'
                         $PropertyName2 = $Server + '-Count'
                         $PropertyName3 = $server + '-SizeInBytes'
-                        if ($resultItem -eq $null)
+                        if ($null -eq $resultItem)
                         {
                             $RRObject | Add-Member -NotePropertyName $PropertyName1 -NotePropertyValue 'N/A'
                             $RRObject | Add-Member -NotePropertyName $PropertyName2 -NotePropertyValue 'N/A'

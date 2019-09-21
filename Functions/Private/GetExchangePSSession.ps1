@@ -5,7 +5,7 @@ Function GetExchangePSSession
     param
     (
         [parameter(Mandatory)]
-        [pscredential]$Credential = $script:Credential
+        [pscredential]$Credential
         ,
         [parameter(Mandatory, ParameterSetName = 'ExchangeOnline')]
         [switch]$ExchangeOnline

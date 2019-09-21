@@ -2,6 +2,7 @@ Function GetAllParametersWithAValue
 {
 
     [cmdletbinding()]
+    [OutputType([System.Object[]])]
     param
     (
         $BoundParameters #$PSBoundParameters

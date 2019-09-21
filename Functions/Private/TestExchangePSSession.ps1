@@ -2,6 +2,7 @@ Function TestExchangePSSession
 {
 
     [CmdletBinding()]
+    [OutputType([System.Boolean])]
     param
     (
         [System.Management.Automation.Runspaces.PSSession]$PSSession = $script:PSSession

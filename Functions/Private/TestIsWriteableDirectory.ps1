@@ -6,6 +6,7 @@ Function TestIsWriteableDirectory
     #http://stackoverflow.com/questions/9735449/how-to-verify-whether-the-share-has-write-access
     #pulled in from OneShell module: https://github.com/exactmike/OneShell
     [CmdletBinding()]
+    [OutputType([System.Boolean])]
     param
     (
         [parameter()]
