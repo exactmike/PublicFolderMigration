@@ -1,6 +1,7 @@
 function GetHTMLReport
 {
     [cmdletbinding()]
+    [OutputType([System.String])]
     param
     (
         $ReportObject
@@ -113,7 +114,7 @@ $(
         {
             $(
                 $rDataItem = $rItem.Data | Where-Object { $_.ServerName -eq $rServer }
-                if ($rDataItem -eq $null)
+                if ($null -eq $rDataItem)
                 {
                     '<td>N/A</td>'
                 }
