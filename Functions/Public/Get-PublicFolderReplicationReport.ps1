@@ -52,14 +52,14 @@ function Get-PublicFolderReplicationReport
         ,
         [parameter()]
         [validateset('html', 'csv')]
-        [string[]]$Outputformats
+        [string[]]$Outputformats = @('html', 'csv')
         ,
         [parameter()]
         #Add ValidateScript to verify Email Configuration is set
         [ValidateScript( {
                 if ($null -eq $script:EmailConfiguration)
                 {
-                    Write-Warning -message 'You must run Set-EmailConfiguration before use the sendemail parameter'
+                    Write-Warning -message 'You must run Set-EmailConfiguration before use the SendEmail parameter'
                     $false
                 }
                 else
@@ -97,6 +97,10 @@ function Get-PublicFolderReplicationReport
             {
                 WriteUserInstructionError
             }
+            $null
+            {
+                WriteUserInstructionError
+            }
         }
         $BeginTimeStamp = Get-Date -Format yyyyMMdd-HHmmss
         $script:LogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'PublicFolderReplicationAndStatisticsReport.log')
@@ -118,7 +122,7 @@ function Get-PublicFolderReplicationReport
                 )
                 if ($VerifyPFDatabase.Count -ne 1)
                 {
-                    Write-Error "$server is either not a Mailbox server or does not host a public folder database."
+                    Write-Error "$Server is either not a Mailbox server or does not host a public folder database."
                     Return
                 }
             }
@@ -128,7 +132,7 @@ function Get-PublicFolderReplicationReport
         {
             $PublicFolderMailboxServer = @(
                 Invoke-Command -Session $script:PSSession -ScriptBlock {
-                    Get-PublicFolderDatabase -includePreExchange2010 | Select-Object -ExpandProperty ServerName
+                    Get-PublicFolderDatabase | Select-Object -ExpandProperty ServerName
                 }
             )
         }
@@ -146,7 +150,7 @@ function Get-PublicFolderReplicationReport
         {
             $PublicFolderDatabase = $(
                 Invoke-Command -Session $script:PSSession -ScriptBlock {
-                    Get-PublicFolderDatabase -Server $Using:Server -includePreExchange2010
+                    Get-PublicFolderDatabase -Server $Using:Server
                 }
             )
             $PublicFolderMailboxServerDatabases.$Server = $PublicFolderDatabase.Name
@@ -163,7 +167,7 @@ function Get-PublicFolderReplicationReport
         }
         $FolderIDs = @(
             #if the user specified specific public folder paths, get those
-            if ($PublicFolderPath.Count -ge 1)
+            if ($PublicFolderPath.Count -ge 1 -and $PublicFolderPath -ne '\')
             {
                 $publicFolderPathString = $PublicFolderPath -join ', '
                 WriteLog -Message "Retrieving Public Folders in the following Path(s): $publicFolderPathString" -EntryType Notification
@@ -192,7 +196,7 @@ function Get-PublicFolderReplicationReport
         )
         #filter any duplicates if the user specified public folder paths
         WriteLog -Message 'Sorting and De-duplicating retrieved Public Folders.' -EntryType Notification
-        if ($PublicFolderPath.Count -ge 1) { $FolderIDs = @($FolderIDs | Select-Object -Unique -Property *) }
+        if ($PublicFolderPath.Count -ge 2) { $FolderIDs = @($FolderIDs | Select-Object -Unique -Property *) }
         #sort folders by path
         $FolderIDs = @($FolderIDs | Sort-Object Identity)
         $publicFoldersRetrievedCount = $FolderIDs.Count
