@@ -34,12 +34,12 @@ Function Connect-ExchangeOrganization
     {
         'ExchangeOnline'
         {
-            $Script:OrganizationType = 'ExchangeOnline'
+            $Script:ExchangeOrganizationType = 'ExchangeOnline'
             $GetExchangePSSessionParams.ExchangeOnline = $true
         }
         'ExchangeOnPremises'
         {
-            $Script:OrganizationType = 'ExchangeOnPremises'
+            $Script:ExchangeOrganizationType = 'ExchangeOnPremises'
             $Script:ExchangeOnPremisesServer = $ExchangeOnPremisesServer
             $GetExchangePSSessionParams.ExchangeServer = $script:ExchangeOnPremisesServer
         }

@@ -9,7 +9,7 @@ Function GetGetExchangePSSessionParams
     {
         $GetExchangePSSessionParams.PSSessionOption = $script:PSSessionOption
     }
-    switch ($Script:OrganizationType)
+    switch ($Script:ExchangeOrganizationType)
     {
         'ExchangeOnline'
         {
