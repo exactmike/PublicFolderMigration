@@ -1,9 +1,21 @@
 ###############################################################################################
-#Core Public Folder Migration Module Functions
+#Public Folder Migration Module Variables
 ###############################################################################################
-$script:ConnectExchangeOrganizationCompleted = $false
-$script:EmailConfiguration = $null
-#Imports all the function files, public and private
+$ModuleVariableNames = (
+    'ConnectExchangeOrganizationCompleted',
+    'Credential',
+    'EmailConfiguration',
+    'ExchangeOrganizationType',
+    'ExchangeOnPremisesServer',
+    'PSSession',
+    'PSSessionOption',
+    'PublicFolderMailboxServerSessions'
+)
+$ModuleVariableNames.ForEach( { Set-Variable -Scope Script -Name $_ -Value $null })
+
+###############################################################################################
+#Public Folder Migration Module Functions
+###############################################################################################
 $AllFunctionFiles = Get-ChildItem -Recurse -File -Path $(Join-Path -Path $PSScriptRoot -ChildPath 'Functions')
 $PublicFunctionFiles = $AllFunctionFiles.where( { $_.PSParentPath -like '*\Public' })
 #$PrivateFunctionFiles = $AllFunctionFiles.where( { $_.PSParentPath -like '*\Private' })
