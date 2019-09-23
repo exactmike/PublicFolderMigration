@@ -73,35 +73,7 @@ function Get-PublicFolderReplicationReport
     )
     Begin
     {
-        switch ($script:ConnectExchangeOrganizationCompleted)
-        {
-            $true
-            {
-                switch (TestExchangePSSession -PSSession $script:PSSession)
-                {
-                    $true
-                    {
-                        WriteLog -Message 'Using Existing PSSession' -EntryType Notification
-                    }
-                    $false
-                    {
-                        WriteLog -Message 'Removing Existing Failed PSSession' -EntryType Notification
-                        Remove-PSSession -Session $script:PsSession -ErrorAction SilentlyContinue
-                        WriteLog -Message 'Establishing New PSSession to Exchange Organization' -EntryType Notification
-                        $GetExchangePSSessionParams = GetGetExchangePSSessionParams
-                        $script:PsSession = GetExchangePSSession @GetExchangePSSessionParams
-                    }
-                }
-            }
-            $false
-            {
-                WriteUserInstructionError
-            }
-            $null
-            {
-                WriteUserInstructionError
-            }
-        }
+        Confirm-ExchangeConnection
         $BeginTimeStamp = Get-Date -Format yyyyMMdd-HHmmss
         $script:LogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'PublicFolderReplicationAndStatisticsReport.log')
         $script:ErrorLogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'PublicFolderReplicationAndStatisticsReport-ERRORS.log')
@@ -109,7 +81,6 @@ function Get-PublicFolderReplicationReport
         $ExchangeOrganization = Invoke-Command -Session $Script:PSSession -ScriptBlock { Get-OrganizationConfig | Select-Object -ExpandProperty Identity | Select-Object -ExpandProperty Name }
         WriteLog -Message "Exchange Session is Running in Exchange Organzation $ExchangeOrganization" -EntryType Notification
         #region ValidateParameters
-
         #if the user specified public folder mailbox servers, validate them:
         if ($PublicFolderMailboxServer.Count -ge 1)
         {
@@ -136,10 +107,20 @@ function Get-PublicFolderReplicationReport
                 }
             )
         }
+        $publicFolderPathType = switch ($PublicFolderPath) #types are Root, SingleNonRoot, MultipleWithRoot, MultipleNonRoot
+        {
+            { $_.Count -eq 0 }
+            { 'Root' }
+            { $_.Count -eq 1 -and $PublicFolderPath[0] -eq '\' }
+            { 'Root' }
+            { $_.Count -eq 1 -and $PublicFolderPath[0] -ne '\' }
+            { 'SingleNonRoot' }
+            { $_.Count -ge 2 -and $PublicFolderPath -contains '\' }
+            { 'MultipleWithRoot' }
+            { $_.Count -ge 2 -and $PublicFolderPath -notcontains '\' }
+            { 'MultipleNonRoot' }
+        }
         #endregion ValidateParameters
-    }#Begin
-    End
-    {
         #region BuildServerAndDatabaseLists
         $PublicFolderMailboxServerNames = $PublicFolderMailboxServer -join ', '
         WriteLog -Message "Public Folder Mailbox Servers Included: $PublicFolderMailboxServerNames" -EntryType Notification -Verbose
@@ -166,31 +147,32 @@ function Get-PublicFolderReplicationReport
             $GetPublicFolderParams.ResultSize = 'Unlimited'
         }
         $FolderIDs = @(
-            #if the user specified specific public folder paths, get those
-            if ($PublicFolderPath.Count -ge 1 -and $PublicFolderPath -ne '\')
+            switch ($publicFolderPathType)
             {
-                $publicFolderPathString = $PublicFolderPath -join ', '
-                WriteLog -Message "Retrieving Public Folders in the following Path(s): $publicFolderPathString" -EntryType Notification
-                foreach ($Path in $PublicFolderPath)
+                { $_ -in @('SingleNonRoot', 'MultipleNonRoot') } #if the user specified specific public folder paths, get those
                 {
-                    Invoke-Command -Session $script:PSSession -ScriptBlock {
-                        Get-PublicFolder $using:Path @using:GetPublicFolderParams
-                    } | Select-Object -property @{n = 'EntryID'; e = { $_.EntryID.tostring() } }, @{n = 'Identity'; e = { $_.Identity.tostring() } }, Name, Replicas
+                    $publicFolderPathString = $PublicFolderPath -join ', '
+                    WriteLog -Message "Retrieving Public Folders in the following Path(s): $publicFolderPathString" -EntryType Notification
+                    foreach ($Path in $PublicFolderPath)
+                    {
+                        Invoke-Command -Session $script:PSSession -ScriptBlock {
+                            Get-PublicFolder $using:Path @using:GetPublicFolderParams
+                        } | Select-Object -property @{n = 'EntryID'; e = { $_.EntryID.tostring() } }, @{n = 'Identity'; e = { $_.Identity.tostring() } }, Name, Replicas
+                    }
                 }
-            }
-            #otherwise, get all default public folders
-            else
-            {
-                WriteLog -message 'Retrieving All Default (Non-System) Public Folders from IPM_SUBTREE' -EntryType Notification
-                Invoke-Command -Session $script:PSSession -ScriptBlock {
-                    Get-PublicFolder -Recurse -ResultSize Unlimited
-                } | Select-Object -property @{n = 'EntryID'; e = { $_.EntryID.tostring() } }, @{n = 'Identity'; e = { $_.Identity.tostring() } }, Name, Replicas
-                if ($IncludeSystemPublicFolders)
+                { $_ -in @('Root', 'MultipleWithRoot') } #otherwise, get all default public folders
                 {
-                    WriteLog -Message 'Retrieving All System Public Folders from NON_IPM_SUBTREE' -EntryType Notification
+                    WriteLog -message 'Retrieving All Default (Non-System) Public Folders from IPM_SUBTREE' -EntryType Notification
                     Invoke-Command -Session $script:PSSession -ScriptBlock {
-                        Get-PublicFolder \Non_IPM_SUBTREE -Recurse -ResultSize Unlimited
+                        Get-PublicFolder -Recurse -ResultSize Unlimited
                     } | Select-Object -property @{n = 'EntryID'; e = { $_.EntryID.tostring() } }, @{n = 'Identity'; e = { $_.Identity.tostring() } }, Name, Replicas
+                    if ($IncludeSystemPublicFolders)
+                    {
+                        WriteLog -Message 'Retrieving All System Public Folders from NON_IPM_SUBTREE' -EntryType Notification
+                        Invoke-Command -Session $script:PSSession -ScriptBlock {
+                            Get-PublicFolder \Non_IPM_SUBTREE -Recurse -ResultSize Unlimited
+                        } | Select-Object -property @{n = 'EntryID'; e = { $_.EntryID.tostring() } }, @{n = 'Identity'; e = { $_.Identity.tostring() } }, Name, Replicas
+                    }
                 }
             }
         )
@@ -202,109 +184,115 @@ function Get-PublicFolderReplicationReport
         $publicFoldersRetrievedCount = $FolderIDs.Count
         WriteLog -Message "Count of Public Folders Retrieved: $publicFoldersRetrievedCount" -EntryType Notification
         #endregion BuildPublicFolderList
+    }#Begin
+    End
+    {
         #region GetPublicFolderStats
         $publicFolderStatsFromSelectedServers =
         @(
             # if the user specified public folder path then only retrieve stats for the specified folders.
             # This can be significantly faster than retrieving stats for all public folders
-            if ($PublicFolderPath.Count -ge 1)
+            switch ($publicFolderPathType)
             {
-                $count = 0
-                $RecordCount = $FolderIDs.Count * $PublicFolderMailboxServer.Count
-                foreach ($FolderID in $FolderIDs)
+                { $_ -in @('SingleNonRoot', 'MultipleNonRoot') } #if the user specified specific public folder paths, get those
                 {
-                    foreach ($Server in $PublicFolderMailboxServer)
+                    $count = 0
+                    $RecordCount = $FolderIDs.Count * $PublicFolderMailboxServer.Count
+                    foreach ($FolderID in $FolderIDs)
                     {
-                        $customProperties =
-                        @(
-                            '*'
-                            @{n = 'ServerName'; e = { $Server } }
-                            #this is necessary b/c powershell remoting makes the attributes deserialized and the value in bytes is not available directly.  Code below should work in EMS locally and in remote powershell sessions
-                            @{n = 'SizeInBytes'; e = { $_.TotalItemSize.ToString().split(('(', ')'))[1].replace(',', '').replace(' bytes', '') -as [long] } }
-                        )
-                        $NOstatsProperties =
-                        @{
-                            AdminDisplayName         = $null
-                            AssociatedItemCount      = $null
-                            ContactCount             = $null
-                            CreationTime             = $null
-                            DeletedItemCount         = 0
-                            EntryId                  = $FolderID.EntryID
-                            ExpiryTime               = $null
-                            FolderPath               = $null
-                            Identity                 = $FolderID.EntryID
-                            IsDeletePending          = $null
-                            IsValid                  = $null
-                            ItemCount                = 0
-                            LastAccessTime           = $null
-                            LastModificationTime     = $null
-                            LastUserAccessTime       = $null
-                            LastUserModificationTime = $null
-                            MapiIdentity             = $FolderID.Name
-                            Name                     = $FolderID.Name
-                            OriginatingServer        = $null
-                            OwnerCount               = $null
-                            ServerName               = $Server
-                            StorageGroupName         = $null
-                            TotalAssociatedItemSize  = $null
-                            TotalDeletedItemSize     = $null
-                            TotalItemSize            = $null
-                            DatabaseName             = $($PublicFolderMailboxServerDatabases.$Server)
-                            SizeInBytes              = $null
-                        }
-                        if ($FolderID.Replicas -contains $PublicFolderMailboxServerDatabases.$Server)
+                        foreach ($Server in $PublicFolderMailboxServer)
                         {
-                            $count++
-                            $currentOperationString = "Getting Stats for $($FolderID.Identity) from Server $Server."
-                            Write-Progress -Activity 'Retrieving Public Folder Stats for Selected Public Folders' -CurrentOperation $currentOperationString -PercentComplete $($count / $RecordCount * 100) -Status "Retrieving Stats for folder replica instance $count of $RecordCount"
-                            WriteLog -Message $currentOperationString -EntryType Notification -Verbose
-                            #Error Action Silently Continue because some servers may not have a replica and we don't care about that error in this context
-                            $thestats = $(
-                                Invoke-Command -Session $script:PSSession -ScriptBlock {
-                                    Get-PublicFolderStatistics -Identity $($using:FolderID).EntryID -Server $using:Server -ErrorAction SilentlyContinue
-                                }
+                            $customProperties =
+                            @(
+                                '*'
+                                @{n = 'ServerName'; e = { $Server } }
+                                #this is necessary b/c powershell remoting makes the attributes deserialized and the value in bytes is not available directly.  Code below should work in EMS locally and in remote powershell sessions
+                                @{n = 'SizeInBytes'; e = { $_.TotalItemSize.ToString().split(('(', ')'))[1].replace(',', '').replace(' bytes', '') -as [long] } }
                             )
-                            if ($null -ne $thestats)
+                            $NOstatsProperties =
+                            @{
+                                AdminDisplayName         = $null
+                                AssociatedItemCount      = $null
+                                ContactCount             = $null
+                                CreationTime             = $null
+                                DeletedItemCount         = 0
+                                EntryId                  = $FolderID.EntryID
+                                ExpiryTime               = $null
+                                FolderPath               = $null
+                                Identity                 = $FolderID.EntryID
+                                IsDeletePending          = $null
+                                IsValid                  = $null
+                                ItemCount                = 0
+                                LastAccessTime           = $null
+                                LastModificationTime     = $null
+                                LastUserAccessTime       = $null
+                                LastUserModificationTime = $null
+                                MapiIdentity             = $FolderID.Name
+                                Name                     = $FolderID.Name
+                                OriginatingServer        = $null
+                                OwnerCount               = $null
+                                ServerName               = $Server
+                                StorageGroupName         = $null
+                                TotalAssociatedItemSize  = $null
+                                TotalDeletedItemSize     = $null
+                                TotalItemSize            = $null
+                                DatabaseName             = $($PublicFolderMailboxServerDatabases.$Server)
+                                SizeInBytes              = $null
+                            }
+                            if ($FolderID.Replicas -contains $PublicFolderMailboxServerDatabases.$Server)
                             {
-                                $thestats | Select-Object -ExcludeProperty ServerName -Property $customProperties
+                                $count++
+                                $currentOperationString = "Getting Stats for $($FolderID.Identity) from Server $Server."
+                                Write-Progress -Activity 'Retrieving Public Folder Stats for Selected Public Folders' -CurrentOperation $currentOperationString -PercentComplete $($count / $RecordCount * 100) -Status "Retrieving Stats for folder replica instance $count of $RecordCount"
+                                WriteLog -Message $currentOperationString -EntryType Notification -Verbose
+                                #Error Action Silently Continue because some servers may not have a replica and we don't care about that error in this context
+                                $thestats = $(
+                                    Invoke-Command -Session $script:PSSession -ScriptBlock {
+                                        Get-PublicFolderStatistics -Identity $($using:FolderID).EntryID -Server $using:Server -ErrorAction SilentlyContinue
+                                    }
+                                )
+                                if ($null -ne $thestats)
+                                {
+                                    $thestats | Select-Object -ExcludeProperty ServerName -Property $customProperties
+                                }
+                                else
+                                {
+                                    New-Object -TypeName psobject -Property $NOstatsProperties
+                                }
                             }
                             else
                             {
                                 New-Object -TypeName psobject -Property $NOstatsProperties
                             }
-                        }
-                        else
-                        {
-                            New-Object -TypeName psobject -Property $NOstatsProperties
-                        }
-                    }#foreach $Server
-                }#foreach $FolderID
-                Write-Progress -Activity 'Retrieving Public Folder Stats for Selected Public Folders' -CurrentOperation Completed -Completed -Status Completed
-            }
-            # Get statistics for all public folders on all selected servers
-            # This is significantly faster than trying to get folders one by one by name
-            else
-            {
-                $count = 0
-                $RecordCount = $PublicFolderMailboxServer.Count
-                foreach ($Server in $PublicFolderMailboxServer)
+                        }#foreach $Server
+                    }#foreach $FolderID
+                    Write-Progress -Activity 'Retrieving Public Folder Stats for Selected Public Folders' -CurrentOperation Completed -Completed -Status Completed
+                }
+                # Get statistics for all public folders on all selected servers
+                # This is significantly faster than trying to get folders one by one by name
+                { $_ -in @('Root', 'MultipleWithRoot') } #otherwise, get all default public folders
                 {
-                    $customProperties = @(
-                        '*'
-                        @{n = 'ServerName'; e = { $Server } }
-                        @{n = 'SizeInBytes'; e = { $_.TotalItemSize.ToString().split(('(', ')'))[1].replace(',', '').replace(' bytes', '') -as [long] } }
-                    )
-                    Write-Verbose "Retrieving Stats for all Public Folders from $Server"
-                    Write-Progress -Activity 'Retrieving Public Folder Stats' -CurrentOperation $Server -PercentComplete $($count / $RecordCount * 100) -Status "Retrieving Stats for Server $count of $RecordCount"
-                    #avoid NULL output by testing for results while still suppressing errors with SilentlyContinue
-                    $thestats = @(
-                        Invoke-Command -Session $script:PSSession -ScriptBlock {
-                            Get-PublicFolderStatistics -Server $using:Server -ResultSize Unlimited -ErrorAction SilentlyContinue
-                        }
-                    )
-                    if ($null -ne $thestats)
+                    $count = 0
+                    $RecordCount = $PublicFolderMailboxServer.Count
+                    foreach ($Server in $PublicFolderMailboxServer)
                     {
-                        $thestats | Select-Object -ExcludeProperty ServerName -Property $customProperties
+                        $customProperties = @(
+                            '*'
+                            @{n = 'ServerName'; e = { $Server } }
+                            @{n = 'SizeInBytes'; e = { $_.TotalItemSize.ToString().split(('(', ')'))[1].replace(',', '').replace(' bytes', '') -as [long] } }
+                        )
+                        Write-Verbose "Retrieving Stats for all Public Folders from $Server"
+                        Write-Progress -Activity 'Retrieving Public Folder Stats' -CurrentOperation $Server -PercentComplete $($count / $RecordCount * 100) -Status "Retrieving Stats for Server $count of $RecordCount"
+                        #avoid NULL output by testing for results while still suppressing errors with SilentlyContinue
+                        $thestats = @(
+                            Invoke-Command -Session $script:PSSession -ScriptBlock {
+                                Get-PublicFolderStatistics -Server $using:Server -ResultSize Unlimited -ErrorAction SilentlyContinue
+                            }
+                        )
+                        if ($null -ne $thestats)
+                        {
+                            $thestats | Select-Object -ExcludeProperty ServerName -Property $customProperties
+                        }
                     }
                 }
             }
