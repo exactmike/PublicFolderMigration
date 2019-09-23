@@ -12,12 +12,6 @@ This parameter specifies the Exchange 2010 server(s) to scan. If this is omitted
 This parameter specifies the Public Folder(s) to scan. If this is omitted, all public folders are scanned.
 .PARAMETER Recurse
 When used in conjunction with the FolderPath parameter, this will include all child Public Folders of the Folders listed in Folder Path.
-.PARAMETER AsHTML
-Specifying this switch will have this script output HTML, rather than the result objects. This is independent of the Filename or SendEmail parameters and only controls the console output of the script.
-.PARAMETER Passthrough
-Controls whether the ReportMatrix of Public Folder Stats is returned to the pipeline instead of just being consumed in output to email, file, or html.
-.PARAMETER Filename
-Providing a Filename will save the HTML report to a file.
 .PARAMETER SendEmail
 This switch will set the script to send an HTML email report. If this switch is specified, then the To, From and SmtpServers are required.
 .PARAMETER To
