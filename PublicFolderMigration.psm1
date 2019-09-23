@@ -3,14 +3,13 @@
 ###############################################################################################
 $ModuleVariableNames = (
     'ConnectExchangeOrganizationCompleted',
-    'Credential',
+    'ExchangeCredential',
     'EmailConfiguration',
     'ExchangeOrganizationType',
     'ExchangeOnPremisesServer',
     'ParallelPSSession',
     'PSSession',
-    'PSSessionOption',
-    'PublicFolderMailboxServerSessions'
+    'PSSessionOption'
 )
 $ModuleVariableNames.ForEach( { Set-Variable -Scope Script -Name $_ -Value $null })
 

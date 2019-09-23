@@ -1,5 +1,5 @@
 
-function Get-PublicFolderReplicationReport
+function Get-PFMPublicFolderReplicationReport
 {
     <#
     .SYNOPSIS
@@ -59,7 +59,7 @@ function Get-PublicFolderReplicationReport
         [ValidateScript( {
                 if ($null -eq $script:EmailConfiguration)
                 {
-                    Write-Warning -message 'You must run Set-EmailConfiguration before use the SendEmail parameter'
+                    Write-Warning -message 'You must run Set-PFMEmailConfiguration before use the SendEmail parameter'
                     $false
                 }
                 else

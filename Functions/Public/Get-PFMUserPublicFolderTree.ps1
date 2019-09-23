@@ -1,4 +1,4 @@
-Function Get-UserPublicFolderTree
+Function Get-PFMUserPublicFolderTree
 {
 
     [cmdletbinding()]

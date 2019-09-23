@@ -19,7 +19,10 @@ Function Get-PFMExchangePSSession
         ErrorAction       = 'Stop'
         ConfigurationName = 'Microsoft.Exchange'
         Credential        = $Credential
-        Name = $ExchangeServer
+    }
+    if ($null -ne $PSSessionOption)
+    {
+        $NewPsSessionParams.PSSessionOption = $PSSessionOption
     }
     switch ($PSCmdlet.ParameterSetName)
     {
@@ -28,11 +31,13 @@ Function Get-PFMExchangePSSession
             $NewPsSessionParams.ConnectionURI = 'https://outlook.office365.com/powershell-liveid/'
             $NewPsSessionParams.Authentication = 'Basic'
             $NewPsSessionParams.AllowRedirection = $True
+            $NewPsSessionParams.Name = 'ExchangeOnline'
         }
         'ExchangeOnPremises'
         {
             $NewPsSessionParams.ConnectionURI = 'http://' + $ExchangeServer + '/PowerShell/'
             $NewPsSessionParams.Authentication = 'Kerberos'
+            $NewPsSessionParams.Name = $ExchangeServer
         }
     }
     $ExchangeSession = New-PSSession @NewPsSessionParams

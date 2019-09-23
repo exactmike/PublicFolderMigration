@@ -5,6 +5,7 @@ Function Connect-PFMExchange
     param
     (
         [parameter(Mandatory, ParameterSetName = 'ExchangeOnline')]
+        [parameter(Mandatory, ParameterSetName = 'ExchangeOnlineParallel')]
         [switch]$ExchangeOnline
         ,
         [parameter(Mandatory, ParameterSetName = 'ExchangeOnPremises')]
@@ -12,56 +13,75 @@ Function Connect-PFMExchange
         [ValidatePattern('(?=^.{1,254}$)(^(?:(?!\d+\.|-)[a-zA-Z0-9_\-]{1,63}(?<!-)\.?)+(?:[a-zA-Z]{2,})$)')]
         [string]$ExchangeOnPremisesServer
         ,
-        [parameter(Mandatory)]
+        [parameter(Mandatory, ParameterSetName = 'ExchangeOnPremises')]
+        [parameter(Mandatory, ParameterSetName = 'ExchangeOnline')]
         [pscredential]$Credential
         ,
         [System.Management.Automation.Remoting.PSSessionOption]$PSSessionOption
         ,
         [parameter(ParameterSetName = 'ExchangeOnPremisesParallel')]
+        [parameter(Mandatory, ParameterSetName = 'ExchangeOnlineParallel')]
         [switch]$IsParallel
     )
-    $script:Credential = $Credential
+
+    #Force user to run Connect-PFMExchange for organization before IsParallel
+    if (
+            ($null -eq $ConnectExchangeOrganizationCompleted -or $false -eq $ConnectExchangeOrganizationCompleted) -and
+            $true -eq $IsParallel
+        )
+    {
+        Write-ConnectPFMExchangeUserError
+    }
+
+    #set module variables for credential and exchange organization type if not IsParallel
+    if ($true -ne $IsParallel)
+    {
+        $script:ExchangeCredential = $Credential
+        $script:ExchangeOrganizationType = $PSCmdlet.ParameterSetName
+    }
+
     #since this is user facing we always assume that if called the existing session needs to be replaced
-    if ($false -eq $IsParallel -and $null -ne $script:PsSession -and $script:PsSession -is [System.Management.Automation.Runspaces.PSSession])
+    if ($false -eq $IsParallel -and $null -ne $script:PsSession)
     {
         Remove-PSSession -Session $script:PsSession -ErrorAction SilentlyContinue
+        $script:PSSession = $null
     }
+
+    #BuildParamsToGetTheRequiredSession
     $GetPFMExchangePSSessionParams = @{
         ErrorAction = 'Stop'
-        Credential  = $script:Credential
+        Credential  = $script:ExchangeCredential
     }
     if ($null -ne $PSSessionOption)
     {
         $script:PSSessionOption = $PSSessionOption
-        $GetPFMExchangePSSessionParams.PSSessionOption = $script:PSSessionOption
+        $GetPFMExchangePSSessionParams.PSSessionOption = $PSSessionOption
     }
-    switch ($PSCmdlet.ParameterSetName)
+    switch -Wildcard ($PSCmdlet.ParameterSetName)
     {
-        'ExchangeOnline'
+        'ExchangeOnline*'
         {
-            $Script:ExchangeOrganizationType = 'ExchangeOnline'
             $GetPFMExchangePSSessionParams.ExchangeOnline = $true
         }
-        'ExchangeOnPremises'
+        'ExchangeOnPremises*'
         {
-            $Script:ExchangeOrganizationType = 'ExchangeOnPremises'
-            $Script:ExchangeOnPremisesServer = $ExchangeOnPremisesServer
-            $GetPFMExchangePSSessionParams.ExchangeServer = $script:ExchangeOnPremisesServer
+            $GetPFMExchangePSSessionParams.$ExchangeServer = $ExchangeOnPremisesServer
         }
     }
+
+    #Get the Required Exchange Session
+    $ExchangeSession = Get-PFMExchangePSSession @GetPFMExchangePSSessionParams
+
     Switch ($IsParallel)
     {
         $false
         {
-            $script:PsSession = Get-PFMExchangePSSession @GetPFMExchangePSSessionParams
+            $script:PsSession = $ExchangeSession
             $script:ConnectExchangeOrganizationCompleted = $true
         }
         $true
         {
-            if ($null -eq $script:ParallelPSSession)
-            {$script:ParallelPSSession = [System.Collections.ArrayList]::new()}
-            [void]$script:ParallelPSSession.Add($(Get-PFMExchangePSSession @Get-PFMExchangePSSessionParams))
+            Add-PFMParallelPSSession -Session $ExchangeSession
         }
     }
-
 }

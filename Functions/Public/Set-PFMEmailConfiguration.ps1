@@ -1,4 +1,4 @@
-function Set-EmailConfiguration
+function Set-PFMEmailConfiguration
 {
     <#
 .PARAMETER To

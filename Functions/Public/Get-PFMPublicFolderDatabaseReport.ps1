@@ -1,4 +1,4 @@
-function Get-PublicFolderDatabaseReport
+function Get-PFMPublicFolderDatabaseReport
 {
     [CmdletBinding()]
     param (

@@ -7,11 +7,11 @@ else
     WriteLog -Message 'Removing Existing Failed PSSession' -EntryType Notification
     Remove-PSSession -Session $script:PsSession -ErrorAction SilentlyContinue
     WriteLog -Message 'Establish New PSSession to Exchange Organization' -EntryType Attempting
-    $GetPFMExchangePSSessionParams = GetGetPFMExchangePSSessionParams
+    #$GetPFMExchangePSSessionParams = GetGetPFMExchangePSSessionParams
     try
     {
         Start-Sleep -Seconds 10
-        $script:PsSession = Get-PFMExchangePSSession @GetPFMExchangePSSessionParams
+        #$script:PsSession = Get-PFMExchangePSSession @GetPFMExchangePSSessionParams
         WriteLog -Message 'Establish New PSSession to Exchange Organization' -EntryType Succeeded
     }
     catch

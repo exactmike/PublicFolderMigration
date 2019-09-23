@@ -1,4 +1,4 @@
-Function Export-PublicFolderPermission
+Function Export-PFMPublicFolderPermission
 {
 
     [cmdletbinding(DefaultParameterSetName = 'AllPublicFolders')]
@@ -84,11 +84,11 @@ Function Export-PublicFolderPermission
             }
             $false
             {
-                WriteUserInstructionError
+                Write-ConnectPFMExchangeUserError
             }
             $null
             {
-                WriteUserInstructionError
+                Write-ConnectPFMExchangeUserError
             }
         }
         $ExchangeOrganization = Invoke-Command -Session $Script:PSSession -ScriptBlock { Get-OrganizationConfig | Select-Object -ExpandProperty Identity | Select-Object -ExpandProperty Name }

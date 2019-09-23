@@ -1,10 +1,10 @@
-Function Export-UserPublicFolderTree
+Function Export-PFMUserPublicFolderTree
 {
     [cmdletbinding()]
     param(
         [switch]$ExportPermissions
     )
-    $allUserPublicFolders = @(Get-UserPublicFolderTree -ExchangeOrganization $ExchangeOrganization)
+    $allUserPublicFolders = @(Get-PFMUserPublicFolderTree -ExchangeOrganization $ExchangeOrganization)
     $ExportFile = Export-Data -DataToExport $allUserPublicFolders -DataToExportTitle UserPublicFolderTree -Depth 3 -DataType json -ReturnExportFilePath -ErrorAction Stop
     Write-Information -MessageData "Exported UserPublicFolderTree File: $ExportFile" -Tags Notification
     if ($ExportPermissions)

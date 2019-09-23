@@ -1,4 +1,4 @@
-function Find-OrphanedMailEnabledPublicFolder
+function Find-PFMOrphanedMailEnabledPublicFolder
 {
     [cmdletbinding()]
     Param
@@ -9,7 +9,7 @@ function Find-OrphanedMailEnabledPublicFolder
     #Try to get all Mail Enabled Public Folder Objects in the Organization
     try
     {
-        $MailEnabledPublicFolders = @(Get-AllMailPublicFolder -ExchangeOrganization $ExchangeOrganization -ErrorAction Stop)
+        $MailEnabledPublicFolders = @(Get-PFMAllMailPublicFolder -ExchangeOrganization $ExchangeOrganization -ErrorAction Stop)
     }
     catch
     {
@@ -19,7 +19,7 @@ function Find-OrphanedMailEnabledPublicFolder
     #Try to get all User Public Folders from the Organization public folder tree
     try
     {
-        $ExchangePublicFolders = @(Get-UserPublicFolderTree -ExchangeOrganization $ExchangeOrganization -ErrorAction Stop)
+        $ExchangePublicFolders = @(Get-PFMUserPublicFolderTree -ExchangeOrganization $ExchangeOrganization -ErrorAction Stop)
     }
     catch
     {

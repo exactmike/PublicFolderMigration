@@ -1,4 +1,4 @@
-Function Get-AllMailPublicFolder
+Function Get-PFMAllMailPublicFolder
 {
     [cmdletbinding()]
     [OutputType([System.Object[]])]
