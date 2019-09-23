@@ -1,25 +1,25 @@
-Function GetGetExchangePSSessionParams
+Function GetGetPFMExchangePSSessionParams
 {
 
-    $GetExchangePSSessionParams = @{
+    $GetPFMExchangePSSessionParams = @{
         ErrorAction = 'Stop'
         Credential  = $script:Credential
     }
     if ($null -ne $script:PSSessionOption -and $script:PSSessionOption -is [System.Management.Automation.Remoting.PSSessionOption])
     {
-        $GetExchangePSSessionParams.PSSessionOption = $script:PSSessionOption
+        $GetPFMExchangePSSessionParams.PSSessionOption = $script:PSSessionOption
     }
     switch ($Script:ExchangeOrganizationType)
     {
         'ExchangeOnline'
         {
-            $GetExchangePSSessionParams.ExchangeOnline = $true
+            $GetPFMExchangePSSessionParams.ExchangeOnline = $true
         }
         'ExchangeOnPremises'
         {
-            $GetExchangePSSessionParams.ExchangeServer = $script:ExchangeOnPremisesServer
+            $GetPFMExchangePSSessionParams.ExchangeServer = $script:ExchangeOnPremisesServer
         }
     }
-    $GetExchangePSSessionParams
+    $GetPFMExchangePSSessionParams
 
 }

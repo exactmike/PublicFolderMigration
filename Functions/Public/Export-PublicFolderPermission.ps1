@@ -66,7 +66,7 @@ Function Export-PublicFolderPermission
         {
             $true
             {
-                switch (TestExchangePSSession -PSSession $script:PSSession)
+                switch (Test-PFMExchangePSSession -PSSession $script:PSSession)
                 {
                     $true
                     {
@@ -75,10 +75,10 @@ Function Export-PublicFolderPermission
                     $false
                     {
                         WriteLog -Message 'Removing Existing Failed PSSession' -EntryType Notification
-                        RemoveExchangePSSession -Session $script:PsSession
+                        Remove-PFMExchangePSSession -Session $script:PsSession
                         WriteLog -Message 'Establishing New PSSession to Exchange Organization' -EntryType Notification
-                        $GetExchangePSSessionParams = GetGetExchangePSSessionParams
-                        $script:PsSession = GetExchangePSSession @GetExchangePSSessionParams
+                        $GetPFMExchangePSSessionParams = GetGetPFMExchangePSSessionParams
+                        $script:PsSession = Get-PFMExchangePSSession @GetPFMExchangePSSessionParams
                     }
                 }
             }
@@ -416,7 +416,7 @@ Function Export-PublicFolderPermission
                         }
                         $PermissionExportObjects = @(ExpandGroupPermission @splat)
                     }
-                    if (TestExchangePSSession -PSSession $Script:PSSession)
+                    if (Test-PFMExchangePSSession -PSSession $Script:PSSession)
                     {
                         if ($PermissionExportObjects.Count -eq 0 -and -not $ExcludeNonePermissionOutput -eq $true)
                         {
@@ -444,11 +444,11 @@ Function Export-PublicFolderPermission
                         WriteLog -Message 'Removing Existing Failed PSSession' -EntryType Notification -verbose
                         Remove-PSSession -Session $script:PsSession -ErrorAction SilentlyContinue
                         WriteLog -Message 'Establish New PSSession to Exchange Organization' -EntryType Attempting -verbose
-                        $GetExchangePSSessionParams = GetGetExchangePSSessionParams
+                        $GetPFMExchangePSSessionParams = GetGetPFMExchangePSSessionParams
                         try
                         {
                             Start-Sleep -Seconds 10
-                            $script:PsSession = GetExchangePSSession @GetExchangePSSessionParams
+                            $script:PsSession = Get-PFMExchangePSSession @GetPFMExchangePSSessionParams
                             WriteLog -Message 'Establish New PSSession to Exchange Organization' -EntryType Succeeded -verbose
                             $ResumeIndex = $i
                             $ISRCounter--
@@ -487,11 +487,11 @@ Function Export-PublicFolderPermission
                     WriteLog -Message 'Removing Existing Failed PSSession' -EntryType Notification
                     Remove-PSSession -Session $script:PsSession -ErrorAction SilentlyContinue
                     WriteLog -Message 'Establish New PSSession to Exchange Organization' -EntryType Attempting
-                    $GetExchangePSSessionParams = GetGetExchangePSSessionParams
+                    $GetPFMExchangePSSessionParams = GetGetPFMExchangePSSessionParams
                     try
                     {
                         Start-Sleep -Seconds 10
-                        $script:PsSession = GetExchangePSSession @GetExchangePSSessionParams
+                        $script:PsSession = Get-PFMExchangePSSession @GetPFMExchangePSSessionParams
                         WriteLog -Message 'Establish New PSSession to Exchange Organization' -EntryType Succeeded
                         $ResumeIndex = $i
                         $ISRCounter--

@@ -1,4 +1,4 @@
-Function TestExchangePSSession
+Function Test-PFMExchangePSSession
 {
 
     [CmdletBinding()]

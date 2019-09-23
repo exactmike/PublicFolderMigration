@@ -1,4 +1,4 @@
-if (TestExchangePSSession -PSSession $Script:PSSession)
+if (Test-PFMExchangePSSession -PSSession $Script:PSSession)
 {
     #here is what you do if everythign is OK
 }
@@ -7,11 +7,11 @@ else
     WriteLog -Message 'Removing Existing Failed PSSession' -EntryType Notification
     Remove-PSSession -Session $script:PsSession -ErrorAction SilentlyContinue
     WriteLog -Message 'Establish New PSSession to Exchange Organization' -EntryType Attempting
-    $GetExchangePSSessionParams = GetGetExchangePSSessionParams
+    $GetPFMExchangePSSessionParams = GetGetPFMExchangePSSessionParams
     try
     {
         Start-Sleep -Seconds 10
-        $script:PsSession = GetExchangePSSession @GetExchangePSSessionParams
+        $script:PsSession = Get-PFMExchangePSSession @GetPFMExchangePSSessionParams
         WriteLog -Message 'Establish New PSSession to Exchange Organization' -EntryType Succeeded
     }
     catch

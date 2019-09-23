@@ -1,4 +1,4 @@
-Function RemoveExchangePSSession
+Function Remove-PFMExchangePSSession
 {
 
     [CmdletBinding()]
@@ -7,5 +7,5 @@ Function RemoveExchangePSSession
         [System.Management.Automation.Runspaces.PSSession]$PSSession = $script:PSSession
     )
     Remove-PSSession -Session $PsSession -ErrorAction SilentlyContinue
-
+    #if ($)
 }

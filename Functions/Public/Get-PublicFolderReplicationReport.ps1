@@ -73,7 +73,7 @@ function Get-PublicFolderReplicationReport
     )
     Begin
     {
-        Confirm-ExchangeConnection
+        Confirm-PFMExchangeConnection
         $BeginTimeStamp = Get-Date -Format yyyyMMdd-HHmmss
         $script:LogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'PublicFolderReplicationAndStatisticsReport.log')
         $script:ErrorLogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'PublicFolderReplicationAndStatisticsReport-ERRORS.log')
