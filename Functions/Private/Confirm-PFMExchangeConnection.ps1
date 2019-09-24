@@ -14,8 +14,27 @@ function Confirm-PFMExchangeConnection
                 {
                     WriteLog -Message 'Removing Existing Failed PSSession' -EntryType Notification
                     Remove-PSSession -Session $script:PsSession -ErrorAction SilentlyContinue
+                    $script:PSSession = $null
                     WriteLog -Message 'Establishing New PSSession to Exchange Organization' -EntryType Notification
-                    $GetPFMExchangePSSessionParams = GetGetPFMExchangePSSessionParams
+                    $GetPFMExchangePSSessionParams = @{
+                        ErrorAction = 'Stop'
+                        Credential  = $Script:ExchangeCredential
+                    }
+                    if ($null -ne $Script:PSSessionOption)
+                    {
+                        $GetPFMExchangePSSessionParams.PSSessionOption = $script:PSSessionOption
+                    }
+                    switch ($Script:ExchangeOrganizationType)
+                    {
+                        'ExchangeOnline'
+                        {
+                            $GetPFMExchangePSSessionParams.ExchangeOnline = $true
+                        }
+                        'ExchangeOnPremises'
+                        {
+                            $GetPFMExchangePSSessionParams.$ExchangeServer = $ExchangeOnPremisesServer
+                        }
+                    }
                     $script:PsSession = Get-PFMExchangePSSession @GetPFMExchangePSSessionParams
                 }
             }
