@@ -19,7 +19,7 @@ Function Connect-PFMExchange
         ,
         [System.Management.Automation.Remoting.PSSessionOption]$PSSessionOption
         ,
-        [parameter(ParameterSetName = 'ExchangeOnPremisesParallel')]
+        [parameter(Mandatory, ParameterSetName = 'ExchangeOnPremisesParallel')]
         [parameter(Mandatory, ParameterSetName = 'ExchangeOnlineParallel')]
         [switch]$IsParallel
     )
@@ -37,7 +37,7 @@ Function Connect-PFMExchange
     if ($true -ne $IsParallel)
     {
         $script:ExchangeCredential = $Credential
-        $script:ExchangeOrganizationType = $PSCmdlet.ParameterSetName
+        $script:ExchangeOrganizationType = $script:ExchangeOrganizationType
     }
 
     #since this is user facing we always assume that if called the existing session needs to be replaced
