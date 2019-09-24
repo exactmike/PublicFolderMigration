@@ -75,7 +75,7 @@ Function Export-PFMPublicFolderPermission
                     $false
                     {
                         WriteLog -Message 'Removing Existing Failed PSSession' -EntryType Notification
-                        Remove-PFMExchangePSSession -Session $script:PsSession
+                        #Remove-PFMExchangePSSession -Session $script:PsSession #replace with Confirm-PFMExchangeConnection
                         WriteLog -Message 'Establishing New PSSession to Exchange Organization' -EntryType Notification
                         $GetPFMExchangePSSessionParams = GetGetPFMExchangePSSessionParams
                         $script:PsSession = Get-PFMExchangePSSession @GetPFMExchangePSSessionParams
