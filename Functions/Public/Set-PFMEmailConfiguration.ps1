@@ -1,7 +1,7 @@
 function Set-PFMEmailConfiguration
 {
     <#
-.PARAMETER To
+    .PARAMETER To
     When SendEmail is used, this sets the recipients of the email report.
     .PARAMETER From
     When SendEmail is used, this sets the sender of the email report.
@@ -38,20 +38,21 @@ function Set-PFMEmailConfiguration
         [string]$Subject
         ,
         [parameter()]
-        [switch]$HTMLBody
+        [switch]$BodyAsHTML
         ,
-        [parameter(Mandatory)]
-        #add a validate set for each possible attachment type
-        [string[]]$IncludeAttachment
+        [parameter()]
+        [switch]$Attachments
     )
 
-    $script:EmailConfiguration = [PSCustomObject]@{
+    $script:EmailConfiguration = @{
         SMTPServer        = $SMTPServer
         To                = $To
         From              = $From
-        Subject           = $Subject
-        HTMLBody          = $HTMLBody
-        IncludeAttachment = @($IncludeAttachment)
+        BodyAsHTML      = $BodyAsHTML
+    }
+    if ([string]::IsNullOrEmpty($Subject))
+    {
+        $script:EmailConfiguration.Subject = 'Public Folder Environment and Replication Status Report'
     }
 
 }
