@@ -134,9 +134,11 @@ function Get-PFMPublicFolderReplicationReport
                     Get-PublicFolderDatabase -Server $Using:Server
                 }
             )
-            $PublicFolderMailboxServerDatabases.$Server = $PublicFolderDatabase.Name
-            $PublicFolderDatabaseMailboxServers.$($PublicFolderDatabase.Name) = $Server
+
+            $PublicFolderMailboxServerDatabases.$PublicFolderDatabase.RpcClientAccessServer = $PublicFolderDatabase.Name
+            $PublicFolderDatabaseMailboxServers.$($PublicFolderDatabase.Name) = $PublicFolderDatabase.RpcClientAccessServer
         }
+        $PublicFolderMailboxServerFQDNs = $PublicFolderDatabaseMailboxServers.Values.ForEach($_)
         #endregion BuildServerAndDatabaseLists
         #region BuildPublicFolderList
         #Set up the parameters for Get-PublicFolder
@@ -188,6 +190,20 @@ function Get-PFMPublicFolderReplicationReport
     End
     {
         #region GetPublicFolderStats
+        #Make Server PSSessions
+        foreach ($server in $PublicFolderMailboxServerFQDNs)
+        {
+            $ConnectPFExchangeParams = @{
+                ExchangeOnPremisesServer = $Server
+                IsParallel = $true
+                ErrorAction = 'Stop'
+            }
+            if ($null -ne $Script:PSSessionOption)
+            {
+                $ConnectPFExchangeParams.PSSessionOption = $Script:PSSessionOption
+            }
+            Connect-PFExchange @ConnectPFExchangeParams
+        }
         $publicFolderStatsFromSelectedServers =
         @(
             # if the user specified public folder path then only retrieve stats for the specified folders.
@@ -197,10 +213,10 @@ function Get-PFMPublicFolderReplicationReport
                 { $_ -in @('SingleNonRoot', 'MultipleNonRoot') } #if the user specified specific public folder paths, get those
                 {
                     $count = 0
-                    $RecordCount = $FolderIDs.Count * $PublicFolderMailboxServer.Count
+                    $RecordCount = $FolderIDs.Count * $PublicFolderMailboxServerFQDNs.Count
                     foreach ($FolderID in $FolderIDs)
                     {
-                        foreach ($Server in $PublicFolderMailboxServer)
+                        foreach ($Server in $PublicFolderMailboxServerFQDNs)
                         {
                             $customProperties =
                             @(
@@ -246,8 +262,10 @@ function Get-PFMPublicFolderReplicationReport
                                 Write-Progress -Activity 'Retrieving Public Folder Stats for Selected Public Folders' -CurrentOperation $currentOperationString -PercentComplete $($count / $RecordCount * 100) -Status "Retrieving Stats for folder replica instance $count of $RecordCount"
                                 WriteLog -Message $currentOperationString -EntryType Notification -Verbose
                                 #Error Action Silently Continue because some servers may not have a replica and we don't care about that error in this context
+                                $ServerSessionIndex = GetArrayIndexForProperty -array $Script:ParallelPSSession -Property 'Name' -value $Server
+                                $ServerSession = $Script:ParallelPSSession[$ServerSessionIndex]
                                 $thestats = $(
-                                    Invoke-Command -Session $script:PSSession -ScriptBlock {
+                                    Invoke-Command -Session $ServerSession -ScriptBlock {
                                         Get-PublicFolderStatistics -Identity $($using:FolderID).EntryID -Server $using:Server -ErrorAction SilentlyContinue
                                     }
                                 )
@@ -272,26 +290,92 @@ function Get-PFMPublicFolderReplicationReport
                 # This is significantly faster than trying to get folders one by one by name
                 { $_ -in @('Root', 'MultipleWithRoot') } #otherwise, get all default public folders
                 {
-                    $count = 0
-                    $RecordCount = $PublicFolderMailboxServer.Count
-                    foreach ($Server in $PublicFolderMailboxServer)
-                    {
-                        $customProperties = @(
-                            '*'
-                            @{n = 'ServerName'; e = { $Server } }
-                            @{n = 'SizeInBytes'; e = { $_.TotalItemSize.ToString().split(('(', ')'))[1].replace(',', '').replace(' bytes', '') -as [long] } }
-                        )
-                        Write-Verbose "Retrieving Stats for all Public Folders from $Server"
-                        Write-Progress -Activity 'Retrieving Public Folder Stats' -CurrentOperation $Server -PercentComplete $($count / $RecordCount * 100) -Status "Retrieving Stats for Server $count of $RecordCount"
-                        #avoid NULL output by testing for results while still suppressing errors with SilentlyContinue
-                        $thestats = @(
-                            Invoke-Command -Session $script:PSSession -ScriptBlock {
-                                Get-PublicFolderStatistics -Server $using:Server -ResultSize Unlimited -ErrorAction SilentlyContinue
-                            }
-                        )
-                        if ($null -ne $thestats)
+                    #$count = 0
+                    #$RecordCount = $PublicFolderMailboxServerFQDNs.Count
+                    #Write-Progress -Activity 'Retrieving Public Folder Stats' -CurrentOperation $Server -PercentComplete $($count / $RecordCount * 100) -Status "Retrieving Stats for Server $count of $RecordCount"
+                    $StatsJobs = @(
+                        foreach ($Server in $PublicFolderMailboxServerFQDNs)
                         {
-                            $thestats | Select-Object -ExcludeProperty ServerName -Property $customProperties
+                            $ServerSessionIndex = GetArrayIndexForProperty -array $Script:ParallelPSSession -Property 'Name' -value $Server
+                            $ServerSession = $Script:ParallelPSSession[$ServerSessionIndex]
+                            Write-Verbose "Starting Job to retrieve stats for all Public Folders from $Server"
+
+                            #avoid NULL output by testing for results while still suppressing errors with SilentlyContinue
+                            Invoke-Command -Session $ServerSession -ScriptBlock {
+                                Get-PublicFolderStatistics -Server $using:Server -ResultSize Unlimited -ErrorAction SilentlyContinue
+                            } -AsJob -JobName $Server
+                        }
+                    )
+                    $CompletedJobCount = 0
+                    $StatsJobsCount = $StatsJobs.Count
+                    $StatsJobStopWatch = [System.Diagnostics.Stopwatch]::new()
+                    $StatsJobStopWatch.Start()
+                    do
+                    {
+                        $States = $StatsJobs.State | Group-Object -Property State -AsHashTable
+                        $CompletedJobCount = $states.Completed.Count
+                        $ElapsedTimeString = "{0} Days, {1} Hours, {2} Minutes, {3} Seconds" -f $StatsJobStopWatch.Elapsed.Days,$StatsJobStopWatch.Elapsed.Hours,$StatsJobStopWatch.Elapsed.Minutes,$StatsJobStopWatch.Elapsed.Seconds
+                        $WriteProgressParams = @{
+                            Activity = 'Retrieving Public Folder Stats'
+                            CurrentOperation = "Monitoring $StatsJobCount Stats Retrieval Jobs"
+                            PercentComplete = $($CompletedJobCount / $StatsJobsCount * 100)
+                            Status = "$CompletedJobCount of $StatsJobCount Jobs Completed. Elapsed time: $ElapsedTimeString"
+                        }
+                        Write-Progress @WriteProgressParams
+                        Start-Sleep -Seconds 20
+
+                    }
+                    until
+                    (
+                        $CompletedJobCount -eq $StatsJobsCount -or ($null -ne $States.Failed -and $states.Failed.Count -ge 1)
+                    )
+                    $StatsJobStopWatch.Stop()
+                    $States = $StatsJobs.State | Group-Object -Property State -AsHashTable
+                    $CompletedJobCount = $states.Completed.Count
+                    $ElapsedTimeString = "{0} Days, {1} Hours, {2} Minutes, {3} Seconds" -f $StatsJobStopWatch.Elapsed.Days,$StatsJobStopWatch.Elapsed.Hours,$StatsJobStopWatch.Elapsed.Minutes,$StatsJobStopWatch.Elapsed.Seconds
+                    $WriteProgressParams = @{
+                        Activity = 'Retrieving Public Folder Stats'
+                        CurrentOperation = "Completed $StatsJobCount Stats Retrieval Jobs"
+                        PercentComplete = $($CompletedJobCount / $StatsJobsCount * 100)
+                        Status = "$CompletedJobCount of $StatsJobCount Jobs Completed. Elapsed time: $ElapsedTimeString"
+                        Completed = $true
+                    }
+                    Write-Progress @WriteProgressParams
+                    switch ($CompletedJobCount -eq $StatsJobsCount)
+                    {
+                        $true
+                        {
+                            $StatsJobStopWatch.Reset()
+                            $StatsJobStopWatch.Start()
+                            $ReceivedJobCount = 0
+
+                            Foreach ($job in $StatsJobs)
+                            {
+                                $ElapsedTimeString = "{0} Days, {1} Hours, {2} Minutes, {3} Seconds" -f $StatsJobStopWatch.Elapsed.Days,$StatsJobStopWatch.Elapsed.Hours,$StatsJobStopWatch.Elapsed.Minutes,$StatsJobStopWatch.Elapsed.Seconds
+                                $WriteProgressParams = @{
+                                    Activity = 'Receiving Public Folder Stats From Jobs'
+                                    CurrentOperation = "Receiving Stats Job from $($job.Name)."
+                                    PercentComplete = $($ReceivedJobCount / $StatsJobsCount * 100)
+                                    Status = "$ReceivedJobCount of $StatsJobCount Jobs Completed. Elapsed time: $ElapsedTimeString"
+                                }
+                                Write-Progress @WriteProgressParams
+                                $customProperties = @(
+                                    '*'
+                                    @{n = 'ServerName'; e = { $job.Name } }
+                                    @{n = 'SizeInBytes'; e = { $_.TotalItemSize.ToString().split(('(', ')'))[1].replace(',', '').replace(' bytes', '') -as [long] } }
+                                )
+                                $theStats = Receive-Job -job $job -ErrorAction Stop
+                                if ($null -ne $thestats)
+                                {
+                                    $thestats | Select-Object -ExcludeProperty ServerName -Property $customProperties
+                                }
+                                Remove-Job -Job $job
+                                $ReceivedJobCount++
+                            }
+                        }
+                        $false
+                        {
+                            throw("some jobs failed to complete")
                         }
                     }
                 }
@@ -602,25 +686,17 @@ function Get-PFMPublicFolderReplicationReport
         #region SendMail
         if ($true -eq $SendEmail)
         {
-            if ([string]::IsNullOrEmpty($Subject))
+            if ($true -eq $script:EmailConfiguration.BodyAsHTML)
             {
-                $Subject = 'Public Folder Environment and Replication Status Report'
-            }
-            $SendMailMessageParams = @{
-                Subject     = $Subject
-                Attachments = $outputfiles
-                To          = $to
-                From        = $from
-                SMTPServer  = $SmtpServer
-            }
-            if ($HTMLBody)
-            {
-                $SendMailMessageParams.BodyAsHTML
-                $SendMailMessageParams.Body = $html
+                $script:EmailConfiguration.Body = $html
             }
             else
             {
-                $SendMailMessageParams.Body = "Public Folder Environment and Replication Status Report Attached."
+                $script:EmailConfiguration.Body = "Public Folder Environment and Replication Status Report Completed. Files output to $outputFolderPath."
+            }
+            if ($true -eq $script:EmailConfiguration.Attachments)
+            {
+                $script:EmailConfiguration.Attachments = $outputfiles
             }
             Send-MailMessage @SendMailMessageParams
         }#end if $SendMail
