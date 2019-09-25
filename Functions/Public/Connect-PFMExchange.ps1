@@ -65,7 +65,7 @@ Function Connect-PFMExchange
         }
         'ExchangeOnPremises*'
         {
-            $GetPFMExchangePSSessionParams.$ExchangeServer = $ExchangeOnPremisesServer
+            $GetPFMExchangePSSessionParams.ExchangeServer = $ExchangeOnPremisesServer
         }
     }
 
