@@ -73,7 +73,7 @@ function Get-PFMPublicFolderReplicationReport
     )
     Begin
     {
-        Confirm-PFMExchangeConnection
+        Confirm-PFMExchangeConnection -PSSession $Script:PSSession
         $BeginTimeStamp = Get-Date -Format yyyyMMdd-HHmmss
         $script:LogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'PublicFolderReplicationAndStatisticsReport.log')
         $script:ErrorLogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'PublicFolderReplicationAndStatisticsReport-ERRORS.log')
@@ -135,10 +135,10 @@ function Get-PFMPublicFolderReplicationReport
                 }
             )
 
-            $PublicFolderMailboxServerDatabases.$PublicFolderDatabase.RpcClientAccessServer = $PublicFolderDatabase.Name
-            $PublicFolderDatabaseMailboxServers.$($PublicFolderDatabase.Name) = $PublicFolderDatabase.RpcClientAccessServer
+            $PublicFolderMailboxServerDatabases.$($PublicFolderDatabase.RpcClientAccessServer) = $PublicFolderDatabase.Name
+            $PublicFolderDatabaseMailboxServers.$($PublicFolderDatabase.Name) = $($PublicFolderDatabase.RpcClientAccessServer)
         }
-        $PublicFolderMailboxServerFQDNs = $PublicFolderDatabaseMailboxServers.Values.ForEach($_)
+        $PublicFolderMailboxServerFQDNs = $PublicFolderDatabaseMailboxServers.Values
         #endregion BuildServerAndDatabaseLists
         #region BuildPublicFolderList
         #Set up the parameters for Get-PublicFolder
@@ -195,14 +195,14 @@ function Get-PFMPublicFolderReplicationReport
         {
             $ConnectPFExchangeParams = @{
                 ExchangeOnPremisesServer = $Server
-                IsParallel = $true
-                ErrorAction = 'Stop'
+                IsParallel               = $true
+                ErrorAction              = 'Stop'
             }
             if ($null -ne $Script:PSSessionOption)
             {
                 $ConnectPFExchangeParams.PSSessionOption = $Script:PSSessionOption
             }
-            Connect-PFExchange @ConnectPFExchangeParams
+            Connect-PFMExchange @ConnectPFExchangeParams
         }
         $publicFolderStatsFromSelectedServers =
         @(
@@ -262,8 +262,12 @@ function Get-PFMPublicFolderReplicationReport
                                 Write-Progress -Activity 'Retrieving Public Folder Stats for Selected Public Folders' -CurrentOperation $currentOperationString -PercentComplete $($count / $RecordCount * 100) -Status "Retrieving Stats for folder replica instance $count of $RecordCount"
                                 WriteLog -Message $currentOperationString -EntryType Notification -Verbose
                                 #Error Action Silently Continue because some servers may not have a replica and we don't care about that error in this context
-                                $ServerSessionIndex = GetArrayIndexForProperty -array $Script:ParallelPSSession -Property 'Name' -value $Server
-                                $ServerSession = $Script:ParallelPSSession[$ServerSessionIndex]
+                                #gets the session from the $script:ParallelPSsession arraylist
+                                $ServerSession = Get-PFMParallelPSSession -name $Server
+                                #makes sure the session is working, if not updates it
+                                Confirm-PFMExchangeConnection -IsParallel -PSSession $ServerSession
+                                #gets the session again from the $script:ParallelPSsession arraylist
+                                $ServerSession = Get-PFMParallelPSSession -name $Server
                                 $thestats = $(
                                     Invoke-Command -Session $ServerSession -ScriptBlock {
                                         Get-PublicFolderStatistics -Identity $($using:FolderID).EntryID -Server $using:Server -ErrorAction SilentlyContinue
@@ -296,8 +300,9 @@ function Get-PFMPublicFolderReplicationReport
                     $StatsJobs = @(
                         foreach ($Server in $PublicFolderMailboxServerFQDNs)
                         {
-                            $ServerSessionIndex = GetArrayIndexForProperty -array $Script:ParallelPSSession -Property 'Name' -value $Server
-                            $ServerSession = $Script:ParallelPSSession[$ServerSessionIndex]
+                            $ServerSession = Get-PFMParallelPSSession -name $Server
+                            Confirm-PFMExchangeConnection -IsParallel -PSSession $ServerSession
+                            $ServerSession = Get-PFMParallelPSSession -name $Server
                             Write-Verbose "Starting Job to retrieve stats for all Public Folders from $Server"
 
                             #avoid NULL output by testing for results while still suppressing errors with SilentlyContinue
@@ -314,12 +319,12 @@ function Get-PFMPublicFolderReplicationReport
                     {
                         $States = $StatsJobs.State | Group-Object -Property State -AsHashTable
                         $CompletedJobCount = $states.Completed.Count
-                        $ElapsedTimeString = "{0} Days, {1} Hours, {2} Minutes, {3} Seconds" -f $StatsJobStopWatch.Elapsed.Days,$StatsJobStopWatch.Elapsed.Hours,$StatsJobStopWatch.Elapsed.Minutes,$StatsJobStopWatch.Elapsed.Seconds
+                        $ElapsedTimeString = "{0} Days, {1} Hours, {2} Minutes, {3} Seconds" -f $StatsJobStopWatch.Elapsed.Days, $StatsJobStopWatch.Elapsed.Hours, $StatsJobStopWatch.Elapsed.Minutes, $StatsJobStopWatch.Elapsed.Seconds
                         $WriteProgressParams = @{
-                            Activity = 'Retrieving Public Folder Stats'
+                            Activity         = 'Retrieving Public Folder Stats'
                             CurrentOperation = "Monitoring $StatsJobCount Stats Retrieval Jobs"
-                            PercentComplete = $($CompletedJobCount / $StatsJobsCount * 100)
-                            Status = "$CompletedJobCount of $StatsJobCount Jobs Completed. Elapsed time: $ElapsedTimeString"
+                            PercentComplete  = $($CompletedJobCount / $StatsJobsCount * 100)
+                            Status           = "$CompletedJobCount of $StatsJobCount Jobs Completed. Elapsed time: $ElapsedTimeString"
                         }
                         Write-Progress @WriteProgressParams
                         Start-Sleep -Seconds 20
@@ -332,13 +337,13 @@ function Get-PFMPublicFolderReplicationReport
                     $StatsJobStopWatch.Stop()
                     $States = $StatsJobs.State | Group-Object -Property State -AsHashTable
                     $CompletedJobCount = $states.Completed.Count
-                    $ElapsedTimeString = "{0} Days, {1} Hours, {2} Minutes, {3} Seconds" -f $StatsJobStopWatch.Elapsed.Days,$StatsJobStopWatch.Elapsed.Hours,$StatsJobStopWatch.Elapsed.Minutes,$StatsJobStopWatch.Elapsed.Seconds
+                    $ElapsedTimeString = "{0} Days, {1} Hours, {2} Minutes, {3} Seconds" -f $StatsJobStopWatch.Elapsed.Days, $StatsJobStopWatch.Elapsed.Hours, $StatsJobStopWatch.Elapsed.Minutes, $StatsJobStopWatch.Elapsed.Seconds
                     $WriteProgressParams = @{
-                        Activity = 'Retrieving Public Folder Stats'
+                        Activity         = 'Retrieving Public Folder Stats'
                         CurrentOperation = "Completed $StatsJobCount Stats Retrieval Jobs"
-                        PercentComplete = $($CompletedJobCount / $StatsJobsCount * 100)
-                        Status = "$CompletedJobCount of $StatsJobCount Jobs Completed. Elapsed time: $ElapsedTimeString"
-                        Completed = $true
+                        PercentComplete  = $($CompletedJobCount / $StatsJobsCount * 100)
+                        Status           = "$CompletedJobCount of $StatsJobCount Jobs Completed. Elapsed time: $ElapsedTimeString"
+                        Completed        = $true
                     }
                     Write-Progress @WriteProgressParams
                     switch ($CompletedJobCount -eq $StatsJobsCount)
@@ -351,12 +356,12 @@ function Get-PFMPublicFolderReplicationReport
 
                             Foreach ($job in $StatsJobs)
                             {
-                                $ElapsedTimeString = "{0} Days, {1} Hours, {2} Minutes, {3} Seconds" -f $StatsJobStopWatch.Elapsed.Days,$StatsJobStopWatch.Elapsed.Hours,$StatsJobStopWatch.Elapsed.Minutes,$StatsJobStopWatch.Elapsed.Seconds
+                                $ElapsedTimeString = "{0} Days, {1} Hours, {2} Minutes, {3} Seconds" -f $StatsJobStopWatch.Elapsed.Days, $StatsJobStopWatch.Elapsed.Hours, $StatsJobStopWatch.Elapsed.Minutes, $StatsJobStopWatch.Elapsed.Seconds
                                 $WriteProgressParams = @{
-                                    Activity = 'Receiving Public Folder Stats From Jobs'
+                                    Activity         = 'Receiving Public Folder Stats From Jobs'
                                     CurrentOperation = "Receiving Stats Job from $($job.Name)."
-                                    PercentComplete = $($ReceivedJobCount / $StatsJobsCount * 100)
-                                    Status = "$ReceivedJobCount of $StatsJobCount Jobs Completed. Elapsed time: $ElapsedTimeString"
+                                    PercentComplete  = $($ReceivedJobCount / $StatsJobsCount * 100)
+                                    Status           = "$ReceivedJobCount of $StatsJobCount Jobs Completed. Elapsed time: $ElapsedTimeString"
                                 }
                                 Write-Progress @WriteProgressParams
                                 $customProperties = @(

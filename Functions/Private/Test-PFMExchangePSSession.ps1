@@ -5,7 +5,8 @@ Function Test-PFMExchangePSSession
     [OutputType([System.Boolean])]
     param
     (
-        [System.Management.Automation.Runspaces.PSSession]$PSSession = $script:PSSession
+        [Parameter(Mandatory)]
+        [System.Management.Automation.Runspaces.PSSession]$PSSession
     )
     switch ($PSSession.State -eq 'Opened')
     {

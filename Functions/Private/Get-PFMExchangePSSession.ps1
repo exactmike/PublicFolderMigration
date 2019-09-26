@@ -1,7 +1,7 @@
 Function Get-PFMExchangePSSession
 {
-
     [CmdletBinding(DefaultParameterSetName = 'ExchangeOnline')]
+    [OutputType([System.Management.Automation.Runspaces.PSSession])]
     param
     (
         [parameter(Mandatory)]

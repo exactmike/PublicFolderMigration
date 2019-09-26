@@ -2,6 +2,7 @@ Function Connect-PFMExchange
 {
 
     [CmdletBinding(DefaultParameterSetName = 'ExchangeOnPremises')]
+    #[OutputType([System.Management.Automation.Runspaces.PSSession])]
     param
     (
         [parameter(Mandatory, ParameterSetName = 'ExchangeOnline')]
@@ -26,9 +27,9 @@ Function Connect-PFMExchange
 
     #Force user to run Connect-PFMExchange for organization before IsParallel
     if (
-            ($null -eq $ConnectExchangeOrganizationCompleted -or $false -eq $ConnectExchangeOrganizationCompleted) -and
-            $true -eq $IsParallel
-        )
+        ($null -eq $ConnectExchangeOrganizationCompleted -or $false -eq $ConnectExchangeOrganizationCompleted) -and
+        $true -eq $IsParallel
+    )
     {
         Write-ConnectPFMExchangeUserError
     }
@@ -81,7 +82,7 @@ Function Connect-PFMExchange
         }
         $true
         {
-            Add-PFMParallelPSSession -Session $ExchangeSession
+            Add-PFMParallelPSSession -PSSession $ExchangeSession
         }
     }
 }
