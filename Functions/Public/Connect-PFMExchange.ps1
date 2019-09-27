@@ -39,7 +39,7 @@ Intended for internal module use only, this parameter is used when creating one 
         [parameter(Mandatory, ParameterSetName = 'ExchangeOnPremisesParallel')]
         [ValidateScript( {
                 if ($_ -match '(?=^.{4,253}$)(^((?!-)[a-zA-Z0-9-]{1,63}(?<!-)\.)+[a-zA-Z]{2,63}$)')
-                { true }
+                { $true }
                 else { Write-Warning -message "Parameter ExchangeOnPremisesServer requires an FQDN"; $false }
             })]
         [string]$ExchangeOnPremisesServer

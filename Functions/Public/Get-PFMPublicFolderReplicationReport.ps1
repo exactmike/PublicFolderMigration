@@ -128,6 +128,7 @@ function Get-PFMPublicFolderReplicationReport
             { $_.Count -ge 2 -and $PublicFolderPath -notcontains '\' }
             { 'MultipleNonRoot' }
         }
+        writelog -Message "PublicFolder Path Type specified by user parameters: $PublicFolderPathType"  -EntryType Notification -verbose
         #endregion ValidateParameters
         #region BuildServerAndDatabaseLists
         $PublicFolderMailboxServerNames = $PublicFolderMailboxServer -join ', '
