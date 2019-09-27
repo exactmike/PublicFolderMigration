@@ -115,18 +115,23 @@ function Get-PFMPublicFolderReplicationReport
                 }
             )
         }
-        $publicFolderPathType = switch ($PublicFolderPath) #types are Root, SingleNonRoot, MultipleWithRoot, MultipleNonRoot
+        #Using/Abusing? switch here.  Switch wants to unroll the array so using scriptblock options
+        $publicFolderPathType = switch ($null) #types are Root, SingleNonRoot, MultipleWithRoot, MultipleNonRoot
         {
-            { $_.Count -eq 0 }
+            { $PublicFolderPath.Count -eq 0 }
             { 'Root' }
-            { $_.Count -eq 1 -and $PublicFolderPath[0] -eq '\' }
+            { $PublicFolderPath.Count -eq 1 -and $PublicFolderPath[0] -eq '\' }
             { 'Root' }
-            { $_.Count -eq 1 -and $PublicFolderPath[0] -ne '\' }
+            { $PublicFolderPath.Count -eq 1 -and $PublicFolderPath[0] -ne '\' }
             { 'SingleNonRoot' }
-            { $_.Count -ge 2 -and $PublicFolderPath -contains '\' }
+            { $PublicFolderPath.Count -ge 2 -and $PublicFolderPath -contains '\' }
             { 'MultipleWithRoot' }
-            { $_.Count -ge 2 -and $PublicFolderPath -notcontains '\' }
+            { $PublicFolderPath.Count -ge 2 -and $PublicFolderPath -notcontains '\' }
             { 'MultipleNonRoot' }
+            {$null -eq $PublicFolderPath}
+            {'Root'}
+            Default
+            {'Root'}
         }
         writelog -Message "PublicFolder Path Type specified by user parameters: $PublicFolderPathType"  -EntryType Notification -verbose
         #endregion ValidateParameters
