@@ -1,0 +1,2 @@
+Remove-Module PublicFolderMigration
+Import-Module PublicFolderMigration
