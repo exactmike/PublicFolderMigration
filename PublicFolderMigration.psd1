@@ -9,28 +9,31 @@
 @{
 
     # Script module or binary module file associated with this manifest.
-    RootModule        = 'PublicFolderMigration.psm1'
+    RootModule           = 'PublicFolderMigration.psm1'
 
     # Version number of this module.
-    ModuleVersion     = '3.0.0.0'
+    ModuleVersion        = '3.0.0.1'
 
     # ID used to uniquely identify this module
-    GUID              = '821e8a2b-080b-4d8d-a9d4-29f431935878'
+    GUID                 = '821e8a2b-080b-4d8d-a9d4-29f431935878'
 
     # Author of this module
-    Author            = 'Mike Campbell and Joe Sutherland'
+    Author               = 'Mike Campbell and Joe Sutherland'
 
     # Company or vendor of this module
-    CompanyName       = 'themodulecollective'
+    CompanyName          = 'themodulecollective'
 
     # Copyright statement for this module
-    Copyright         = '(c) 2019. All rights reserved.'
+    Copyright            = '(c) 2019. All rights reserved.'
+
+    # Supported PSEditions
+    CompatiblePSEditions = 'Desktop', 'Core'
 
     # Description of the functionality provided by this module
     # Description = ''
 
     # Minimum version of the Windows PowerShell engine required by this module
-    PowerShellVersion = '5.1'
+    PowerShellVersion    = '5.1'
 
     # Name of the Windows PowerShell host required by this module
     # PowerShellHostName = ''
@@ -66,8 +69,8 @@
     #NestedModules = @('PSMenu.psm1')
 
     # Functions to export from this module
-    #FunctionsToExport = '*'
-    FunctionsToExport = '*-*'
+    #ToUpdateThis $("'" + $($(get-childitem | select -ExpandProperty basename) -join "','") + "'")
+    FunctionsToExport    = @('Connect-PFMExchange', 'Get-PFMPublicFolderReplicationReport', 'Get-PFMVariable', 'Get-PFMVariableValue', 'New-PFMVariable', 'Remove-PFMVariable', 'Set-PFMEmailConfiguration', 'Set-PFMVariable')
 
     # Cmdlets to export from this module
     #CmdletsToExport = '*'

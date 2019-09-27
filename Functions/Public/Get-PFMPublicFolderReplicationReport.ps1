@@ -9,17 +9,25 @@ function Get-PFMPublicFolderReplicationReport
     .PARAMETER PublicFolderMailboxServer
     This parameter specifies the Exchange 2010 server(s) to scan. If this is omitted, all Exchange servers hosting a Public Folder Database are scanned.
     .PARAMETER PublicFolderPath
-    This parameter specifies the Public Folder(s) to scan. If this is omitted, all public folders are scanned.
+    This parameter specifies the Public Folder(s) to scan. If this is omitted, all public folders are scanned (except System Public Folders - see the IncludeSystemPublicFolders parameter)
     .PARAMETER Recurse
     When used in conjunction with the FolderPath parameter, this will include all child Public Folders of the Folders listed in Folder Path.
     .PARAMETER PipelineData
-    Controls whether any data is returned to the PowerShell pipeline for further processing.  Choices are RawReplicationData (in case you want to anyalyze replication differently than this function does natively), or the ReportObject, which includes all the data that is exported into the html or csv reports, but in object form.
+    Controls whether any data is returned to the PowerShell pipeline for further processing.  Choices are RawReplicationData (in case you want to anyalyze replication differently than this function does natively), or the ReportObject, which includes all the data that is exported into the html or csv reports, but in PSObject object form.
+    .PARAMETER OutputFolderPath
+    Mandatory parameter for the already existing directory location where you want public folder replication and stats reports to be placed.  Operational log files will also go to this location.
+    .PARAMETER OutputFormats
+    Mandatory parameter used to specify whether you want csv output, html output, or both. Parameter is multi-valued, so for both, use 'csv','html'.
     .PARAMETER SendEmail
-    This switch will set the script to send an HTML email report. If this switch is specified, then the To, From and SmtpServers are required.
+    This switch will set the script to send an email report.  To use this parameter you must have already used the Set-PFMEmailConfiguration cmdlet to configure your email settings.
     .PARAMETER IncludeSystemPublicFolders
     This parameter specifies to include System Public Folders when scanning all public folders. If this is omitted, System Public Folders are omitted.
     .PARAMETER LargestPublicFolderReportCount
     This parameter allows control of the count largest public folders data in the report object.
+    .EXAMPLE
+    PS C:\> Connect-PFMExchange -ExchangeOnPremisesServer PublicFolderServer1.us.wa.contoso.com -credential $cred
+    PS C:\> Get-PFMPublicFolderReplicationReport -OutputFolderPath c:\PFReports -OutputFormats csv,html
+    Gets public folder tree data from PublicFolderServer1.us.wa.contoso.com and public folder stats data from all other public folder database servers in the Exchange Organization
     #>
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute(
         "PSAvoidInvokingEmptyMembers",
@@ -50,7 +58,7 @@ function Get-PFMPublicFolderReplicationReport
         [ValidateScript( { TestIsWriteableDirectory -path $_ })]
         [string]$OutputFolderPath
         ,
-        [parameter()]
+        [parameter(Mandatory)]
         [validateset('html', 'csv')]
         [string[]]$Outputformats = @('html', 'csv')
         ,
@@ -73,7 +81,7 @@ function Get-PFMPublicFolderReplicationReport
     )
     Begin
     {
-        Confirm-PFMExchangeConnection
+        Confirm-PFMExchangeConnection -PSSession $Script:PSSession
         $BeginTimeStamp = Get-Date -Format yyyyMMdd-HHmmss
         $script:LogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'PublicFolderReplicationAndStatisticsReport.log')
         $script:ErrorLogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'PublicFolderReplicationAndStatisticsReport-ERRORS.log')
@@ -135,10 +143,10 @@ function Get-PFMPublicFolderReplicationReport
                 }
             )
 
-            $PublicFolderMailboxServerDatabases.$PublicFolderDatabase.RpcClientAccessServer = $PublicFolderDatabase.Name
-            $PublicFolderDatabaseMailboxServers.$($PublicFolderDatabase.Name) = $PublicFolderDatabase.RpcClientAccessServer
+            $PublicFolderMailboxServerDatabases.$($PublicFolderDatabase.RpcClientAccessServer) = $PublicFolderDatabase.Name
+            $PublicFolderDatabaseMailboxServers.$($PublicFolderDatabase.Name) = $($PublicFolderDatabase.RpcClientAccessServer)
         }
-        $PublicFolderMailboxServerFQDNs = $PublicFolderDatabaseMailboxServers.Values.ForEach($_)
+        $PublicFolderMailboxServerFQDNs = $PublicFolderDatabaseMailboxServers.Values
         #endregion BuildServerAndDatabaseLists
         #region BuildPublicFolderList
         #Set up the parameters for Get-PublicFolder
@@ -195,14 +203,14 @@ function Get-PFMPublicFolderReplicationReport
         {
             $ConnectPFExchangeParams = @{
                 ExchangeOnPremisesServer = $Server
-                IsParallel = $true
-                ErrorAction = 'Stop'
+                IsParallel               = $true
+                ErrorAction              = 'Stop'
             }
             if ($null -ne $Script:PSSessionOption)
             {
                 $ConnectPFExchangeParams.PSSessionOption = $Script:PSSessionOption
             }
-            Connect-PFExchange @ConnectPFExchangeParams
+            Connect-PFMExchange @ConnectPFExchangeParams
         }
         $publicFolderStatsFromSelectedServers =
         @(
@@ -262,8 +270,12 @@ function Get-PFMPublicFolderReplicationReport
                                 Write-Progress -Activity 'Retrieving Public Folder Stats for Selected Public Folders' -CurrentOperation $currentOperationString -PercentComplete $($count / $RecordCount * 100) -Status "Retrieving Stats for folder replica instance $count of $RecordCount"
                                 WriteLog -Message $currentOperationString -EntryType Notification -Verbose
                                 #Error Action Silently Continue because some servers may not have a replica and we don't care about that error in this context
-                                $ServerSessionIndex = GetArrayIndexForProperty -array $Script:ParallelPSSession -Property 'Name' -value $Server
-                                $ServerSession = $Script:ParallelPSSession[$ServerSessionIndex]
+                                #gets the session from the $script:ParallelPSsession arraylist
+                                $ServerSession = Get-PFMParallelPSSession -name $Server
+                                #makes sure the session is working, if not updates it
+                                Confirm-PFMExchangeConnection -IsParallel -PSSession $ServerSession
+                                #gets the session again from the $script:ParallelPSsession arraylist
+                                $ServerSession = Get-PFMParallelPSSession -name $Server
                                 $thestats = $(
                                     Invoke-Command -Session $ServerSession -ScriptBlock {
                                         Get-PublicFolderStatistics -Identity $($using:FolderID).EntryID -Server $using:Server -ErrorAction SilentlyContinue
@@ -296,8 +308,9 @@ function Get-PFMPublicFolderReplicationReport
                     $StatsJobs = @(
                         foreach ($Server in $PublicFolderMailboxServerFQDNs)
                         {
-                            $ServerSessionIndex = GetArrayIndexForProperty -array $Script:ParallelPSSession -Property 'Name' -value $Server
-                            $ServerSession = $Script:ParallelPSSession[$ServerSessionIndex]
+                            $ServerSession = Get-PFMParallelPSSession -name $Server
+                            Confirm-PFMExchangeConnection -IsParallel -PSSession $ServerSession
+                            $ServerSession = Get-PFMParallelPSSession -name $Server
                             Write-Verbose "Starting Job to retrieve stats for all Public Folders from $Server"
 
                             #avoid NULL output by testing for results while still suppressing errors with SilentlyContinue
@@ -314,12 +327,12 @@ function Get-PFMPublicFolderReplicationReport
                     {
                         $States = $StatsJobs.State | Group-Object -Property State -AsHashTable
                         $CompletedJobCount = $states.Completed.Count
-                        $ElapsedTimeString = "{0} Days, {1} Hours, {2} Minutes, {3} Seconds" -f $StatsJobStopWatch.Elapsed.Days,$StatsJobStopWatch.Elapsed.Hours,$StatsJobStopWatch.Elapsed.Minutes,$StatsJobStopWatch.Elapsed.Seconds
+                        $ElapsedTimeString = "{0} Days, {1} Hours, {2} Minutes, {3} Seconds" -f $StatsJobStopWatch.Elapsed.Days, $StatsJobStopWatch.Elapsed.Hours, $StatsJobStopWatch.Elapsed.Minutes, $StatsJobStopWatch.Elapsed.Seconds
                         $WriteProgressParams = @{
-                            Activity = 'Retrieving Public Folder Stats'
+                            Activity         = 'Retrieving Public Folder Stats'
                             CurrentOperation = "Monitoring $StatsJobCount Stats Retrieval Jobs"
-                            PercentComplete = $($CompletedJobCount / $StatsJobsCount * 100)
-                            Status = "$CompletedJobCount of $StatsJobCount Jobs Completed. Elapsed time: $ElapsedTimeString"
+                            PercentComplete  = $($CompletedJobCount / $StatsJobsCount * 100)
+                            Status           = "$CompletedJobCount of $StatsJobCount Jobs Completed. Elapsed time: $ElapsedTimeString"
                         }
                         Write-Progress @WriteProgressParams
                         Start-Sleep -Seconds 20
@@ -332,13 +345,13 @@ function Get-PFMPublicFolderReplicationReport
                     $StatsJobStopWatch.Stop()
                     $States = $StatsJobs.State | Group-Object -Property State -AsHashTable
                     $CompletedJobCount = $states.Completed.Count
-                    $ElapsedTimeString = "{0} Days, {1} Hours, {2} Minutes, {3} Seconds" -f $StatsJobStopWatch.Elapsed.Days,$StatsJobStopWatch.Elapsed.Hours,$StatsJobStopWatch.Elapsed.Minutes,$StatsJobStopWatch.Elapsed.Seconds
+                    $ElapsedTimeString = "{0} Days, {1} Hours, {2} Minutes, {3} Seconds" -f $StatsJobStopWatch.Elapsed.Days, $StatsJobStopWatch.Elapsed.Hours, $StatsJobStopWatch.Elapsed.Minutes, $StatsJobStopWatch.Elapsed.Seconds
                     $WriteProgressParams = @{
-                        Activity = 'Retrieving Public Folder Stats'
+                        Activity         = 'Retrieving Public Folder Stats'
                         CurrentOperation = "Completed $StatsJobCount Stats Retrieval Jobs"
-                        PercentComplete = $($CompletedJobCount / $StatsJobsCount * 100)
-                        Status = "$CompletedJobCount of $StatsJobCount Jobs Completed. Elapsed time: $ElapsedTimeString"
-                        Completed = $true
+                        PercentComplete  = $($CompletedJobCount / $StatsJobsCount * 100)
+                        Status           = "$CompletedJobCount of $StatsJobCount Jobs Completed. Elapsed time: $ElapsedTimeString"
+                        Completed        = $true
                     }
                     Write-Progress @WriteProgressParams
                     switch ($CompletedJobCount -eq $StatsJobsCount)
@@ -351,12 +364,12 @@ function Get-PFMPublicFolderReplicationReport
 
                             Foreach ($job in $StatsJobs)
                             {
-                                $ElapsedTimeString = "{0} Days, {1} Hours, {2} Minutes, {3} Seconds" -f $StatsJobStopWatch.Elapsed.Days,$StatsJobStopWatch.Elapsed.Hours,$StatsJobStopWatch.Elapsed.Minutes,$StatsJobStopWatch.Elapsed.Seconds
+                                $ElapsedTimeString = "{0} Days, {1} Hours, {2} Minutes, {3} Seconds" -f $StatsJobStopWatch.Elapsed.Days, $StatsJobStopWatch.Elapsed.Hours, $StatsJobStopWatch.Elapsed.Minutes, $StatsJobStopWatch.Elapsed.Seconds
                                 $WriteProgressParams = @{
-                                    Activity = 'Receiving Public Folder Stats From Jobs'
+                                    Activity         = 'Receiving Public Folder Stats From Jobs'
                                     CurrentOperation = "Receiving Stats Job from $($job.Name)."
-                                    PercentComplete = $($ReceivedJobCount / $StatsJobsCount * 100)
-                                    Status = "$ReceivedJobCount of $StatsJobCount Jobs Completed. Elapsed time: $ElapsedTimeString"
+                                    PercentComplete  = $($ReceivedJobCount / $StatsJobsCount * 100)
+                                    Status           = "$ReceivedJobCount of $StatsJobCount Jobs Completed. Elapsed time: $ElapsedTimeString"
                                 }
                                 Write-Progress @WriteProgressParams
                                 $customProperties = @(
@@ -455,252 +468,252 @@ function Get-PFMPublicFolderReplicationReport
                                     SizeInBytes              = $_.SizeInBytes
                                 }
                             }
-                        }
-                    )
-                }
-                #Get Max Total Item Size in Bytes across Replicas
-                $resultItem.TotalBytes = $resultItem.Data | Measure-Object -Property SizeInBytes -Maximum | Select-Object -ExpandProperty Maximum
-                #Get Max Total Item Size human friendly based on max Bytes
-                $resultItem.TotalItemSize = $resultItem.Data | Where-Object -FilterScript { $_.SizeInBytes -eq $resultItem.TotalBytes } | Select-Object -First 1 -ExpandProperty TotalItemSize
-                #Get Max Item Count
-                $resultItem.ItemCount = $resultItem.Data | Measure-Object -Property ItemCount -Maximum | Select-Object -ExpandProperty Maximum
-                $resultItem.LastAccessTime = $resultItem.Data | Measure-Object -Property LastAccessTime -Maximum | Select-Object -ExpandProperty Maximum
-                $resultItem.LastModificationTime = $resultItem.Data | Measure-Object -Property LastModificationTime -Maximum | Select-Object -ExpandProperty Maximum
-                $resultItem.LastUserAccessTime = $resultItem.Data | Measure-Object -Property LastUserAccessTime -Maximum | Select-Object -ExpandProperty Maximum
-                $resultItem.LastUserModificationTime = $resultItem.Data | Measure-Object -Property LastUserModificationTime -Maximum | Select-Object -ExpandProperty Maximum
-                $replCheck = $true
-                foreach ($dataRecord in $resultItem.Data)
-                {
-                    if ($resultItem.ItemCount -eq 0 -or $null -eq $resultItem.ItemCount)
-                    {
-                        $progress = 100
                     }
+                )
+            }
+            #Get Max Total Item Size in Bytes across Replicas
+            $resultItem.TotalBytes = $resultItem.Data | Measure-Object -Property SizeInBytes -Maximum | Select-Object -ExpandProperty Maximum
+            #Get Max Total Item Size human friendly based on max Bytes
+            $resultItem.TotalItemSize = $resultItem.Data | Where-Object -FilterScript { $_.SizeInBytes -eq $resultItem.TotalBytes } | Select-Object -First 1 -ExpandProperty TotalItemSize
+            #Get Max Item Count
+            $resultItem.ItemCount = $resultItem.Data | Measure-Object -Property ItemCount -Maximum | Select-Object -ExpandProperty Maximum
+            $resultItem.LastAccessTime = $resultItem.Data | Measure-Object -Property LastAccessTime -Maximum | Select-Object -ExpandProperty Maximum
+            $resultItem.LastModificationTime = $resultItem.Data | Measure-Object -Property LastModificationTime -Maximum | Select-Object -ExpandProperty Maximum
+            $resultItem.LastUserAccessTime = $resultItem.Data | Measure-Object -Property LastUserAccessTime -Maximum | Select-Object -ExpandProperty Maximum
+            $resultItem.LastUserModificationTime = $resultItem.Data | Measure-Object -Property LastUserModificationTime -Maximum | Select-Object -ExpandProperty Maximum
+            $replCheck = $true
+            foreach ($dataRecord in $resultItem.Data)
+            {
+                if ($resultItem.ItemCount -eq 0 -or $null -eq $resultItem.ItemCount)
+                {
+                    $progress = 100
+                }
+                else
+                {
+                    try
+                    {
+                        $ErrorActionPreference = 'Stop'
+                        $progress = ([Math]::Round($dataRecord.ItemCount / ($resultItem.ItemCount) * 100, 0))
+                        $ErrorActionPreference = 'Continue'
+                    }
+                    catch
+                    {
+                        $progress = $null
+                        WriteLog -Message "Server: $($dataRecord.Server), Database: $($dataRecord.Databasename), ItemCount: $($dataRecord.ItemCount), TotalItemCount: $($resultItem.ItemCount)" -EntryType Failed -ErrorLog
+                        WriteLog -Message $_.tostring() -Verbose -ErrorLog
+                        $ErrorActionPreference = 'Continue'
+                    }
+                }
+                if ($progress -lt 100)
+                {
+                    $replCheck = $false
+                }
+                $dataRecord | Add-Member -MemberType NoteProperty -Name 'Progress' -Value $progress
+            }
+            $resultItem.ReplicationCompleteOnIncludedServers = $replCheck
+            #output result object
+            New-Object PSObject -Property $resultItem
+        }#Foreach
+        Write-Progress -Activity 'Building Data Matrix of Public Folder Stats for output and reporting.' -Status 'Compiling Data' -CurrentOperation $currentOperationString -Completed
+    )#$ResultMatrix
+    #endregion BuildResultMatrix
+    #Build the Report Object
+    [pscustomobject]$ReportObject = @{
+        #region BuildReportObject
+        TimeStamp                                  = Get-Date -Format yyyyMMdd-HHmm
+        IncludedPublicFolderServersAndDatabases    = $($(foreach ($server in $PublicFolderMailboxServer) { "$Server ($($PublicFolderMailboxServerDatabases.$server))" }) -join ',')
+        IncludedPublicFoldersCount                 = $ResultMatrix.Count
+        TotalSizeOfIncludedPublicFoldersInBytes    = $ResultMatrix | Measure-Object -Property TotalBytes -Sum | Select-Object -ExpandProperty Sum
+        TotalItemCountFromIncludedPublicFolders    = $ResultMatrix | Measure-Object -Property ItemCount -Sum | Select-Object -ExpandProperty Sum
+        IncludedContainerOrEmptyPublicFoldersCount = @($ResultMatrix | Where-Object -FilterScript { $_.ItemCount -eq 0 }).Count
+        IncludedReplicationIncompletePublicFolders = @($ResultMatrix | Where-Object -FilterScript { $_.ReplicationCompleteOnIncludedServers -eq $false }).Count
+        LargestPublicFolders                       = @($ResultMatrix | Sort-Object TotalBytes -Descending | Select-Object -First $LargestPublicFolderReportCount)
+        PublicFoldersWithIncompleteReplication     = @(
+            Foreach ($result in ($ResultMatrix | Where-Object -FilterScript { $_.ReplicationCompleteOnIncludedServers -eq $false }))
+            {
+                [pscustomobject]@{
+                    EntryID                    = $result.EntryID
+                    FolderPath                 = $Result.FolderPath
+                    ItemCount                  = $Result.ItemCount
+                    TotalItemSize              = $Result.TotalItemSize
+                    ConfiguredReplicaDatabases = $result.ConfiguredReplicas
+                    ConfiguredReplicaServers   =
+                    $(
+                        $databases = $result.ConfiguredReplicas.split(',')
+                        $servers = $databases | ForEach-Object { $PublicFolderDatabaseMailboxServers.$_ }
+                        $Servers -join ','
+                    )
+                    CompleteServers            =
+                    $(
+                        $CompleteServers = $result.Data | Where-Object { $_.Progress -eq 100 } | Select-Object -ExpandProperty ServerName
+                        $CompleteServers -join ','
+                    )
+                    CompleteDatabases          =
+                    $(
+                        $CompleteDatabases = $result.Data | Where-Object { $_.Progress -eq 100 } | Select-Object -ExpandProperty ServerName
+                        $CompleteDatabases -join ','
+                    )
+                    IncompleteServers          =
+                    $(
+                        $IncompleteServers = $result.Data | Where-Object { $_.Progress -lt 100 } | Select-Object -ExpandProperty ServerName
+                        $IncompleteServers -join ','
+                    )
+                    IncompleteDatabases        =
+                    $(
+                        $IncompleteDatabases = $result.Data | Where-Object { $_.Progress -lt 100 } | Select-Object -ExpandProperty DatabaseName
+                        $IncompleteDatabases -join ','
+                    )
+                }#pscustomobject
+            }#Foreach
+        )
+        ReplicationReportByServerPercentage        = @(
+            Foreach ($result in $ResultMatrix)
+            {
+                $RRObject = [pscustomobject]@{
+                    FolderPath        = $result.FolderPath
+                    EntryID           = $result.EntryID
+                    HighestItemCount  = $result.ItemCount
+                    HighestBytesCount = $result.totalBytes
+                }#pscustomobject
+                Foreach ($Server in $PublicFolderMailboxServer)
+                {
+                    $ResultItem = $result.Data | Where-Object -FilterScript { $_.ServerName -eq $Server }
+                    $PropertyName1 = $Server + '-%'
+                    $PropertyName2 = $Server + '-Count'
+                    $PropertyName3 = $server + '-SizeInBytes'
+                    if ($null -eq $resultItem)
+                    {
+                        $RRObject | Add-Member -NotePropertyName $PropertyName1 -NotePropertyValue 'N/A'
+                        $RRObject | Add-Member -NotePropertyName $PropertyName2 -NotePropertyValue 'N/A'
+                        $RRObject | Add-Member -NotePropertyName $PropertyName3 -NotePropertyValue 'N/A'
+                    }#if
                     else
                     {
-                        try
-                        {
-                            $ErrorActionPreference = 'Stop'
-                            $progress = ([Math]::Round($dataRecord.ItemCount / ($resultItem.ItemCount) * 100, 0))
-                            $ErrorActionPreference = 'Continue'
-                        }
-                        catch
-                        {
-                            $progress = $null
-                            WriteLog -Message "Server: $($dataRecord.Server), Database: $($dataRecord.Databasename), ItemCount: $($dataRecord.ItemCount), TotalItemCount: $($resultItem.ItemCount)" -EntryType Failed -ErrorLog
-                            WriteLog -Message $_.tostring() -Verbose -ErrorLog
-                            $ErrorActionPreference = 'Continue'
-                        }
-                    }
-                    if ($progress -lt 100)
-                    {
-                        $replCheck = $false
-                    }
-                    $dataRecord | Add-Member -MemberType NoteProperty -Name 'Progress' -Value $progress
-                }
-                $resultItem.ReplicationCompleteOnIncludedServers = $replCheck
-                #output result object
-                New-Object PSObject -Property $resultItem
+                        $RRObject | Add-Member -NotePropertyName $PropertyName1 -NotePropertyValue $resultItem.Progress
+                        $RRObject | Add-Member -NotePropertyName $PropertyName2 -NotePropertyValue $resultItem.itemCount
+                        $RRObject | Add-Member -NotePropertyName $PropertyName3 -NotePropertyValue $resultItem.SizeInBytes
+                    }#else
+                }#Foreach
+                $RRObject
             }#Foreach
-            Write-Progress -Activity 'Building Data Matrix of Public Folder Stats for output and reporting.' -Status 'Compiling Data' -CurrentOperation $currentOperationString -Completed
-        )#$ResultMatrix
-        #endregion BuildResultMatrix
-        #Build the Report Object
-        [pscustomobject]$ReportObject = @{
-            #region BuildReportObject
-            TimeStamp                                  = Get-Date -Format yyyyMMdd-HHmm
-            IncludedPublicFolderServersAndDatabases    = $($(foreach ($server in $PublicFolderMailboxServer) { "$Server ($($PublicFolderMailboxServerDatabases.$server))" }) -join ',')
-            IncludedPublicFoldersCount                 = $ResultMatrix.Count
-            TotalSizeOfIncludedPublicFoldersInBytes    = $ResultMatrix | Measure-Object -Property TotalBytes -Sum | Select-Object -ExpandProperty Sum
-            TotalItemCountFromIncludedPublicFolders    = $ResultMatrix | Measure-Object -Property ItemCount -Sum | Select-Object -ExpandProperty Sum
-            IncludedContainerOrEmptyPublicFoldersCount = @($ResultMatrix | Where-Object -FilterScript { $_.ItemCount -eq 0 }).Count
-            IncludedReplicationIncompletePublicFolders = @($ResultMatrix | Where-Object -FilterScript { $_.ReplicationCompleteOnIncludedServers -eq $false }).Count
-            LargestPublicFolders                       = @($ResultMatrix | Sort-Object TotalBytes -Descending | Select-Object -First $LargestPublicFolderReportCount)
-            PublicFoldersWithIncompleteReplication     = @(
-                Foreach ($result in ($ResultMatrix | Where-Object -FilterScript { $_.ReplicationCompleteOnIncludedServers -eq $false }))
-                {
-                    [pscustomobject]@{
-                        EntryID                    = $result.EntryID
-                        FolderPath                 = $Result.FolderPath
-                        ItemCount                  = $Result.ItemCount
-                        TotalItemSize              = $Result.TotalItemSize
-                        ConfiguredReplicaDatabases = $result.ConfiguredReplicas
-                        ConfiguredReplicaServers   =
-                        $(
-                            $databases = $result.ConfiguredReplicas.split(',')
-                            $servers = $databases | ForEach-Object { $PublicFolderDatabaseMailboxServers.$_ }
-                            $Servers -join ','
-                        )
-                        CompleteServers            =
-                        $(
-                            $CompleteServers = $result.Data | Where-Object { $_.Progress -eq 100 } | Select-Object -ExpandProperty ServerName
-                            $CompleteServers -join ','
-                        )
-                        CompleteDatabases          =
-                        $(
-                            $CompleteDatabases = $result.Data | Where-Object { $_.Progress -eq 100 } | Select-Object -ExpandProperty ServerName
-                            $CompleteDatabases -join ','
-                        )
-                        IncompleteServers          =
-                        $(
-                            $IncompleteServers = $result.Data | Where-Object { $_.Progress -lt 100 } | Select-Object -ExpandProperty ServerName
-                            $IncompleteServers -join ','
-                        )
-                        IncompleteDatabases        =
-                        $(
-                            $IncompleteDatabases = $result.Data | Where-Object { $_.Progress -lt 100 } | Select-Object -ExpandProperty DatabaseName
-                            $IncompleteDatabases -join ','
-                        )
-                    }#pscustomobject
-                }#Foreach
-            )
-            ReplicationReportByServerPercentage        = @(
-                Foreach ($result in $ResultMatrix)
-                {
-                    $RRObject = [pscustomobject]@{
-                        FolderPath        = $result.FolderPath
-                        EntryID           = $result.EntryID
-                        HighestItemCount  = $result.ItemCount
-                        HighestBytesCount = $result.totalBytes
-                    }#pscustomobject
-                    Foreach ($Server in $PublicFolderMailboxServer)
-                    {
-                        $ResultItem = $result.Data | Where-Object -FilterScript { $_.ServerName -eq $Server }
-                        $PropertyName1 = $Server + '-%'
-                        $PropertyName2 = $Server + '-Count'
-                        $PropertyName3 = $server + '-SizeInBytes'
-                        if ($null -eq $resultItem)
-                        {
-                            $RRObject | Add-Member -NotePropertyName $PropertyName1 -NotePropertyValue 'N/A'
-                            $RRObject | Add-Member -NotePropertyName $PropertyName2 -NotePropertyValue 'N/A'
-                            $RRObject | Add-Member -NotePropertyName $PropertyName3 -NotePropertyValue 'N/A'
-                        }#if
-                        else
-                        {
-                            $RRObject | Add-Member -NotePropertyName $PropertyName1 -NotePropertyValue $resultItem.Progress
-                            $RRObject | Add-Member -NotePropertyName $PropertyName2 -NotePropertyValue $resultItem.itemCount
-                            $RRObject | Add-Member -NotePropertyName $PropertyName3 -NotePropertyValue $resultItem.SizeInBytes
-                        }#else
-                    }#Foreach
-                    $RRObject
-                }#Foreach
-            )
+        )
+    }
+    $ReportObject.NonContainerOrEmptyPublicFoldersCount = $ReportObject.IncludedPublicFoldersCount - $ReportObject.IncludedContainerOrEmptyPublicFoldersCount
+    $ReportObject.AverageSizeOfIncludedPublicFolders = [Math]::Round($ReportObject.TotalSizeOfIncludedPublicFoldersInBytes / $ReportObject.NonContainerOrEmptyPublicFoldersCount, 0)
+    $ReportObject.AverageItemCountFromIncludedPublicFolders = [Math]::Round($ReportObject.TotalItemCountFromIncludedPublicFolders / $ReportObject.NonContainerOrEmptyPublicFoldersCount, 0)
+    #endregion BuildReportObject
+    #region PipelineDataOutput
+    if (-not [string]::IsNullOrWhiteSpace($PipelineData))
+    {
+        switch ($PipelineData)
+        {
+            'RawReplicationData'
+            { $ResultMatrix }
+            'ReportObject'
+            { $ReportObject }
         }
-        $ReportObject.NonContainerOrEmptyPublicFoldersCount = $ReportObject.IncludedPublicFoldersCount - $ReportObject.IncludedContainerOrEmptyPublicFoldersCount
-        $ReportObject.AverageSizeOfIncludedPublicFolders = [Math]::Round($ReportObject.TotalSizeOfIncludedPublicFoldersInBytes / $ReportObject.NonContainerOrEmptyPublicFoldersCount, 0)
-        $ReportObject.AverageItemCountFromIncludedPublicFolders = [Math]::Round($ReportObject.TotalItemCountFromIncludedPublicFolders / $ReportObject.NonContainerOrEmptyPublicFoldersCount, 0)
-        #endregion BuildReportObject
-        #region PipelineDataOutput
-        if (-not [string]::IsNullOrWhiteSpace($PipelineData))
+        #$ReportObject
+    }#if $passthrough - output the report data as objects
+    #endregion PipelineDataOutput
+    #region GenerateHTMLOutput
+    if (('html' -in $outputformats) -or $HTMLBody)
+    {
+        $html = GetHTMLReport -ReportObject $ReportObject -ResultMatrix $ResultMatrix -PublicFolderMailboxServer $PublicFolderMailboxServer
+    }#if to generate HTML output if required/requested
+    #endregion GenerateHTMLOutput
+    #region GenerateOutputFormats
+    $outputfiles = @(
+        if ('csv' -in $outputformats)
         {
-            switch ($PipelineData)
-            {
-                'RawReplicationData'
-                { $ResultMatrix }
-                'ReportObject'
-                { $ReportObject }
-            }
-            #$ReportObject
-        }#if $passthrough - output the report data as objects
-        #endregion PipelineDataOutput
-        #region GenerateHTMLOutput
-        if (('html' -in $outputformats) -or $HTMLBody)
-        {
-            $html = GetHTMLReport -ReportObject $ReportObject -ResultMatrix $ResultMatrix -PublicFolderMailboxServer $PublicFolderMailboxServer
-        }#if to generate HTML output if required/requested
-        #endregion GenerateHTMLOutput
-        #region GenerateOutputFormats
-        $outputfiles = @(
-            if ('csv' -in $outputformats)
-            {
-                $CSVOutputReports = @{
-                    PubliFolderEnvironmentSummary          = [pscustomobject]@{
-                        ReportTimeStamp                            = $ReportObject.TimeStamp
-                        IncludedPublicFolderServersAndDatabases    = $ReportObject.IncludedPublicFolderServersAndDatabases
-                        IncludedPublicFoldersCount                 = $ReportObject.IncludedPublicFoldersCount
-                        TotalSizeOfIncludedPublicFoldersInBytes    = $ReportObject.TotalSizeOfIncludedPublicFoldersInBytes
-                        TotalItemCountFromIncludedPublicFolders    = $ReportObject.TotalItemCountFromIncludedPublicFolders
-                        IncludedContainerOrEmptyPublicFoldersCount = $ReportObject.IncludedContainerOrEmptyPublicFoldersCount
-                        IncludedReplicationIncompletePublicFolders = $ReportObject.IncludedReplicationIncompletePublicFolders
-                    }
-                    LargestPublicFolders                   = $ReportObject.LargestPublicFolders | Select-Object FolderPath, TotalItemSize, ItemCount
-                    PublicFoldersWithIncompleteReplication = $ReportObject.PublicFoldersWithIncompleteReplication
-                    ReplicationReportPerReplicaDetails     = $ReportObject.ReplicationReportByServerPercentage
-                    PublicFolderStatisticsFromAllReplicas  = $resultMatrix | foreach-object {
-                        $parent = $_
-                        $parent.data | foreach-object {
-                            [pscustomobject]@{
-                                EntryID                     = $parent.EntryID
-                                Name                        = $parent.Name
-                                FolderPath                  = $parent.FolderPath
-                                ConfiguredReplicas          = $parent.ConfiguredReplicas
-                                MaxTotalBytes               = $Parent.TotalBytes
-                                MaxItemCount                = $Parent.ItemCount
-                                MaxLastAccessTime           = $Parent.LastAccessTime
-                                MaxLastModificationTime     = $Parent.LastModificationTime
-                                MaxLastUserAccessTime       = $Parent.LastUserAccessTime
-                                MaxLastUserModificationTime = $Parent.LastUserModificationTime
-                                AdminDisplayName            = $_.AdminDisplayName
-                                AssociatedItemCount         = $_.AssociatedItemCount
-                                ContactCount                = $_.ContactCount
-                                CreationTime                = $_.CreationTime
-                                DatabaseName                = $_.DatabaseName
-                                DeletedItemCount            = $_.DeletedItemCount
-                                ExpiryTime                  = $_.ExpiryTime
-                                Identity                    = $_.Identity
-                                IsDeletePending             = $_.IsDeletePending
-                                IsValid                     = $_.IsValid
-                                ItemCount                   = $_.ItemCount
-                                LastAccessTime              = $_.LastAccessTime
-                                LastModificationTime        = $_.LastModificationTime
-                                LastUserAccessTime          = $_.LastUserAccessTime
-                                LastUserModificationTime    = $_.LastUserModificationTime
-                                MapiIdentity                = $_.MapiIdentity
-                                OwnerCount                  = $_.OwnerCount
-                                Progress                    = $_.Progress
-                                ServerName                  = $_.ServerName
-                                SizeInBytes                 = $_.SizeInBytes
-                                TotalAssociatedItemSize     = $_.TotalAssociatedItemSize
-                                TotalDeletedItemSize        = $_.TotalDeletedItemSize
-                                TotalItemSize               = $_.TotalItemSize
-                            }
+            $CSVOutputReports = @{
+                PubliFolderEnvironmentSummary          = [pscustomobject]@{
+                    ReportTimeStamp                            = $ReportObject.TimeStamp
+                    IncludedPublicFolderServersAndDatabases    = $ReportObject.IncludedPublicFolderServersAndDatabases
+                    IncludedPublicFoldersCount                 = $ReportObject.IncludedPublicFoldersCount
+                    TotalSizeOfIncludedPublicFoldersInBytes    = $ReportObject.TotalSizeOfIncludedPublicFoldersInBytes
+                    TotalItemCountFromIncludedPublicFolders    = $ReportObject.TotalItemCountFromIncludedPublicFolders
+                    IncludedContainerOrEmptyPublicFoldersCount = $ReportObject.IncludedContainerOrEmptyPublicFoldersCount
+                    IncludedReplicationIncompletePublicFolders = $ReportObject.IncludedReplicationIncompletePublicFolders
+                }
+                LargestPublicFolders                   = $ReportObject.LargestPublicFolders | Select-Object FolderPath, TotalItemSize, ItemCount
+                PublicFoldersWithIncompleteReplication = $ReportObject.PublicFoldersWithIncompleteReplication
+                ReplicationReportPerReplicaDetails     = $ReportObject.ReplicationReportByServerPercentage
+                PublicFolderStatisticsFromAllReplicas  = $resultMatrix | foreach-object {
+                    $parent = $_
+                    $parent.data | foreach-object {
+                        [pscustomobject]@{
+                            EntryID                     = $parent.EntryID
+                            Name                        = $parent.Name
+                            FolderPath                  = $parent.FolderPath
+                            ConfiguredReplicas          = $parent.ConfiguredReplicas
+                            MaxTotalBytes               = $Parent.TotalBytes
+                            MaxItemCount                = $Parent.ItemCount
+                            MaxLastAccessTime           = $Parent.LastAccessTime
+                            MaxLastModificationTime     = $Parent.LastModificationTime
+                            MaxLastUserAccessTime       = $Parent.LastUserAccessTime
+                            MaxLastUserModificationTime = $Parent.LastUserModificationTime
+                            AdminDisplayName            = $_.AdminDisplayName
+                            AssociatedItemCount         = $_.AssociatedItemCount
+                            ContactCount                = $_.ContactCount
+                            CreationTime                = $_.CreationTime
+                            DatabaseName                = $_.DatabaseName
+                            DeletedItemCount            = $_.DeletedItemCount
+                            ExpiryTime                  = $_.ExpiryTime
+                            Identity                    = $_.Identity
+                            IsDeletePending             = $_.IsDeletePending
+                            IsValid                     = $_.IsValid
+                            ItemCount                   = $_.ItemCount
+                            LastAccessTime              = $_.LastAccessTime
+                            LastModificationTime        = $_.LastModificationTime
+                            LastUserAccessTime          = $_.LastUserAccessTime
+                            LastUserModificationTime    = $_.LastUserModificationTime
+                            MapiIdentity                = $_.MapiIdentity
+                            OwnerCount                  = $_.OwnerCount
+                            Progress                    = $_.Progress
+                            ServerName                  = $_.ServerName
+                            SizeInBytes                 = $_.SizeInBytes
+                            TotalAssociatedItemSize     = $_.TotalAssociatedItemSize
+                            TotalDeletedItemSize        = $_.TotalDeletedItemSize
+                            TotalItemSize               = $_.TotalItemSize
                         }
                     }
-                }#end CSVOutputReports
-                foreach ($key in $CSVOutputReports.keys)
-                {
-                    $outputFileName = $BeginTimeStamp + $key + '.csv'
-                    $outputFilePath = Join-Path -path $outputFolderPath -ChildPath $outputFileName
-                    $CSVOutputReports.$key | Export-CSV -path $outputFilePath -Encoding UTF8 -NoTypeInformation
-                    $outputFilePath
                 }
-            }
-            if ('html' -in $outputformats)
+            }#end CSVOutputReports
+            foreach ($key in $CSVOutputReports.keys)
             {
-                $HTMLFileName = $BeginTimeStamp + 'PublicFolderEnvironmentAndReplicationReport.html'
-                $HTMLFilePath = Join-Path -path $outputFolderPath -ChildPath $HTMLFileName
-                $html | Out-File -FilePath $HTMLFilePath -Encoding utf8
-                $HTMLFilePath
+                $outputFileName = $BeginTimeStamp + $key + '.csv'
+                $outputFilePath = Join-Path -path $outputFolderPath -ChildPath $outputFileName
+                $CSVOutputReports.$key | Export-CSV -path $outputFilePath -Encoding UTF8 -NoTypeInformation
+                $outputFilePath
             }
-        )
-        #endregion GenerateOutputFormats
-        #region SendMail
-        if ($true -eq $SendEmail)
+        }
+        if ('html' -in $outputformats)
         {
-            if ($true -eq $script:EmailConfiguration.BodyAsHTML)
-            {
-                $script:EmailConfiguration.Body = $html
-            }
-            else
-            {
-                $script:EmailConfiguration.Body = "Public Folder Environment and Replication Status Report Completed. Files output to $outputFolderPath."
-            }
-            if ($true -eq $script:EmailConfiguration.Attachments)
-            {
-                $script:EmailConfiguration.Attachments = $outputfiles
-            }
-            Send-MailMessage @SendMailMessageParams
-        }#end if $SendMail
-        #endregion SendMail
-    }#end
+            $HTMLFileName = $BeginTimeStamp + 'PublicFolderEnvironmentAndReplicationReport.html'
+            $HTMLFilePath = Join-Path -path $outputFolderPath -ChildPath $HTMLFileName
+            $html | Out-File -FilePath $HTMLFilePath -Encoding utf8
+            $HTMLFilePath
+        }
+    )
+    #endregion GenerateOutputFormats
+    #region SendMail
+    if ($true -eq $SendEmail)
+    {
+        if ($true -eq $script:EmailConfiguration.BodyAsHTML)
+        {
+            $script:EmailConfiguration.Body = $html
+        }
+        else
+        {
+            $script:EmailConfiguration.Body = "Public Folder Environment and Replication Status Report Completed. Files output to $outputFolderPath."
+        }
+        if ($true -eq $script:EmailConfiguration.Attachments)
+        {
+            $script:EmailConfiguration.Attachments = $outputfiles
+        }
+        Send-MailMessage @SendMailMessageParams
+    }#end if $SendMail
+    #endregion SendMail
+}#end
 }
 #end function Get-PublicFolderReplicationReport
