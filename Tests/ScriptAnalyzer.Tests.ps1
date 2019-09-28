@@ -9,8 +9,8 @@ $Script:ModuleSettingsFile = Join-Path -Path $($Script:ModuleRoot) -ChildPath $(
 Write-Information -MessageData "Module Settings File is $($script:ModuleSettingsFile)" -InformationAction Continue
 
 Describe "All commands pass PSScriptAnalyzer rules" -Tag 'Build' {
-    $rules = "$Script:ModuleRoot\PSScriptAnalyzerSettings.psd1"
-    $scripts = Get-ChildItem -Path $ModuleRoot -Include '*.ps1', '*.psm1', '*.psd1' -Recurse |
+    $rules = "$Script:ModuleRoot\ScriptAnalyzerSettings.psd1"
+    $scripts = Get-ChildItem -Path $ModuleRoot -Include '*.ps1', '*.psm1', '*.psd1' -Recurse -Exclude 'ScriptAnalyzerSettings.psd1' |
         Where-Object -filterscript { $_.FullName -notmatch 'Classes' -and $_.FullName -notmatch 'Tests' }
 
     foreach ($script in $scripts)
