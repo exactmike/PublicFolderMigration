@@ -193,12 +193,14 @@ function Get-PFMPublicFolderReplicationReport
             }
         )
         #filter any duplicates if the user specified public folder paths
-        WriteLog -Message 'Sorting and De-duplicating retrieved Public Folders.' -EntryType Notification
-        if ($PublicFolderPath.Count -ge 2) { $FolderIDs = @($FolderIDs | Select-Object -Unique -Property *) }
+        if ($PublicFolderPath.Count -ge 2) {
+            WriteLog -Message 'Sorting and De-duplicating retrieved Public Folders.' -EntryType Notification -verbose
+            $FolderIDs = @($FolderIDs | Select-Object -Unique -Property *)
+        }
         #sort folders by path
         $FolderIDs = @($FolderIDs | Sort-Object Identity)
         $publicFoldersRetrievedCount = $FolderIDs.Count
-        WriteLog -Message "Count of Public Folders Retrieved: $publicFoldersRetrievedCount" -EntryType Notification
+        WriteLog -Message "Count of Public Folders Retrieved: $publicFoldersRetrievedCount" -EntryType Notification -verbose
         #endregion BuildPublicFolderList
     }#Begin
     End
