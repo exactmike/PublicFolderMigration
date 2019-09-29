@@ -16,5 +16,5 @@ function Add-PFMParallelPSSession
         $script:ParallelPSSession.Remove($script:ParallelPSSession[$existingSessionIndex])
     }
 
-    [void]$script:ParallelPSSession.Add($($PSession))
+    [void]$script:ParallelPSSession.Add($PSSession)
 }
