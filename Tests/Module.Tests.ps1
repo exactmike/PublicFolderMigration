@@ -15,7 +15,7 @@ Write-Information -MessageData "Module Settings File is $($script:ModuleSettings
 Describe "$ModuleName Unit Tests" -Tag 'UnitTests' {
     Context "Validate Top Level Files" {
         [string[]]$moduleFileNames = (Get-ChildItem $ModuleRoot -File).Name
-        $expectedFileNames = @($($ModuleName + '.psd1'), $($ModuleName + '.psm1'), 'README.md', 'license', 'PSScriptAnalyzerSettings.psd1')
+        $expectedFileNames = @($($ModuleName + '.psd1'), $($ModuleName + '.psm1'), 'README.md', 'license', 'ScriptAnalyzerSettings.psd1')
         It "Should contain expected files $($expectedFileNames -join ', ')" {
             ( (Compare-Object -ReferenceObject $expectedFileNames -DifferenceObject $moduleFileNames -IncludeEqual | Where-Object SideIndicator -eq "==").Count ) | Should Be $expectedFileNames.Count
         }
