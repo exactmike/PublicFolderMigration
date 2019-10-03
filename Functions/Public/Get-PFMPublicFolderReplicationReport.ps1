@@ -128,10 +128,10 @@ function Get-PFMPublicFolderReplicationReport
             { 'MultipleWithRoot' }
             { $PublicFolderPath.Count -ge 2 -and $PublicFolderPath -notcontains '\' }
             { 'MultipleNonRoot' }
-            {$null -eq $PublicFolderPath}
-            {'Root'}
+            { $null -eq $PublicFolderPath }
+            { 'Root' }
             Default
-            {'Root'}
+            { 'Root' }
         }
         writelog -Message "PublicFolder Path Type specified by user parameters: $PublicFolderPathType"  -EntryType Notification -verbose
         #endregion ValidateParameters
@@ -193,7 +193,8 @@ function Get-PFMPublicFolderReplicationReport
             }
         )
         #filter any duplicates if the user specified public folder paths
-        if ($PublicFolderPath.Count -ge 2) {
+        if ($PublicFolderPath.Count -ge 2)
+        {
             WriteLog -Message 'Sorting and De-duplicating retrieved Public Folders.' -EntryType Notification -verbose
             $FolderIDs = @($FolderIDs | Select-Object -Unique -Property *)
         }
@@ -333,8 +334,8 @@ function Get-PFMPublicFolderReplicationReport
                     $StatsJobStopWatch.Start()
                     do
                     {
-                        $States = $StatsJobs.State | Group-Object -Property State -AsHashTable
-                        $CompletedJobCount = $states.Completed.Count
+                        $States = $StatsJobs | Measure-Property -property State -ashashtable
+                        $CompletedJobCount = $states.Completed
                         $ElapsedTimeString = "{0} Days, {1} Hours, {2} Minutes, {3} Seconds" -f $StatsJobStopWatch.Elapsed.Days, $StatsJobStopWatch.Elapsed.Hours, $StatsJobStopWatch.Elapsed.Minutes, $StatsJobStopWatch.Elapsed.Seconds
                         $WriteProgressParams = @{
                             Activity         = 'Retrieving Public Folder Stats'
@@ -344,7 +345,6 @@ function Get-PFMPublicFolderReplicationReport
                         }
                         Write-Progress @WriteProgressParams
                         Start-Sleep -Seconds 20
-
                     }
                     until
                     (
