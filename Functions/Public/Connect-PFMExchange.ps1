@@ -101,18 +101,33 @@ Intended for internal module use only, this parameter is used when creating one 
     }
 
     #Get the Required Exchange Session
-    $ExchangeSession = Get-PFMExchangePSSession @GetPFMExchangePSSessionParams
-
     Switch ($IsParallel)
     {
         $false
         {
+            $ExchangeSession = Get-PFMExchangePSSession @GetPFMExchangePSSessionParams
             $script:PsSession = $ExchangeSession
             $script:ConnectExchangeOrganizationCompleted = $true
         }
         $true
         {
-            Add-PFMParallelPSSession -PSSession $ExchangeSession
+            if ($null -ne $script:ParallelPSSession)
+            {
+                $existingSessionIndex = (GetArrayIndexForProperty -array $script:ParallelPSSession -property Name -Value $ExchangeOnPremisesServer)
+                if ($null -ne $existingSessionIndex -and $existingSessionIndex -ne -1)
+                {
+                    switch (Test-PFMExchangePSSession -PSSession $script:ParallelPSSession[$existingSessionIndex])
+                    {
+                        $true
+                        { }
+                        $false
+                        {
+                            $ExchangeSession = Get-PFMExchangePSSession @GetPFMExchangePSSessionParams
+                            Add-PFMParallelPSSession -PSSession $ExchangeSession
+                        }
+                    }
+                }
+            }
         }
     }
 }
