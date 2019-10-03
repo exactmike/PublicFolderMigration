@@ -168,7 +168,7 @@ function Get-PFMPublicFolderReplicationReport
         $FolderIDs = @(
             switch ($publicFolderPathType)
             {
-                { $_ -in @('SingleNonRoot', 'MultipleNonRoot') -and $false -eq $StatsFromFullTree} #if the user specified specific public folder paths, get those
+                { $_ -in @('SingleNonRoot', 'MultipleNonRoot') } #if the user specified specific public folder paths, get those
                 {
                     $publicFolderPathString = $PublicFolderPath -join ', '
                     WriteLog -Message "Retrieving Public Folders in the following Path(s): $publicFolderPathString" -EntryType Notification
@@ -179,7 +179,7 @@ function Get-PFMPublicFolderReplicationReport
                         } | Select-Object -property @{n = 'EntryID'; e = { $_.EntryID.tostring() } }, @{n = 'Identity'; e = { $_.Identity.tostring() } }, Name, Replicas
                     }
                 }
-                { $_ -in @('Root', 'MultipleWithRoot') -or $true -eq $StatsFromFullTree } #otherwise, get all default public folders
+                { $_ -in @('Root', 'MultipleWithRoot') } #otherwise, get all default public folders
                 {
                     WriteLog -message 'Retrieving All Default (Non-System) Public Folders from IPM_SUBTREE' -EntryType Notification
                     Invoke-Command -Session $script:PSSession -ScriptBlock {
@@ -230,7 +230,7 @@ function Get-PFMPublicFolderReplicationReport
             # This can be significantly faster than retrieving stats for all public folders
             switch ($publicFolderPathType)
             {
-                { $_ -in @('SingleNonRoot', 'MultipleNonRoot') } #if the user specified specific public folder paths, get those
+                { $_ -in @('SingleNonRoot', 'MultipleNonRoot') -and $false -eq $StatsFromFullTree } #if the user specified specific public folder paths, get those
                 {
                     $count = 0
                     $RecordCount = $FolderIDs.Count * $PublicFolderMailboxServerFQDNs.Count
@@ -312,7 +312,7 @@ function Get-PFMPublicFolderReplicationReport
                 }
                 # Get statistics for all public folders on all selected servers
                 # This is significantly faster than trying to get folders one by one by name
-                { $_ -in @('Root', 'MultipleWithRoot') } #otherwise, get all default public folders
+                { $_ -in @('Root', 'MultipleWithRoot') -or $true -eq $StatsFromFullTree } #otherwise, get all default public folders
                 {
                     #$count = 0
                     #$RecordCount = $PublicFolderMailboxServerFQDNs.Count
