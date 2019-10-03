@@ -223,6 +223,7 @@ function Get-PFMPublicFolderReplicationReport
                 $ConnectPFExchangeParams.PSSessionOption = $Script:PSSessionOption
             }
             Connect-PFMExchange @ConnectPFExchangeParams
+            writelog -message "Connected Parallel PSSession to $server for Stats operations" -entrytype Notification -verbose
         }
         $publicFolderStatsFromSelectedServers =
         @(
