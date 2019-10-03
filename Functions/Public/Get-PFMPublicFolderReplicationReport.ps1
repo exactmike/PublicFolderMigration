@@ -78,6 +78,9 @@ function Get-PFMPublicFolderReplicationReport
         ,
         [parameter()]
         [int]$LargestPublicFolderReportCount = 100
+        ,
+        [parameter()]
+        [switch]$StatsFromFullTree
     )
     Begin
     {
@@ -165,7 +168,7 @@ function Get-PFMPublicFolderReplicationReport
         $FolderIDs = @(
             switch ($publicFolderPathType)
             {
-                { $_ -in @('SingleNonRoot', 'MultipleNonRoot') } #if the user specified specific public folder paths, get those
+                { $_ -in @('SingleNonRoot', 'MultipleNonRoot') -and $false -eq $StatsFromFullTree} #if the user specified specific public folder paths, get those
                 {
                     $publicFolderPathString = $PublicFolderPath -join ', '
                     WriteLog -Message "Retrieving Public Folders in the following Path(s): $publicFolderPathString" -EntryType Notification
@@ -176,7 +179,7 @@ function Get-PFMPublicFolderReplicationReport
                         } | Select-Object -property @{n = 'EntryID'; e = { $_.EntryID.tostring() } }, @{n = 'Identity'; e = { $_.Identity.tostring() } }, Name, Replicas
                     }
                 }
-                { $_ -in @('Root', 'MultipleWithRoot') } #otherwise, get all default public folders
+                { $_ -in @('Root', 'MultipleWithRoot') -or $true -eq $StatsFromFullTree } #otherwise, get all default public folders
                 {
                     WriteLog -message 'Retrieving All Default (Non-System) Public Folders from IPM_SUBTREE' -EntryType Notification
                     Invoke-Command -Session $script:PSSession -ScriptBlock {
