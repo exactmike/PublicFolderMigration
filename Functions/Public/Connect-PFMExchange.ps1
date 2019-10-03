@@ -111,19 +111,27 @@ Intended for internal module use only, this parameter is used when creating one 
         }
         $true
         {
-            if ($null -ne $script:ParallelPSSession)
+            switch ($null -eq $script:ParallelPSSession)
             {
-                $existingSessionIndex = (GetArrayIndexForProperty -array $script:ParallelPSSession -property Name -Value $ExchangeOnPremisesServer)
-                if ($null -ne $existingSessionIndex -and $existingSessionIndex -ne -1)
+                $true
                 {
-                    switch (Test-PFMExchangePSSession -PSSession $script:ParallelPSSession[$existingSessionIndex])
+                    $ExchangeSession = Get-PFMExchangePSSession @GetPFMExchangePSSessionParams
+                    Add-PFMParallelPSSession -PSSession $ExchangeSession
+                }
+                $false
+                {
+                    $existingSessionIndex = (GetArrayIndexForProperty -array $script:ParallelPSSession -property Name -Value $ExchangeOnPremisesServer)
+                    if ($null -ne $existingSessionIndex -and $existingSessionIndex -ne -1)
                     {
-                        $true
-                        { }
-                        $false
+                        switch (Test-PFMExchangePSSession -PSSession $script:ParallelPSSession[$existingSessionIndex])
                         {
-                            $ExchangeSession = Get-PFMExchangePSSession @GetPFMExchangePSSessionParams
-                            Add-PFMParallelPSSession -PSSession $ExchangeSession
+                            $true
+                            { }
+                            $false
+                            {
+                                $ExchangeSession = Get-PFMExchangePSSession @GetPFMExchangePSSessionParams
+                                Add-PFMParallelPSSession -PSSession $ExchangeSession
+                            }
                         }
                     }
                 }
