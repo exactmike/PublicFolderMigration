@@ -14,7 +14,6 @@ Function GetArrayIndexForProperty
         [parameter(Mandatory)]
         $property #The property name for the value for which you want to find an index
     )
-    Write-Verbose -Message 'Using Property Match for Index'
     if ($null -ne $array -and $array.count -ne 0)
     {
         [array]::indexof(($array.$property), $value)
