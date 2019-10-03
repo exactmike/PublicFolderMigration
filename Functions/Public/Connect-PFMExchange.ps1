@@ -68,7 +68,6 @@ Intended for internal module use only, this parameter is used when creating one 
     if ($true -ne $IsParallel)
     {
         $script:ExchangeCredential = $Credential
-        $script:ExchangeOrganizationType = $script:ExchangeOrganizationType
     }
 
     #since this is user facing we always assume that if called the existing session needs to be replaced
