@@ -190,7 +190,7 @@ Function Get-PFMPublicFolderTree
             Export-Data -ExportFolderPath $OutputFolderPath -DataToExportTitle 'PublicFolderTree' -ReturnExportFilePath -Encoding $Encoding -DataType $of
         }
     )
-    WriteLog -Messsage "Output files created: $($CreatedFilePath -join '; ')" -entryType Notification -verbose
+    WriteLog -Message "Output files created: $($CreatedFilePath -join '; ')" -entryType Notification -verbose
     if ($true -eq $Passthru)
     {
         $Folders

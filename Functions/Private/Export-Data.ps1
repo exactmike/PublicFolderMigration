@@ -9,6 +9,7 @@ Function Export-Data
         ,
         [string]$DataToExportTitle
         ,
+        [parameter(Mandatory)]
         $DataToExport
         ,
         [parameter(ParameterSetName = 'xml/json')]
