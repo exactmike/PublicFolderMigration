@@ -58,8 +58,8 @@ Function Get-PFMPublicFolderTree
 
     Confirm-PFMExchangeConnection -PSSession $Script:PSSession
     $BeginTimeStamp = Get-Date -Format yyyyMMdd-HHmmss
-    $script:LogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'PublicFolderReplicationAndStatisticsReport.log')
-    $script:ErrorLogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'PublicFolderReplicationAndStatisticsReport-ERRORS.log')
+    $script:LogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'GetPublicFolderTree.log')
+    $script:ErrorLogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'GetPublicFolderTree-ERRORS.log')
     WriteLog -Message "Calling Invocation = $($MyInvocation.Line)" -EntryType Notification
     $ExchangeOrganization = Invoke-Command -Session $Script:PSSession -ScriptBlock { Get-OrganizationConfig | Select-Object -ExpandProperty Identity | Select-Object -ExpandProperty Name }
     WriteLog -Message "Exchange Session is Running in Exchange Organzation $ExchangeOrganization" -EntryType Notification
@@ -187,7 +187,7 @@ Function Get-PFMPublicFolderTree
     $CreatedFilePath = @(
         foreach ($of in $Outputformats)
         {
-            Export-Data -ExportFolderPath $OutputFolderPath -DataToExportTitle 'PublicFolderTree' -ReturnExportFilePath -Encoding $Encoding -DataType $of
+            Export-Data -ExportFolderPath $OutputFolderPath -DataToExportTitle 'PublicFolderTree' -ReturnExportFilePath -Encoding $Encoding -DataType $of -DataToExport $Folders
         }
     )
     WriteLog -Message "Output files created: $($CreatedFilePath -join '; ')" -entryType Notification -verbose
