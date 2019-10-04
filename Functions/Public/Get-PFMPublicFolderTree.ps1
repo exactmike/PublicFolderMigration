@@ -137,13 +137,25 @@ Function Get-PFMPublicFolderTree
     $Folders = @(
         switch ($publicFolderPathType)
         {
-            { $_ -in @('SingleNonRoot', 'MultipleNonRoot') } #if the user specified specific public folder paths, get those
+            { $_ -in @('SingleNonRoot') } #if the user specified specific public folder paths, get those
             {
                 $publicFolderPathString = $PublicFolderPath -join ', '
-                WriteLog -Message "Retrieving Public Folders in the following Path(s): $publicFolderPathString" -EntryType Notification
+                $path = $PublicFolderPath[0]
+                WriteLog -Message "Retrieving Public Folders in the following Path: $publicFolderPathString" -EntryType Notification
                 Invoke-Command -Session $script:PSSession -ScriptBlock {
-                    $using:PublicFolderPath | Get-PublicFolder @using:GetPublicFolderParams
+                   Get-PublicFolder -Identity $Using:path  @using:GetPublicFolderParams
                 } | Select-Object -property $PropertyList
+            }
+            { $_ -in @('MultipleNonRoot') } #if the user specified specific public folder paths, get those
+            {
+                $publicFolderPathString = $PublicFolderPath -join ', '
+                foreach ($path in $PublicFolderPath)
+                {
+                    WriteLog -Message "Retrieving Public Folders in the following Path(s): $publicFolderPathString" -EntryType Notification
+                    Invoke-Command -Session $script:PSSession -ScriptBlock {
+                        Get-PublicFolder -path $using:path @using:GetPublicFolderParams
+                    } | Select-Object -property $PropertyList
+                }
             }
             { $_ -in @('Root', 'MultipleWithRoot') } #otherwise, get all default public folders
             {
