@@ -153,7 +153,7 @@ Function Get-PFMPublicFolderTree
                 {
                     WriteLog -Message "Retrieving Public Folders in the following Path(s): $publicFolderPathString" -EntryType Notification
                     Invoke-Command -Session $script:PSSession -ScriptBlock {
-                        Get-PublicFolder -path $using:path @using:GetPublicFolderParams
+                        Get-PublicFolder -Identity $using:path @using:GetPublicFolderParams
                     } | Select-Object -property $PropertyList
                 }
             }
