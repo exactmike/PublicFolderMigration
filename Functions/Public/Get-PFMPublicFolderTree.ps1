@@ -174,11 +174,11 @@ Function Get-PFMPublicFolderTree
         }
     )
     #filter any duplicates if the user specified public folder paths
-    if ($publicFolderPathType -in @('SingleNonRoot', 'MultipleNonRoot'))
+    if ($publicFolderPathType -in @('MultipleNonRoot'))
     {
         WriteLog -Message 'Sorting and De-duplicating retrieved Public Folders.' -EntryType Notification -verbose
-        $Folders = @($Folders | Select-Object -Unique -Property EntryID)
-        $Folders = @($Folders | Sort-Object Identity)
+        $Folders = @($Folders | Sort-Object -Unique -Property EntryID)
+        $Folders = @($Folders | Sort-Object -Unique -Property Identity)
     }
     #sort folders by path
     $publicFoldersRetrievedCount = $Folders.Count
