@@ -1,6 +1,10 @@
 function Set-PFMEmailConfiguration
 {
     <#
+    .SYNOPSIS
+    Configures the PFM Module Email Settings for Email Reports when using the -SendEmail Parameter of Get-*Report* functions.
+    .DESCRIPTION
+    Configures the PFM Module Email Settings for Email Reports when using the -SendEmail Parameter of Get-*Report* functions.  Required before using the -SendEmail parameter of these functions
     .PARAMETER To
     When SendEmail is used, this sets the recipients of the email report.
     .PARAMETER From
@@ -9,8 +13,12 @@ function Set-PFMEmailConfiguration
     When SendEmail is used, this is the SMTP Server to send the report through.
     .PARAMETER Subject
     Sets the subject of the email report.  If not set, the default subject is "Public Folder Replication Report from Exchange Organization ______" where ______ is the Identity property of Get-OrganizationConfig.
-    .PARAMETER NoAttachment
-    When SendEmail is used, specifying this switch will set the email report to not include the HTML Report as an attachment. It will still be sent in the body of the email.
+    .PARAMETER IncludeAttachment
+    When SendEmail is used, specifying this switch will set the email report to not include the output files as attachment(s) to the email.
+    .EXAMPLE
+    Set-PFMEmailConfiguration -To ReportConsumer@contoso.com -From USCLTEX10PF01.us.clt.contoso.com@contoso.com -SmtpServer relay.contoso.com -Subject 'Public Folder Report' -Attachments
+
+    Gets public folder tree data from USCLTEX10PF01.us.clt.contoso.com and exports it to csv, json, and xml formats in c:\PFReports
     #>
     [CmdletBinding()]
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute(
@@ -39,9 +47,9 @@ function Set-PFMEmailConfiguration
         ,
         [parameter()]
         [switch]$BodyAsHTML
-        ,
+<#         ,
         [parameter()]
-        [switch]$Attachments
+        [switch]$IncludeAttachment #>
     )
 
     $script:EmailConfiguration = @{

@@ -9,7 +9,7 @@ function Get-PFMPublicFolderReplicationReport
     .PARAMETER PublicFolderMailboxServer
     This parameter specifies the Exchange 2010 server(s) to scan. If this is omitted, all Exchange servers hosting a Public Folder Database are scanned.
     .PARAMETER PublicFolderPath
-    This parameter specifies the Public Folder(s) to scan. If this is omitted, all public folders are scanned (except System Public Folders - see the IncludeSystemPublicFolders parameter)
+    This parameter specifies the Public Folder(s) to scan. If this is omitted, all public folders are scanned (except System Public Folders - see the IncludeSystemPublicFolders parameter). Include the leading '\'.
     .PARAMETER Recurse
     When used in conjunction with the FolderPath parameter, this will include all child Public Folders of the Folders listed in Folder Path.
     .PARAMETER PipelineData
@@ -24,6 +24,8 @@ function Get-PFMPublicFolderReplicationReport
     This parameter specifies to include System Public Folders when scanning all public folders. If this is omitted, System Public Folders are omitted.
     .PARAMETER LargestPublicFolderReportCount
     This parameter allows control of the count largest public folders data in the report object.
+    .PARAMETER StatsFromFullTree
+    Force the process to get the stats from all public folders from all target Mailbox Servers (with Public Folder Databases), rather than targeting the specified public folder tree segments.
     .EXAMPLE
     PS C:\> Connect-PFMExchange -ExchangeOnPremisesServer PublicFolderServer1.us.wa.contoso.com -credential $cred
     PS C:\> Get-PFMPublicFolderReplicationReport -OutputFolderPath c:\PFReports -OutputFormats csv,html
