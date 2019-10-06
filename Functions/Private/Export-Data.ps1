@@ -17,8 +17,8 @@ Function Export-Data
         ,
         [parameter(ParameterSetName = 'delimited')]
         [parameter(ParameterSetName = 'xml/json')]
-        [ValidateSet('xml', 'csv', 'json', 'clixml')]
-        [string]$DataType
+        [Alias('DataType')]
+        [ExportDataOutputFormat]$DataFormat
         ,
         [parameter(ParameterSetName = 'delimited')]
         [switch]$Append

@@ -61,8 +61,7 @@ function Get-PFMPublicFolderReplicationReport
         [string]$OutputFolderPath
         ,
         [parameter(Mandatory)]
-        [validateset('html', 'csv')]
-        [string[]]$Outputformats = @('html', 'csv')
+        [ExportDataOutputFormat[]]$Outputformat
         ,
         [parameter()]
         #Add ValidateScript to verify Email Configuration is set

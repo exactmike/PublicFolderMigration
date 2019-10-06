@@ -48,8 +48,7 @@ Function Get-PFMPublicFolderTree
         [string]$OutputFolderPath
         ,
         [parameter(Mandatory)]
-        [validateset('csv','json','xml','clixml')]
-        [string[]]$Outputformats
+        [ExportDataOutputFormat[]]$Outputformat
         ,
         [parameter()]
         [ValidateSet('Unicode', 'BigEndianUnicode', 'Ascii', 'Default', 'UTF8', 'UTF8NOBOM', 'UTF7', 'UTF32')]
@@ -187,7 +186,7 @@ Function Get-PFMPublicFolderTree
     $CreatedFilePath = @(
         foreach ($of in $Outputformats)
         {
-            Export-Data -ExportFolderPath $OutputFolderPath -DataToExportTitle 'PublicFolderTree' -ReturnExportFilePath -Encoding $Encoding -DataType $of -DataToExport $Folders
+            Export-Data -ExportFolderPath $OutputFolderPath -DataToExportTitle 'PublicFolderTree' -ReturnExportFilePath -Encoding $Encoding -DataFormat $of -DataToExport $Folders
         }
     )
     WriteLog -Message "Output files created: $($CreatedFilePath -join '; ')" -entryType Notification -verbose
