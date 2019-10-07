@@ -89,8 +89,8 @@ function Get-PFMPublicFolderStat
             {
                 $ServerDatabases = @(
                     Invoke-Command -Session $script:PSSession -ScriptBlock {
-                        Get-PublicFolderDatabase | Select-Object -Property @{n = 'DatabaseName'; e = { $_.Name } }, @{n = 'ServerName'; e = { $_.Server } }, @{n = 'ServerFQDN'; e = { $_.RpcClientAccessServer } }
-                    }
+                        Get-PublicFolderDatabase
+                    } | Select-Object -Property @{n = 'DatabaseName'; e = { $_.Name } }, @{n = 'ServerName'; e = { $_.Server } }, @{n = 'ServerFQDN'; e = { $_.RpcClientAccessServer } }
                 )
 
             }
@@ -101,8 +101,8 @@ function Get-PFMPublicFolderStat
                     {
 
                         Invoke-Command -Session $script:PSSession -scriptblock {
-                            Get-PublicFolderDatabase -server $using:Server -ErrorAction SilentlyContinue | Select-Object -Property @{n = 'DatabaseName'; e = { $_.Name } }, @{n = 'ServerName'; e = { $_.Server } }, @{n = 'ServerFQDN'; e = { $_.RpcClientAccessServer } }
-                        }
+                            Get-PublicFolderDatabase -server $using:Server -ErrorAction SilentlyContinue
+                        } | Select-Object -Property @{n = 'DatabaseName'; e = { $_.Name } }, @{n = 'ServerName'; e = { $_.Server } }, @{n = 'ServerFQDN'; e = { $_.RpcClientAccessServer } }
                     }
                 )
                 if ($ServerDatabases.Count -ne $PublicFolderMailboxServer.Count)
