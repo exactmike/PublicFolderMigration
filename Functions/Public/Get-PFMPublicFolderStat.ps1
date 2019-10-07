@@ -67,9 +67,6 @@ function Get-PFMPublicFolderStat
                     $true
                 } })]
         [switch]$SendEmail
-        ,
-        [parameter()]
-        [switch]$StatsFromFullTree
     )
     Confirm-PFMExchangeConnection -PSSession $Script:PSSession
     $BeginTimeStamp = Get-Date -Format yyyyMMdd-HHmmss
@@ -117,7 +114,7 @@ function Get-PFMPublicFolderStat
         }
         $ServerDatabases
     }
-    $ServerDatabase = @(Get-PublicFolderMailboxServerFQDN -PublicFolderMailboxServer $PublicFolderMailboxServer)
+    $ServerDatabase = @(Get-PublicFolderMailboxServerDatabase -PublicFolderMailboxServer $PublicFolderMailboxServer)
     $PublicFolderMailboxServerNames = $ServerDatabase.ServerName -join ', '
     WriteLog -Message "Public Folder Mailbox Servers Included: $PublicFolderMailboxServerNames" -EntryType Notification -Verbose
     #region GetPublicFolderStats
