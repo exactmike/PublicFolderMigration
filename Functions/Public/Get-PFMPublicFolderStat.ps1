@@ -398,7 +398,7 @@ function Get-PFMPublicFolderStat
     }
     #endregion GetPublicFolderStats
     $CreatedFilePath = @(
-        foreach ($of in $Outputformats)
+        foreach ($of in $Outputformat)
         {
             Export-Data -ExportFolderPath $OutputFolderPath -DataToExportTitle 'PublicFolderStats' -ReturnExportFilePath -Encoding $Encoding -DataFormat $of -DataToExport $publicFolderStats -verbose
         }
