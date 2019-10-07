@@ -400,7 +400,7 @@ function Get-PFMPublicFolderStat
     $CreatedFilePath = @(
         foreach ($of in $Outputformats)
         {
-            Export-Data -ExportFolderPath $OutputFolderPath -DataToExportTitle 'PublicFolderStats' -ReturnExportFilePath -Encoding $Encoding -DataFormat $of -DataToExport $publicFolderStats
+            Export-Data -ExportFolderPath $OutputFolderPath -DataToExportTitle 'PublicFolderStats' -ReturnExportFilePath -Encoding $Encoding -DataFormat $of -DataToExport $publicFolderStats -verbose
         }
     )
     WriteLog -Message "Output files created: $($CreatedFilePath -join '; ')" -entryType Notification -verbose
