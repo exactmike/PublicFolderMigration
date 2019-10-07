@@ -34,9 +34,9 @@ Function Export-Data
     )
     #Determine Export File Path
     #validate append
-    if ($Append -eq $true -and $DataType -ne 'csv')
+    if ($Append -eq $true -and $DataFormat -ne 'csv')
     {
-        throw("-Append is not supported with data type $DataType.  It is only supported with data type 'csv'")
+        throw("-Append is not supported with data type $DataFormat.  It is only supported with data type 'csv'")
     }
     Function GetTimeStamp
     {
@@ -46,7 +46,7 @@ Function Export-Data
     }
     $stamp = GetTimeStamp
     #Build the ExportFilePath value
-    switch ($DataType)
+    switch ($DataFormat)
     {
         'xml'
         {
@@ -64,7 +64,7 @@ Function Export-Data
         {
             if ($Append)
             {
-                $mostrecent = @(get-ChildItem -Path $ExportFolderPath -Filter "*$DataToExportTitle.csv" | Sort-Object -Property CreationTime -Descending | Select-Object -First 1)
+                $mostrecent = @(Get-ChildItem -Path $ExportFolderPath -Filter "*$DataToExportTitle.csv" | Sort-Object -Property CreationTime -Descending | Select-Object -First 1)
                 if ($mostrecent.count -eq 1)
                 {
                     $ExportFilePath = $mostrecent[0].fullname
@@ -73,14 +73,14 @@ Function Export-Data
             }#if
             else { $ExportFilePath = Join-Path -Path $exportFolderPath -ChildPath $($Stamp + $DataToExportTitle + '.csv') }#else
         }#csv
-    }#switch $dataType
+    }#switch $DataFormat
     #Attempt Export of Data to File
-    $message = "Export of $DataToExportTitle as Data Type $DataType to File $ExportFilePath"
+    $message = "Export of $DataToExportTitle as Data Type $DataFormat to File $ExportFilePath"
     Write-Information -MessageData $message -Tags Attempts
     Try
     {
         $formattedData = $(
-            switch ($DataType)
+            switch ($DataFormat)
             {
                 'xml'
                 {
@@ -118,7 +118,7 @@ Function Export-Data
             Default
             {
                 $outFileParams.Encoding = $Encoding
-                if ($DataType -eq 'clixml')
+                if ($DataFormat -eq 'clixml')
                 {
                     $outFileParams.Depth = $Depth
                     $outFileParams.InputObject = $DataToExport
@@ -140,7 +140,7 @@ Function Export-Data
     }#try
     Catch
     {
-        Write-Information -MessageData "FAILED: Export of $DataToExportTitle as Data Type $DataType to File $ExportFilePath" -Tags Errors
+        Write-Information -MessageData "FAILED: Export of $DataToExportTitle as Data Type $DataFormat to File $ExportFilePath" -Tags Errors
         Write-Information -MessageData $_.tostring() -Tags Errors
     }#catch
 
