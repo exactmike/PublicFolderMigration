@@ -16,7 +16,7 @@ Function Get-PFMPublicFolderTree
     Controls whether the public folder information objects are returned to the PowerShell pipeline for further processing.
     .PARAMETER OutputFolderPath
     Mandatory parameter for the already existing directory location where you want public folder replication and stats reports to be placed.  Operational log files will also go to this location.
-    .PARAMETER OutputFormats
+    .PARAMETER OutputFormat
     Mandatory parameter used to specify whether you want csv, json, xml, clixml or any combination of these.
     .PARAMETER IncludeSystemPublicFolders
     This parameter specifies to include System Public Folders when scanning all public folders. If this is omitted, System Public Folders are omitted.
@@ -186,7 +186,7 @@ Function Get-PFMPublicFolderTree
     WriteLog -Message "Count of Public Folders Retrieved: $publicFoldersRetrievedCount" -EntryType Notification -verbose
     #endregion BuildPublicFolderList
     $CreatedFilePath = @(
-        foreach ($of in $Outputformats)
+        foreach ($of in $Outputformat)
         {
             Export-Data -ExportFolderPath $OutputFolderPath -DataToExportTitle 'PublicFolderTree' -ReturnExportFilePath -Encoding $Encoding -DataFormat $of -DataToExport $Folders
         }

@@ -16,7 +16,7 @@ function Get-PFMPublicFolderStat
     Controls whether the public folder statistics objects are returned to the PowerShell pipeline for further processing.
     .PARAMETER OutputFolderPath
     Mandatory parameter for the already existing directory location where you want public folder stats output to be placed.  Operational log files will also go to this location.
-    .PARAMETER OutputFormats
+    .PARAMETER OutputFormat
     Mandatory parameter used to specify whether you want csv, json, xml, clixml or any combination of these.
     .PARAMETER SendEmail
     This switch will set the script to send an email report.  To use this parameter you must have already used the Set-PFMEmailConfiguration cmdlet to configure your email settings.
@@ -171,7 +171,7 @@ function Get-PFMPublicFolderStat
                         Status           = "$CompletedJobCount of $StatsJobCount Jobs Completed. Elapsed time: $ElapsedTimeString"
                     }
                     Write-Progress @WriteProgressParams
-                    Start-Sleep -Seconds 20
+                    Start-Sleep -Seconds 10
                 }
                 until
                 (
