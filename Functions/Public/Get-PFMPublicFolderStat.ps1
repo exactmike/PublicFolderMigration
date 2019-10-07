@@ -121,16 +121,16 @@ function Get-PFMPublicFolderStat
     #Make Server PSSessions
     foreach ($s in $ServerDatabase)
     {
-        $ConnectPFExchangeParams = @{
+        $ConnectPFMExchangeParams = @{
             ExchangeOnPremisesServer = $s.ServerFQDN
             IsParallel               = $true
             ErrorAction              = 'Stop'
         }
         if ($null -ne $Script:PSSessionOption)
         {
-            $ConnectPFExchangeParams.PSSessionOption = $Script:PSSessionOption
+            $ConnectPFMExchangeParams.PSSessionOption = $Script:PSSessionOption
         }
-        Connect-PFMExchange @ConnectPFExchangeParams
+        Connect-PFMExchange @ConnectPFMExchangeParams
         writelog -message "Connected Parallel PSSession to $($s.ServerFQDN) for Stats operations" -entrytype Notification -verbose
     }
     $publicFolderStats =

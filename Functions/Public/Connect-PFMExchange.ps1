@@ -122,16 +122,24 @@ Intended for internal module use only, this parameter is used when creating one 
                     $existingSessionIndex = (GetArrayIndexForProperty -array $script:ParallelPSSession -property Name -Value $ExchangeOnPremisesServer)
                     if ($null -ne $existingSessionIndex -and $existingSessionIndex -ne -1)
                     {
+                        #There's an existing session
                         switch (Test-PFMExchangePSSession -PSSession $script:ParallelPSSession[$existingSessionIndex])
                         {
                             $true
-                            { }
+                            { }#which is working
                             $false
                             {
+                                #which is not working
                                 $ExchangeSession = Get-PFMExchangePSSession @GetPFMExchangePSSessionParams
                                 Add-PFMParallelPSSession -PSSession $ExchangeSession
                             }
                         }
+                    }
+                    else
+                    {
+                        #there's no existing session
+                        $ExchangeSession = Get-PFMExchangePSSession @GetPFMExchangePSSessionParams
+                        Add-PFMParallelPSSession -PSSession $ExchangeSession
                     }
                 }
             }
