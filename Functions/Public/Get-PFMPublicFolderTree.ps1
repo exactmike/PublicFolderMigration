@@ -1,17 +1,19 @@
 Function Get-PFMPublicFolderTree
-{    <#
+{
+    <#
     .SYNOPSIS
-    Gets  part or all of an Exchange 2010 Public Folder Tree and prepares it for export to various data formats
+    Gets Public Folder Information Objects for all or specified public folders.
     .DESCRIPTION
-    This script will generate a report for Exchange 2010 Public Folder Replication. It returns general information, such as total number of public folders, total items in all public folders, total size of all items, the top 10 largest folders, and more. Additionally, it lists each Public Folder and the replication status on each server. By default, this script will scan the entire Exchange environment in the current domain and all public folders. This can be limited by using the -PublicFolderMailboxServer and -PublicFolderPath parameters.
+    Gets Public Folder Information Objects for all or specified public folders.  Returns a custom public folder information object which includes the following attributes:
+    EntryID (A Unique Identifier), Name, Identity, MapiIdentity, ParentPath, HasSubFolders, ReplicasString (delimited with ;), Replicas, ReplicaCount, UseDatabaseReplicationSchedule, ReplicationScheduleString, ReplicationSchedule, PerUserReadStateEnabled, FolderType, MailEnabled, HiddenFromAddressListsEnabled, MaxItemSize, UseDatabaseQuotaDefaults, IssueWarningQuota, ProhibitPostQuota, UseDatabaseRetentionDefaults, RetainDeletedItemsFor, UseDatabaseAgeDefaults, AgeLimit, HasRules, HasModerator, IsValid
     .PARAMETER PublicFolderMailboxServer
-    This parameter specifies the Exchange 2010 server(s) to scan. If this is omitted, all Exchange servers hosting a Public Folder Database are scanned.
+    This parameter specifies the Exchange 2010 server from which to retrieve folder information to generate the Public Folder Information Objects.
     .PARAMETER PublicFolderPath
     This parameter specifies the Public Folder(s) to scan. If this is omitted, all public folders are scanned (except System Public Folders - see the IncludeSystemPublicFolders parameter). Include the leading '\'.
     .PARAMETER Recurse
     When used in conjunction with the FolderPath parameter, this will include all child Public Folders of the Folders listed in Folder Path.
     .PARAMETER Passthru
-    Controls whether the public folder tree data is returned to the PowerShell pipeline for further processing.
+    Controls whether the public folder information objects are returned to the PowerShell pipeline for further processing.
     .PARAMETER OutputFolderPath
     Mandatory parameter for the already existing directory location where you want public folder replication and stats reports to be placed.  Operational log files will also go to this location.
     .PARAMETER OutputFormats
@@ -142,7 +144,7 @@ Function Get-PFMPublicFolderTree
                 $path = $PublicFolderPath[0]
                 WriteLog -Message "Retrieving Public Folders in the following Path: $publicFolderPathString" -EntryType Notification
                 Invoke-Command -Session $script:PSSession -ScriptBlock {
-                   Get-PublicFolder -Identity $Using:path  @using:GetPublicFolderParams
+                    Get-PublicFolder -Identity $Using:path  @using:GetPublicFolderParams
                 } | Select-Object -property $PropertyList
             }
             { $_ -in @('MultipleNonRoot') } #if the user specified specific public folder paths, get those
