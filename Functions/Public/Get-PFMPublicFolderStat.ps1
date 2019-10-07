@@ -67,6 +67,10 @@ function Get-PFMPublicFolderStat
                     $true
                 } })]
         [switch]$SendEmail
+        ,
+        [parameter()]
+        [ValidateSet('Unicode', 'BigEndianUnicode', 'Ascii', 'Default', 'UTF8', 'UTF8NOBOM', 'UTF7', 'UTF32')]
+        [string]$Encoding = 'UTF8'
     )
     Confirm-PFMExchangeConnection -PSSession $Script:PSSession
     $BeginTimeStamp = Get-Date -Format yyyyMMdd-HHmmss
