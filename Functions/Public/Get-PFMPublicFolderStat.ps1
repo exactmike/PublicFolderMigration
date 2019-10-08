@@ -148,7 +148,17 @@ function Get-PFMPublicFolderStat
             $connectSessionFailure.Add($s.ServerFQDN)
         }
     }
-    if ($connectSessionFailure.Count -ge 1) { writelog -message "Connect Session Failures: $($connectSessionFailure -join ',')" } -entrytype Notification
+    $ServerDatabaseToProcess, $ServerDatabaseRetry = $ServerDatabase.where( { $_.ServerFQDN -in $connectSessionSuccess }, 'Split')
+    if ($connectSessionFailure.Count -ge 1)
+    {
+        writelog -message "Connect Session Failures: $($connectSessionFailure -join ',')" -entrytype Notification
+        if ($PSCmdlet.ParameterSetName -in @('InfoObject', 'Path'))
+        {
+            throw('Not all required or specified public folder servers were connected to for stats operations. Quitting to avoid incomplete data return')
+            Return $null
+        }
+    }
+
     #Get Stats from successful connections
     $publicFolderStats =
     @(
@@ -159,7 +169,7 @@ function Get-PFMPublicFolderStat
             'All'
             {
                 $StatsJobs = @(
-                    foreach ($s in $ServerDatabase)
+                    foreach ($s in $ServerDatabaseToProcess)
                     {
                         $ServerSession = Get-PFMParallelPSSession -name $s.ServerFQDN
                         Confirm-PFMExchangeConnection -IsParallel -PSSession $ServerSession
