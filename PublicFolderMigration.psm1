@@ -9,11 +9,12 @@ $ModuleVariableNames = (
     'ExchangeOnPremisesServer',
     'ParallelPSSession',
     'PSSession',
-    'PSSessionOption'
+    'PSSessionOption',
+    'UseAlternateParallelism'
 )
 $ModuleVariableNames.ForEach( { Set-Variable -Scope Script -Name $_ -Value $null })
 
-enum ExportDataOutputFormat { csv; json; xml; clixml}
+enum ExportDataOutputFormat { csv; json; xml; clixml }
 
 ###############################################################################################
 #Public Folder Migration Module Functions

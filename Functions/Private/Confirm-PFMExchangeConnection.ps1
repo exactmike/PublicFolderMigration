@@ -50,6 +50,8 @@ function Confirm-PFMExchangeConnection
                         }
                         'ExchangeOnPremises'
                         {
+                            if ($true -eq $IsParallel)
+                            { $GetPFMExchangePSSessionParams.IsParallel = $true }
                             $GetPFMExchangePSSessionParams.ExchangeServer = $PSSession.Name
                         }
                     }

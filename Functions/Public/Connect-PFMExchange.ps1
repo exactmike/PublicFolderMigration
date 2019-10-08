@@ -44,6 +44,9 @@ Intended for internal module use only, this parameter is used when creating one 
             })]
         [string]$ExchangeOnPremisesServer
         ,
+        [parameter(ParameterSetName = 'ExchangeOnPremises')]
+        [switch]$UseAlternateParallelism
+        ,
         [parameter(Mandatory, ParameterSetName = 'ExchangeOnPremises')]
         [parameter(Mandatory, ParameterSetName = 'ExchangeOnline')]
         [pscredential]$Credential
@@ -68,6 +71,8 @@ Intended for internal module use only, this parameter is used when creating one 
     if ($true -ne $IsParallel)
     {
         $script:ExchangeCredential = $Credential
+        $script:ExchangeOnPremisesServer = $ExchangeOnPremisesServer
+        if ($true -eq $UseAlternateParallelism) { $script:UseAlternateParallelism = $true } else { $script:UseAlternateParallelism = $false }
     }
 
     #since this is user facing we always assume that if called the existing session needs to be replaced
@@ -110,6 +115,7 @@ Intended for internal module use only, this parameter is used when creating one 
         }
         $true
         {
+            $GetPFMExchangePSSessionParams.IsParallel = $true
             switch ($null -eq $script:ParallelPSSession)
             {
                 $true

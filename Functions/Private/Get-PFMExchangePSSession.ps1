@@ -14,6 +14,8 @@ Function Get-PFMExchangePSSession
         [string]$ExchangeServer
         ,
         [System.Management.Automation.Remoting.PSSessionOption]$PSSessionOption
+        ,
+        [switch]$IsParallel
     )
     $NewPsSessionParams = @{
         ErrorAction       = 'Stop'
@@ -35,7 +37,13 @@ Function Get-PFMExchangePSSession
         }
         'ExchangeOnPremises'
         {
-            $NewPsSessionParams.ConnectionURI = 'http://' + $ExchangeServer + '/PowerShell/'
+            switch ($true -eq $IsParallel -and $true -eq $script:UseAlternateParallelism)
+            {
+                $True
+                { $NewPsSessionParams.ConnectionURI = 'http://' + $script:ExchangeOnPremisesServer + '/PowerShell/' }
+                $false
+                { $NewPsSessionParams.ConnectionURI = 'http://' + $ExchangeServer + '/PowerShell/' }
+            }
             $NewPsSessionParams.Authentication = 'Kerberos'
             $NewPsSessionParams.Name = $ExchangeServer
         }
