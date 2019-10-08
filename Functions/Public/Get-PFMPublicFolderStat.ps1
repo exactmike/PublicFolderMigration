@@ -158,7 +158,11 @@ function Get-PFMPublicFolderStat
             Return $null
         }
     }
-
+    if ($connectSessionSuccess.count -eq 0)
+    {
+        throw('None of the specified public folder servers were connected to for stats operations. Quitting to avoid incomplete data return')
+        Return $null
+    }
     #Get Stats from successful connections
     $publicFolderStats =
     @(
