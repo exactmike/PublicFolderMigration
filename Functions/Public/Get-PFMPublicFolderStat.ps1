@@ -168,7 +168,8 @@ function Get-PFMPublicFolderStat
         {
             'All'
             {
-                $StatsJobs = @(
+                #Start the jobs
+                $StatsJob = @(
                     foreach ($s in $ServerDatabaseToProcess)
                     {
                         $ServerSession = Get-PFMParallelPSSession -name $s.ServerFQDN
@@ -182,20 +183,21 @@ function Get-PFMPublicFolderStat
                         } -AsJob -JobName $s.ServerFQDN
                     }
                 )
+                #Monitor the jobs
                 $CompletedJobCount = 0
-                $StatsJobsCount = $StatsJobs.Count
+                $StatsJobCount = $StatsJob.Count
                 $StatsJobStopWatch = [System.Diagnostics.Stopwatch]::new()
                 $StatsJobStopWatch.Start()
                 do
                 {
-                    $States = $StatsJobs | Measure-Property -property State -ashashtable
+                    $States = $StatsJob | Measure-Property -property State -ashashtable
                     $CompletedJobCount = $states.Completed
                     $ElapsedTimeString = "{0} Days, {1} Hours, {2} Minutes, {3} Seconds" -f $StatsJobStopWatch.Elapsed.Days, $StatsJobStopWatch.Elapsed.Hours, $StatsJobStopWatch.Elapsed.Minutes, $StatsJobStopWatch.Elapsed.Seconds
                     $WriteProgressParams = @{
-                        Activity         = 'Retrieving Public Folder Stats'
-                        CurrentOperation = "Monitoring $StatsJobCount Stats Retrieval Jobs"
-                        PercentComplete  = $($CompletedJobCount / $StatsJobsCount * 100)
-                        Status           = "$CompletedJobCount of $StatsJobCount Jobs Completed. Elapsed time: $ElapsedTimeString"
+                        Activity         = 'Monitoring Public Folder Statistics Retrieval Jobs'
+                        CurrentOperation = "Monitoring $StatsJobCount Jobs"
+                        PercentComplete  = $($CompletedJobCount / $StatsJobCount * 100)
+                        Status           = "$CompletedJobCount of $StatsJobCount Completed. Elapsed time: $ElapsedTimeString"
                     }
                     Write-Progress @WriteProgressParams
                     Start-Sleep -Seconds 10
@@ -205,13 +207,15 @@ function Get-PFMPublicFolderStat
                     $CompletedJobCount -eq $StatsJobsCount -or ($null -ne $States.Failed -and $states.Failed.Count -ge 1)
                 )
                 $StatsJobStopWatch.Stop()
-                $States = $StatsJobs | Measure-Property -property State -ashashtable
+
+                #Retrieve the Jobs
+                $States = $StatsJob | Measure-Property -property State -ashashtable
                 $CompletedJobCount = $states.Completed
                 $ElapsedTimeString = "{0} Days, {1} Hours, {2} Minutes, {3} Seconds" -f $StatsJobStopWatch.Elapsed.Days, $StatsJobStopWatch.Elapsed.Hours, $StatsJobStopWatch.Elapsed.Minutes, $StatsJobStopWatch.Elapsed.Seconds
                 $WriteProgressParams = @{
-                    Activity         = 'Retrieving Public Folder Stats'
-                    CurrentOperation = "Completed $StatsJobCount Stats Retrieval Jobs"
-                    PercentComplete  = $($CompletedJobCount / $StatsJobsCount * 100)
+                    Activity         = 'Monitoring Public Folder Statistics Retrieval Jobs'
+                    CurrentOperation = "Monitored $StatsJobCount Jobs"
+                    PercentComplete  = 100
                     Status           = "$CompletedJobCount of $StatsJobCount Jobs Completed. Elapsed time: $ElapsedTimeString"
                     Completed        = $true
                 }
@@ -224,14 +228,14 @@ function Get-PFMPublicFolderStat
                         $StatsJobStopWatch.Start()
                         $ReceivedJobCount = 0
 
-                        Foreach ($job in $StatsJobs)
+                        Foreach ($job in $StatsJob)
                         {
                             $ElapsedTimeString = "{0} Days, {1} Hours, {2} Minutes, {3} Seconds" -f $StatsJobStopWatch.Elapsed.Days, $StatsJobStopWatch.Elapsed.Hours, $StatsJobStopWatch.Elapsed.Minutes, $StatsJobStopWatch.Elapsed.Seconds
                             $WriteProgressParams = @{
-                                Activity         = 'Receiving Public Folder Stats From Jobs'
-                                CurrentOperation = "Receiving Stats Job from $($job.Name)."
-                                PercentComplete  = $($ReceivedJobCount / $StatsJobsCount * 100)
-                                Status           = "$ReceivedJobCount of $StatsJobCount Jobs Completed. Elapsed time: $ElapsedTimeString"
+                                Activity         = 'Receiving Public Folder Statistics From Jobs'
+                                CurrentOperation = "Receiving from $($job.Name)."
+                                PercentComplete  = $($ReceivedJobCount / $StatsJobCount * 100)
+                                Status           = "$ReceivedJobCount of $StatsJobCount Jobs Received. Elapsed time: $ElapsedTimeString"
                             }
                             Write-Progress @WriteProgressParams
                             $customProperties = @(
@@ -247,6 +251,15 @@ function Get-PFMPublicFolderStat
                             Remove-Job -Job $job
                             $ReceivedJobCount++
                         }
+                        $ElapsedTimeString = "{0} Days, {1} Hours, {2} Minutes, {3} Seconds" -f $StatsJobStopWatch.Elapsed.Days, $StatsJobStopWatch.Elapsed.Hours, $StatsJobStopWatch.Elapsed.Minutes, $StatsJobStopWatch.Elapsed.Seconds
+                        $WriteProgressParams = @{
+                            Activity         = 'Receiving Public Folder Statistics From Jobs'
+                            CurrentOperation = "Completed"
+                            PercentComplete  = 100
+                            Status           = "$ReceivedJobCount of $StatsJobCount Jobs Received. Elapsed time: $ElapsedTimeString"
+                            Completed        = $true
+                        }
+                        Write-Progress @WriteProgressParams
                     }
                     $false
                     {
@@ -427,6 +440,7 @@ function Get-PFMPublicFolderStat
     $CreatedFilePath = @(
         foreach ($of in $Outputformat)
         {
+            writelog -message "Exporting statistics data to format $of" -entryType Notification -Verbose
             Export-Data -ExportFolderPath $OutputFolderPath -DataToExportTitle 'PublicFolderStats' -ReturnExportFilePath -Encoding $Encoding -DataFormat $of -DataToExport $publicFolderStats -verbose
         }
     )
