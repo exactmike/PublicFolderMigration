@@ -208,7 +208,7 @@ function Get-PFMPublicFolderStat
                 }
                 until
                 (
-                    $CompletedJobCount -eq $StatsJobsCount -or ($null -ne $States.Failed -and $states.Failed.Count -ge 1)
+                    $CompletedJobCount -eq $StatsJobCount -or ($null -ne $States.Failed -and $states.Failed.Count -ge 1)
                 )
                 $StatsJobStopWatch.Stop()
 
@@ -224,7 +224,7 @@ function Get-PFMPublicFolderStat
                     Completed        = $true
                 }
                 Write-Progress @WriteProgressParams
-                switch ($CompletedJobCount -eq $StatsJobsCount)
+                switch ($CompletedJobCount -eq $StatsJobCount)
                 {
                     $true
                     {
