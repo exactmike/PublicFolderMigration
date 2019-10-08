@@ -16,14 +16,10 @@ function Confirm-PFMExchangeConnection
         {
             switch (Test-PFMExchangePSSession -PSSession $PSSession)
             {
-                $true
-                {
-                    WriteLog -Message 'Using Existing PSSession' -EntryType Notification
-                }
                 $false
                 {
                     #Remove storage of the existing session
-                    WriteLog -Message 'Removing Existing Failed PSSession' -EntryType Notification
+                    WriteLog -Message "Removing Existing Failed PSSession: $($PSSession.Name)" -EntryType Notification
                     switch ($PSCmdlet.ParameterSetName)
                     {
                         'OrganizationConnection'
