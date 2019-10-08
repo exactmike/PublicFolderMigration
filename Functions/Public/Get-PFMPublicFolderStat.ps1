@@ -181,9 +181,8 @@ function Get-PFMPublicFolderStat
                         $ServerSession = Get-PFMParallelPSSession -name $s.ServerFQDN
                         Write-Verbose "Starting Job to retrieve stats for all Public Folders from $($s.ServerFQDN)"
                         $ServerName = $s.ServerName
-                        #avoid NULL output by testing for results while still suppressing errors with SilentlyContinue
                         Invoke-Command -Session $ServerSession -ScriptBlock {
-                            Get-PublicFolderStatistics -Server $using:ServerName -ResultSize Unlimited -ErrorAction SilentlyContinue
+                            Get-PublicFolderStatistics -Server $using:ServerName -ResultSize Unlimited
                         } -AsJob -JobName $s.ServerFQDN
                     }
                 )
@@ -195,7 +194,7 @@ function Get-PFMPublicFolderStat
                 do
                 {
                     $States = $StatsJob | Measure-Property -property State -ashashtable
-                    $CompletedJobCount = $states.Completed
+                    $CompletedJobCount = if ($null -eq $states.Completed) { 0 } else { $states.Completed }
                     $ElapsedTimeString = "{0} Days, {1} Hours, {2} Minutes, {3} Seconds" -f $StatsJobStopWatch.Elapsed.Days, $StatsJobStopWatch.Elapsed.Hours, $StatsJobStopWatch.Elapsed.Minutes, $StatsJobStopWatch.Elapsed.Seconds
                     $WriteProgressParams = @{
                         Activity         = 'Monitoring Public Folder Statistics Retrieval Jobs'
@@ -214,7 +213,7 @@ function Get-PFMPublicFolderStat
 
                 #Retrieve the Jobs
                 $States = $StatsJob | Measure-Property -property State -ashashtable
-                $CompletedJobCount = $states.Completed
+                $CompletedJobCount = if ($null -eq $states.Completed) { 0 } else { $states.Completed }
                 $ElapsedTimeString = "{0} Days, {1} Hours, {2} Minutes, {3} Seconds" -f $StatsJobStopWatch.Elapsed.Days, $StatsJobStopWatch.Elapsed.Hours, $StatsJobStopWatch.Elapsed.Minutes, $StatsJobStopWatch.Elapsed.Seconds
                 $WriteProgressParams = @{
                     Activity         = 'Monitoring Public Folder Statistics Retrieval Jobs'
