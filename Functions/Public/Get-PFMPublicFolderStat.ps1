@@ -123,6 +123,8 @@ function Get-PFMPublicFolderStat
     WriteLog -Message "Public Folder Mailbox Servers Included: $PublicFolderMailboxServerNames" -EntryType Notification -Verbose
     #region GetPublicFolderStats
     #Make Server PSSessions
+    $connectSessionFailure = [System.Collections.Generic.List[String]]::new()
+    $connectSessionSuccess = [System.Collections.Generic.List[String]]::new()
     foreach ($s in $ServerDatabase)
     {
         $ConnectPFMExchangeParams = @{
@@ -134,9 +136,20 @@ function Get-PFMPublicFolderStat
         {
             $ConnectPFMExchangeParams.PSSessionOption = $Script:PSSessionOption
         }
-        Connect-PFMExchange @ConnectPFMExchangeParams
-        writelog -message "Connected Parallel PSSession to $($s.ServerFQDN) for Stats operations" -entrytype Notification -verbose
+        try
+        {
+            Connect-PFMExchange @ConnectPFMExchangeParams
+            writelog -message "Connected Parallel PSSession to $($s.ServerFQDN) for Stats operations" -entrytype Notification -verbose
+            $connectSessionSuccess.Add($s.ServerFQDN)
+        }
+        catch
+        {
+            Writelog -message "Unable to connect a remote Exchange Powershell session to $($s.ServerFQDN)" -entryType Failed -Verbose
+            $connectSessionFailure.Add($s.ServerFQDN)
+        }
     }
+    if ($connectSessionFailure.Count -ge 1) { writelog -message "Connect Session Failures: $($connectSessionFailure -join ',')" } -entrytype Notification
+    #Get Stats from successful connections
     $publicFolderStats =
     @(
         # if the user specified public folder path then only retrieve stats for the specified folders.
