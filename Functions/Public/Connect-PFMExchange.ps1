@@ -112,6 +112,8 @@ Intended for internal module use only, this parameter is used when creating one 
             $ExchangeSession = Get-PFMExchangePSSession @GetPFMExchangePSSessionParams
             $script:PsSession = $ExchangeSession
             $script:ConnectExchangeOrganizationCompleted = $true
+            switch -wildcard ($PSCmdlet.ParameterSetName)
+            { 'ExchangeOnPremises*' { $Script:ExchangeOrganizationType = 'ExchangeOnPremises' } 'ExchangeOnline*' { $Script:ExchangeOrganizationType = 'ExchangeOnline' } }
         }
         $true
         {
