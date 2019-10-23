@@ -65,6 +65,7 @@ Function Get-PFMPublicFolderTree
     $ExchangeOrganization = Invoke-Command -Session $Script:PSSession -ScriptBlock { Get-OrganizationConfig | Select-Object -ExpandProperty Identity | Select-Object -ExpandProperty Name }
     WriteLog -Message "Exchange Session is Running in Exchange Organzation $ExchangeOrganization" -EntryType Notification
     #region ValidateParameters
+    #is this verification even necessary for this function?  don't think so . . . makes sense for stats, not for this?
     $VerifyPFDatabase = @(
         Invoke-Command -Session $script:PSSession -scriptblock {
             Get-PublicFolderDatabase -server $using:PublicFolderMailboxServer -ErrorAction SilentlyContinue
