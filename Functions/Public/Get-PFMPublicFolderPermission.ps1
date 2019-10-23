@@ -1,9 +1,15 @@
-Function Export-PFMPublicFolderPermission
+Function Get-PFMPublicFolderPermission
 {
-
-    [cmdletbinding(DefaultParameterSetName = 'AllPublicFolders')]
+    [cmdletbinding(DefaultParameterSetName = 'AllPublicFolders', ConfirmImpact = 'none']
+    [OutputType([System.Object[]])]
     param
     (
+        [parameter(ParameterSetName = 'Scoped',Mandatory)]
+        [string[]]$PublicFolderPath = @()
+        ,
+        [parameter(ParameterSetName = 'Scoped')]
+        [switch]$Recurse
+        ,
         [Parameter(ParameterSetName = 'AllPublicFolders', Mandatory)]
         [parameter(ParameterSetName = 'Scoped', Mandatory)]
         [ValidateScript( { TestIsWriteableDirectory -Path $_ })]
@@ -12,12 +18,6 @@ Function Export-PFMPublicFolderPermission
         [parameter()]
         [ValidateScript( { TestADPSDrive -name $_ -IsRootofDirectory })]
         $ADPSDriveName
-        ,
-        [parameter(ParameterSetName = 'Scoped')]
-        [switch]$Recurse
-        ,
-        [parameter(ParameterSetName = 'Scoped')]
-        [string[]]$PublicFolderPath = @()
         ,
         #Public Folder identities to exclude from permissions gathering (use folder name, full path, or EntryID).  EntryID is preferred as it is guaranteed to be unique.
         [parameter()]
@@ -59,9 +59,12 @@ Function Export-PFMPublicFolderPermission
     Begin
     {
         $BeginTimeStamp = Get-Date -Format yyyyMMdd-HHmmss
-        $script:LogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'ExchangePublicFolderPermissionsExportOperations.log')
-        $script:ErrorLogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'ExchangePublicFolderPermissionsExportOperations-ERRORS.log')
+        $script:LogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'GetPublicFolderTree.log')
+        $script:ErrorLogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'GetPublicFolderTree-ERRORS.log')
         #$Stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+        WriteLog -Message "Calling Invocation = $($MyInvocation.Line)" -EntryType Notification
+        $ExchangeOrganization = Invoke-Command -Session $Script:PSSession -ScriptBlock { Get-OrganizationConfig | Select-Object -ExpandProperty Identity | Select-Object -ExpandProperty Name }
+        WriteLog -Message "Exchange Session is Running in Exchange Organzation $ExchangeOrganization" -EntryType Notification
         switch ($script:ConnectExchangeOrganizationCompleted)
         {
             $true
