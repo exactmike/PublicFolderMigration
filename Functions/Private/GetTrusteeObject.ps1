@@ -70,13 +70,13 @@ Function GetTrusteeObject
                         ErrorAction = 'SilentlyContinue'
                     }
                     Invoke-Command -Session $ExchangeSession -ScriptBlock { Get-Recipient @using:splat } -ErrorAction SilentlyContinue -OutVariable AddToLookup
-                    if ($null -eq $AddToLookup)
-                    {
-                        Invoke-Command -Session $ExchangeSession -ScriptBlock { Get-Group @using:splat } -ErrorAction SilentlyContinue -OutVariable AddToLookup
-                    }
-                    if ($null -eq $AddToLookup)
+                    if ($null -eq $AddToLookup -or $AddToLookup.count -eq 0)
                     {
                         Invoke-Command -Session $ExchangeSession -ScriptBlock { Get-User @using:splat } -ErrorAction SilentlyContinue -OutVariable AddToLookup
+                    }
+                    if ($null -eq $AddToLookup -or $AddToLookup.count -eq 0)
+                    {
+                        Invoke-Command -Session $ExchangeSession -ScriptBlock { Get-Group @using:splat } -ErrorAction SilentlyContinue -OutVariable AddToLookup
                     }
                 }
             }
