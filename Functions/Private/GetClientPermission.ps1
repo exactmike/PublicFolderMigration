@@ -44,8 +44,11 @@ Function GetClientPermission
             { $trusteeRecipient = $null }
             'Anonymous'
             { $trusteeRecipient = $null }
-            'NT User:S-*'
-            { $trusteeRecipient = GetTrusteeObject -TrusteeIdentity $rcp.user -HRPropertySet $HRPropertySet -ObjectGUIDHash $ObjectGUIDHash -DomainPrincipalHash $DomainPrincipalHash -SIDHistoryHash $SIDHistoryRecipientHash -ExchangeSession $ExchangeSession -UnfoundIdentitiesHash $UnFoundIdentitiesHash }
+            'NT User:*'
+            {
+                $TrusteeIdentity = $rcp.User.split(':')[1]
+                $trusteeRecipient = GetTrusteeObject -TrusteeIdentity $TrusteeIdentity -HRPropertySet $HRPropertySet -ObjectGUIDHash $ObjectGUIDHash -DomainPrincipalHash $DomainPrincipalHash -SIDHistoryHash $SIDHistoryRecipientHash -ExchangeSession $ExchangeSession -UnfoundIdentitiesHash $UnFoundIdentitiesHash
+            }
             Default
             { $trusteeRecipient = GetTrusteeObject -TrusteeIdentity $rcp.user -HRPropertySet $HRPropertySet -ObjectGUIDHash $ObjectGUIDHash -DomainPrincipalHash $DomainPrincipalHash -SIDHistoryHash $SIDHistoryRecipientHash -ExchangeSession $ExchangeSession -UnfoundIdentitiesHash $UnFoundIdentitiesHash }
         }
