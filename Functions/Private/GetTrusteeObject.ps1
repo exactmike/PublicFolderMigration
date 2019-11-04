@@ -19,8 +19,6 @@ Function GetTrusteeObject
         [hashtable]$UnfoundIdentitiesHash
         ,
         [System.Management.Automation.Runspaces.PSSession]$ExchangeSession
-        ,
-        $ExchangeOrganizationIsInExchangeOnline
     )
     $trusteeObject = $(
         $AddToLookup = $null
@@ -59,7 +57,7 @@ Function GetTrusteeObject
             }
             Default
             {
-                if ($ExchangeOrganizationIsInExchangeOnline -and $TrusteeIdentity -like '*\*')
+                if ($Script:ExchangeOrganizationType -eq 'ExchangeOnline' -and $TrusteeIdentity -like '*\*')
                 {
                     Write-Verbose -Message 'In Exchange Online and Trustee Identity is Domain Principal Format'
                     $null

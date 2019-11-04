@@ -26,8 +26,6 @@ Function GetSendASPermisssionsViaADPSDrive
         ,
         $ExchangeOrganization
         ,
-        [bool]$ExchangeOrganizationIsInExchangeOnline = $false
-        ,
         $HRPropertySet #Property set for recipient object inclusion in object lookup hashtables
     )
     GetCallerPreference -Cmdlet $PSCmdlet -SessionState $ExecutionContext.SessionState -Name VerbosePreference
@@ -43,7 +41,7 @@ Function GetSendASPermisssionsViaADPSDrive
     $saRawPermissions = @(
         Try
         {
-            $RawACEs = @((Get-ACL -Path $TargetMailPublicFolder.DistinguishedName -ErrorAction Stop).Access)
+            $RawACEs = @((Get-Acl -Path $TargetMailPublicFolder.DistinguishedName -ErrorAction Stop).Access)
             $SendASACEs = $RawACEs | Where-Object -FilterScript { (($_.ObjectType -eq $SendASRight) -or ($_.ActiveDirectoryRights -eq 'GenericAll')) -and ($_.AccessControlType -eq 'Allow') }
             $SendASNotSelf = $SendASACEs | Where-Object -FilterScript { $_.IdentityReference.tostring() -ne "NT AUTHORITY\SELF" }
             $SendAsNotSelf | Select-Object -Property identityreference, IsInherited
@@ -68,7 +66,7 @@ Function GetSendASPermisssionsViaADPSDrive
     #Lookup Trustee Recipients and export permission if found
     foreach ($sa in $saRawPermissions)
     {
-        $trusteeRecipient = GetTrusteeObject -TrusteeIdentity $sa.IdentityReference.tostring() -HRPropertySet $HRPropertySet -ObjectGUIDHash $ObjectGUIDHash -DomainPrincipalHash $DomainPrincipalHash -SIDHistoryHash $SIDHistoryRecipientHash -ExchangeSession $ExchangeSession -ExchangeOrganizationIsInExchangeOnline $ExchangeOrganizationIsInExchangeOnline -UnfoundIdentitiesHash $UnFoundIdentitiesHash
+        $trusteeRecipient = GetTrusteeObject -TrusteeIdentity $sa.IdentityReference.tostring() -HRPropertySet $HRPropertySet -ObjectGUIDHash $ObjectGUIDHash -DomainPrincipalHash $DomainPrincipalHash -SIDHistoryHash $SIDHistoryRecipientHash -ExchangeSession $ExchangeSession -UnfoundIdentitiesHash $UnFoundIdentitiesHash
         switch ($null -eq $trusteeRecipient)
         {
             $true

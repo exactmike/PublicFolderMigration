@@ -1,17 +1,22 @@
 Function Get-PFMPublicFolderPermission
 {
-    [cmdletbinding(DefaultParameterSetName = 'AllPublicFolders', ConfirmImpact = 'none']
+    [cmdletbinding(DefaultParameterSetName = 'AllPublicFolders', ConfirmImpact = 'none')]
     [OutputType([System.Object[]])]
     param
     (
-        [parameter(ParameterSetName = 'Scoped',Mandatory)]
+        [parameter(ParameterSetName = 'Scoped', Mandatory)]
         [string[]]$PublicFolderPath = @()
         ,
         [parameter(ParameterSetName = 'Scoped')]
         [switch]$Recurse
         ,
-        [Parameter(ParameterSetName = 'AllPublicFolders', Mandatory)]
-        [parameter(ParameterSetName = 'Scoped', Mandatory)]
+        [parameter(ParameterSetName = 'EntryID', Mandatory)]
+        [string[]]$PublicFolderEntryID = @()
+        ,
+        [parameter(ParameterSetName = 'InfoObject', Mandatory)]
+        [string[]]$PublicFolderInfoObject = @()
+        ,
+        [Parameter(Mandatory)]
         [ValidateScript( { TestIsWriteableDirectory -Path $_ })]
         $OutputFolderPath
         ,
@@ -26,16 +31,13 @@ Function Get-PFMPublicFolderPermission
         [parameter()]#These will be resolved to trustee objects
         [string[]]$ExcludedTrusteeIdentities
         ,
-        [parameter(ParameterSetName = 'Scoped')]
-        [Parameter(ParameterSetName = 'AllPublicFolders')]
+        [Parameter()]
         [bool]$IncludeClientPermission = $true
         ,
-        [parameter(ParameterSetName = 'Scoped')]
-        [Parameter(ParameterSetName = 'AllPublicFolders')]
+        [Parameter()]
         [bool]$IncludeSendAs = $true
         ,
-        [parameter(ParameterSetName = 'Scoped')]
-        [Parameter(ParameterSetName = 'AllPublicFolders')]
+        [Parameter()]
         [bool]$IncludeSendOnBehalf = $true
         ,
         [bool]$ExpandGroups = $true
@@ -47,277 +49,173 @@ Function Get-PFMPublicFolderPermission
         [switch]$IncludeSIDHistory
         ,
         [switch]$ExcludeNonePermissionOutput
-        ,
-        [switch]$EnableResume
-        ,
-        [switch]$KeepExportedPermissionsInGlobalVariable
-        ,
-        [Parameter(ParameterSetName = 'Resume', Mandatory)]
-        [ValidateScript( { Test-Path -Path $_ })]
-        [string]$ResumeFile
     )#End Param
     Begin
     {
+        Confirm-PFMExchangeConnection -PSSession $Script:PSSession
         $BeginTimeStamp = Get-Date -Format yyyyMMdd-HHmmss
-        $script:LogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'GetPublicFolderTree.log')
-        $script:ErrorLogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'GetPublicFolderTree-ERRORS.log')
+        $script:LogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'GetPublicFolderPermission.log')
+        $script:ErrorLogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'GetPublicFolderPermission-ERRORS.log')
         #$Stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
         WriteLog -Message "Calling Invocation = $($MyInvocation.Line)" -EntryType Notification
         $ExchangeOrganization = Invoke-Command -Session $Script:PSSession -ScriptBlock { Get-OrganizationConfig | Select-Object -ExpandProperty Identity | Select-Object -ExpandProperty Name }
         WriteLog -Message "Exchange Session is Running in Exchange Organzation $ExchangeOrganization" -EntryType Notification
-        switch ($script:ConnectExchangeOrganizationCompleted)
+        switch ($script:ExchangeOrganizationType)
         {
-            $true
+            'ExchangeOnline'
             {
-                switch (Test-PFMExchangePSSession -PSSession $script:PSSession)
+                if ($True -eq $IncludeSIDHistory)
                 {
-                    $true
+                    throw ('You cannot include SidHistory when your Exchange Organization is in Exchange Online.')
+                }
+            }
+            'ExchangeOnPremises'
+            {
+                If ($true -eq $IncludeSidHistory -or $true -eq $IncludeSendAs -or $true -eq $ExpandGroups)
+                {
+                    if ($null -eq $ADPSDriveName)
                     {
-                        WriteLog -Message 'Using Existing PSSession' -EntryType Notification
-                    }
-                    $false
-                    {
-                        WriteLog -Message 'Removing Existing Failed PSSession' -EntryType Notification
-                        #Remove-PFMExchangePSSession -Session $script:PsSession #replace with Confirm-PFMExchangeConnection
-                        WriteLog -Message 'Establishing New PSSession to Exchange Organization' -EntryType Notification
-                        $GetPFMExchangePSSessionParams = GetGetPFMExchangePSSessionParams
-                        $script:PsSession = Get-PFMExchangePSSession @GetPFMExchangePSSessionParams
+                        throw ('You need to use the ADPSDrive name parameter to provide an existing PowerShell Active Directory PSdrive connection to the AD forest where Exchange is installed')
                     }
                 }
             }
-            $false
-            {
-                Write-ConnectPFMExchangeUserError
-            }
-            $null
-            {
-                Write-ConnectPFMExchangeUserError
-            }
         }
-        $ExchangeOrganization = Invoke-Command -Session $Script:PSSession -ScriptBlock { Get-OrganizationConfig | Select-Object -ExpandProperty Identity | Select-Object -ExpandProperty Name }
-        $ExchangeOrganizationIsInExchangeOnline = $ExchangeOrganization -like '*.onmicrosoft.com'
-
-        if ($ExchangeOrganizationIsInExchangeOnline -eq $false -and $null -eq $ADPSDriveName -and ($includeSidHistory -or $IncludeSendAs -or $ExpandGroups))
-        {
-            throw ('You need to use the ADPSDrive name parameter to provide an existing PowerShell Active Directory PSdrive connection to the AD forest where Exchange is installed')
-        }
-        if ($ExchangeOrganizationIsInExchangeOnline -eq $true -and $IncludeSIDHistory)
-        {
-            throw ('You cannot include SidHistory when your Exchange Organization is in Exchange Online.')
-        }
-
         #Configure properties to retain in memory / hashtables for retrieved public folders and Recipients
         $PFPropertySet = @('EntryID', 'Identity', 'Name', 'ParentPath', 'FolderType', 'Has*', 'HiddenFromAddressListsEnabled', '*Quota', 'MailEnabled', 'Replicas', 'ReplicationSchedule', 'RetainDeletedItemsFor', 'Use*')
         $HRPropertySet = @('*name*', '*addr*', 'RecipientType*', '*Id', 'Identity', 'GrantSendOnBehalfTo')
-        switch ($PSCmdlet.ParameterSetName -eq 'Resume')
+        $ExportedExchangePublicFolderPermissionsFile = Join-Path -Path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'ExportedExchangePublicFolderPermissions.csv')
+        $ResumeIndex = 0
+        [uint32]$Script:PermissionIdentity = 0
+        #create a property set for storing of recipient data during processing.  We don't need all attributes in memory/storage.
+        #Region GetExcludedRecipients
+        if ($PSBoundParameters.ContainsKey('ExcludedIdentities'))
         {
-            $true
+            try
             {
-                $ImportedExchangePermissionsExportResumeData = ImportExchangePermissionExportResumeData -Path $ResumeFile
-                $ExcludedPublicFoldersEntryIDHash = $ImportedExchangePermissionsExportResumeData.ExcludedPublicFoldersEntryIDHash
-                $ExcludedTrusteeGuidHash = $ImportedExchangePermissionsExportResumeData.ExcludedTrusteeGuidHash
-                $InScopeFolders = $ImportedExchangePermissionsExportResumeData.InScopeFolders
-                $InScopeMailPublicFoldersHash = $ImportedExchangePermissionsExportResumeData.InScopeMailPublicFoldersHash
-                $InScopeFolderCount = $InScopeFolders.count
-                $ResumeIdentity = $ImportedExchangePermissionsExportResumeData.ResumeID
-                [uint32]$Script:PermissionIdentity = $ImportedExchangePermissionsExportResumeData.NextPermissionIdentity
-                $ExportedExchangePublicFolderPermissionsFile = $ImportedExchangePermissionsExportResumeData.ExportedExchangePublicFolderPermissionsFile
-                $ResumeIndex = $ImportedExchangePermissionsExportResumeData.ResumeIndex
-                foreach ($v in $ImportedExchangePermissionsExportResumeData.ExchangePermissionsExportParameters)
-                {
-                    if ($v.name -ne 'ExchangeSession') #why are we doing this?
-                    {
-                        Set-Variable -Name $v.name -Value $v.value -Force
+                $message = "Get public folder object(s) from Exchange Organization $ExchangeOrganization for the $($ExcludedIdentities.Count) ExcludedIdentities provided."
+                WriteLog -Message $message -EntryType Attempting -verbose
+                $excludedPublicFolders = @(
+                    $ExcludedIdentities | ForEach-Object {
+                        $splat = @{
+                            Identity    = $_
+                            ErrorAction = 'Stop'
+                        }
+                        Invoke-Command -Session $Script:PSSession -ScriptBlock { Get-PublicFolder @Using:splat | Select-Object -Property $using:PFPropertySet } -ErrorAction 'Stop'
                     }
-                }
-                WriteLog -Message "Calling Invocation = $($MyInvocation.Line)" -EntryType Notification
-                WriteLog -Message "Exchange Session is Running in Exchange Organzation $ExchangeOrganization" -EntryType Notification
-                if ($null -eq $ResumeIndex -or $ResumeIndex.gettype().name -notlike '*int*')
-                {
-                    $message = "ResumeIndex is invalid.  Check/Edit the *ResumeID.xml file for a valid ResumeIdentity GUID."
-                    WriteLog -Message $message -ErrorLog -EntryType Failed
-                    Throw($message)
-                }
-                WriteLog -Message "Resume index set to $ResumeIndex based on ResumeIdentity $resumeIdentity" -EntryType Notification
+                )
+                WriteLog -Message $message -EntryType Succeeded -verbose
             }
-            $false
+            Catch
             {
-                WriteLog -Message "Calling Invocation = $($MyInvocation.Line)" -EntryType Notification
-                WriteLog -Message "Exchange Session is Running in Exchange Organzation $ExchangeOrganization" -EntryType Notification
-                $ExportedExchangePublicFolderPermissionsFile = Join-Path -Path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'ExportedExchangePublicFolderPermissions.csv')
-                $ResumeIndex = 0
-                [uint32]$Script:PermissionIdentity = 0
-                #create a property set for storing of recipient data during processing.  We don't need all attributes in memory/storage.
-                #Region GetExcludedRecipients
-                if ($PSBoundParameters.ContainsKey('ExcludedIdentities'))
-                {
-                    try
-                    {
-                        $message = "Get public folder object(s) from Exchange Organization $ExchangeOrganization for the $($ExcludedIdentities.Count) ExcludedIdentities provided."
-                        WriteLog -Message $message -EntryType Attempting -verbose
-                        $excludedPublicFolders = @(
-                            $ExcludedIdentities | ForEach-Object {
-                                $splat = @{
-                                    Identity    = $_
-                                    ErrorAction = 'Stop'
-                                }
-                                Invoke-Command -Session $Script:PSSession -ScriptBlock { Get-PublicFolder @Using:splat | Select-Object -Property $using:PFPropertySet } -ErrorAction 'Stop'
-                            }
-                        )
-                        WriteLog -Message $message -EntryType Succeeded -verbose
-                    }
-                    Catch
-                    {
-                        $myError = $_
-                        WriteLog -Message $message -EntryType Failed -ErrorLog
-                        WriteLog -Message $myError.tostring() -ErrorLog
-                        throw("Failed: $Message")
-                    }
-                    WriteLog -Message "Got $($excludedPublicFolders.count) Excluded Objects" -EntryType Notification
-                    $excludedPublicFoldersEntryIDHash = $excludedPublicFolders | Group-Object -Property EntryID -AsString -AsHashTable -ErrorAction Stop
-                }
-                else
-                {
-                    $excludedPublicFoldersEntryIDHash = @{ }
-                }
-                #EndRegion GetExcludedRecipients
-
-                #Region GetExcludedTrustees
-                if ($PSBoundParameters.ContainsKey('ExcludedTrusteeIdentities'))
-                {
-                    try
-                    {
-                        $message = "Get recipent object(s) from Exchange Organization $ExchangeOrganization for the $($ExcludedTrusteeIdentities.Count) ExcludedTrusteeIdentities provided."
-                        WriteLog -Message $message -EntryType Attempting -verbose
-                        $excludedTrusteeRecipients = @(
-                            $ExcludedTrusteeIdentities | ForEach-Object {
-                                $splat = @{
-                                    Identity    = $_
-                                    ErrorAction = 'Stop'
-                                }
-                                Invoke-Command -Session $Script:PSSession -ScriptBlock { Get-Recipient @Using:splat | Select-Object -Property $using:HRPropertySet } -ErrorAction 'Stop'
-                            }
-                        )
-                        WriteLog -Message $message -EntryType Succeeded -verbose
-                    }
-                    Catch
-                    {
-                        $myError = $_
-                        WriteLog -Message $message -EntryType Failed -ErrorLog
-                        WriteLog -Message $myError.tostring() -ErrorLog
-                        throw("Failed: $Message")
-                    }
-                    WriteLog -Message "Got $($excludedTrusteeRecipients.count) Excluded Trustee Objects" -EntryType Notification -verbose
-                    $excludedTrusteeGUIDHash = $excludedTrusteeRecipients | Group-Object -Property GUID -AsString -AsHashTable -ErrorAction Stop
-                }
-                else
-                {
-                    $excludedTrusteeGUIDHash = @{ }
-                }
-                #EndRegion GetExcludedTrustees
-
-                #Region GetInScopePublicFolders
-                Try
-                {
-                    switch ($PSCmdlet.ParameterSetName)
-                    {
-                        'Scoped'
-                        {
-                            WriteLog -Message "Operation: Scoped Permission retrieval for Public Folders with $($PublicFolderPath.Count) Public Folder Path(s) provided."
-                            $message = "Get Public Folder object(s) for each provided Identity in Exchange Organization $ExchangeOrganization."
-                            WriteLog -Message $message -EntryType Attempting -verbose
-                            $InScopeFolders = @(
-                                $PublicFolderPath | ForEach-Object {
-                                    $Splat = @{
-                                        Identity    = $_
-                                        ErrorAction = 'Stop'
-                                    }
-                                    if ($Recurse -eq $true) { $Splat.Recurse = $true }
-                                    Invoke-Command -Session $Script:PSSession -ScriptBlock { Get-PublicFolder @Using:splat | Select-Object -Property $Using:PFPropertySet } -ErrorAction Stop
-                                }
-                            )
-                            WriteLog -Message $message -EntryType Succeeded -verbose
-                        }#end Scoped
-                        'AllPublicFolders'
-                        {
-                            WriteLog -Message "Operation: Permission retrieval for all Public Folders."
-                            $message = "Get all available Public Folder objects (from the non-system subtree) in Exchange Organization $ExchangeOrganization."
-                            WriteLog -Message $message -EntryType Attempting -verbose
-                            $splat = @{
-                                ResultSize  = 'Unlimited'
-                                ErrorAction = 'Stop'
-                                Recurse     = $true
-                            }
-                            $InScopeFolders = @(Invoke-Command -Session $Script:PSSession -ScriptBlock { Get-PublicFolder @Using:splat | Select-Object -Property $Using:PFPropertySet } -ErrorAction Stop)
-                            WriteLog -Message $message -EntryType Succeeded -verbose
-                        }#end AllMailboxes
-                    }#end Switch
-                }#end try
-                Catch
-                {
-                    $myError = $_
-                    WriteLog -Message $message -EntryType Failed -ErrorLog
-                    WriteLog -Message $myError.tostring() -ErrorLog
-                    throw("Failed: $Message")
-                }
-                $InScopeFolderCount = $InScopeFolders.count
-                WriteLog -Message "Got $InScopeFolderCount In Scope Folder Objects" -EntryType Notification
-                #EndRegion GetInScopeFolders
-
-                #Region GetInScopeMailPublicFolders
-                $message = 'Get Mail Enabled Public Folders To support retrieval of SendAS and/or SendOnBehalf Permissions and for additional output information for ClientPermissions.'
-                WriteLog -message $message -entryType Attempting -verbose
-                $InScopeMailPublicFolders = @(GetMailPublicFolderPerUserPublicFolder -ExchangeSession $script:PSSession -PublicFolder $InScopeFolders -ErrorAction Stop)
-                WriteLog -message $message -entryType Succeeded -verbose
-                WriteLog -Message "Got $($InScopeMailPublicFolders.count) In Scope Mail Public Folder Objects" -EntryType Notification -verbose
-                $InScopeMailPublicFoldersHash = $InScopeMailPublicFolders | Group-Object -AsHashTable -Property EntryID -AsString
-                if ($null -eq $InScopeMailPublicFoldersHash) { $InScopeMailPublicFoldersHash = @{ }
-                }
-                #Region GetInScopeMailPublicFolders
-
-                #Region GetSIDHistoryData
-                if ($IncludeSIDHistory -eq $true)
-                {
-                    $SIDHistoryRecipientHash = GetSIDHistoryRecipientHash -ADPSDriveName $ADPSDriveName -ExchangeSession $Script:PSSession -ErrorAction Stop
-                }
-                else
-                {
-                    $SIDHistoryRecipientHash = @{ }
-                }
-                #EndRegion GetSIDHistoryData
+                $myError = $_
+                WriteLog -Message $message -EntryType Failed -ErrorLog
+                WriteLog -Message $myError.tostring() -ErrorLog
+                throw("Failed: $Message")
             }
+            WriteLog -Message "Got $($excludedPublicFolders.count) Excluded Objects" -EntryType Notification
+            $excludedPublicFoldersEntryIDHash = @{ }
+            $excludedPublicFolders.foreach( { $excludedPublicFoldersEntryIDHash.$($_.EntryID.tostring()) = $_ })
         }
-        # Setup for Possible Resume if requested by the user
-        if ($EnableResume -eq $true)
+        else
         {
-            $ExportExchangePermissionsExportResumeData = @{
-                excludedPublicFoldersEntryIDHash            = $excludedPublicFoldersEntryIDHash
-                ExcludedTrusteeGuidHash                     = $ExcludedTrusteeGuidHash
-                SIDHistoryRecipientHash                     = $SIDHistoryRecipientHash
-                InScopeFolders                              = $InScopeFolders
-                InScopeMailPublicFoldersHash                = $InScopeMailPublicFoldersHash
-                outputFolderPath                            = $outputFolderPath
-                ExportedExchangePublicFolderPermissionsFile = $ExportedExchangePublicFolderPermissionsFile
-                TimeStamp                                   = $BeginTimeStamp
-                ErrorAction                                 = 'Stop'
-            }
-            switch ($PSCmdlet.ParameterSetName -eq 'Resume')
-            {
-                $true
-                {
-                    $ExportExchangePermissionsExportResumeData.ExchangePermissionsExportParameters = $ImportedExchangePermissionsExportResumeData.ExchangePermissionsExportParameters
-                }
-                $false
-                {
-                    $ExportExchangePermissionsExportResumeData.ExchangePermissionsExportParameters = @(GetAllParametersWithAValue -boundparameters $PSBoundParameters -allparameters $MyInvocation.MyCommand.Parameters)
-                }
-            }
-            $message = "Enable Resume and Export Resume Data"
-            WriteLog -Message $message -EntryType Attempting
-            $ResumeFile = ExportExchangePermissionExportResumeData @ExportExchangePermissionsExportResumeData
-            $message = $message + " to file $ResumeFile"
-            WriteLog -Message $message -EntryType Succeeded
+            $excludedPublicFoldersEntryIDHash = @{ }
         }
+        #EndRegion GetExcludedRecipients
+
+        #Region GetExcludedTrustees
+        if ($PSBoundParameters.ContainsKey('ExcludedTrusteeIdentities'))
+        {
+            try
+            {
+                $message = "Get recipent object(s) from Exchange Organization $ExchangeOrganization for the $($ExcludedTrusteeIdentities.Count) ExcludedTrusteeIdentities provided."
+                WriteLog -Message $message -EntryType Attempting -verbose
+                $excludedTrusteeRecipients = @(
+                    $ExcludedTrusteeIdentities | ForEach-Object {
+                        $splat = @{
+                            Identity    = $_
+                            ErrorAction = 'Stop'
+                        }
+                        Invoke-Command -Session $Script:PSSession -ScriptBlock { Get-Recipient @Using:splat | Select-Object -Property $using:HRPropertySet } -ErrorAction 'Stop'
+                    }
+                )
+                WriteLog -Message $message -EntryType Succeeded -verbose
+            }
+            Catch
+            {
+                $myError = $_
+                WriteLog -Message $message -EntryType Failed -ErrorLog
+                WriteLog -Message $myError.tostring() -ErrorLog
+                throw("Failed: $Message")
+            }
+            WriteLog -Message "Got $($excludedTrusteeRecipients.count) Excluded Trustee Objects" -EntryType Notification -verbose
+            $excludedTrusteeGUIDHash = @{ }
+            $excludedTrusteeRecipients.foreach( { $excludedTrusteeGUIDHash.$($_.GUID.ToString()) = $_ })
+        }
+        else
+        {
+            $excludedTrusteeGUIDHash = @{ }
+        }
+        #EndRegion GetExcludedTrustees
+
+        #Region GetInScopePublicFolders
+        Try
+        {
+            switch ($PSCmdlet.ParameterSetName)
+            {
+                'Scoped'
+                {
+                    Write-Information -MessageData "Not Implemented, rewriting to use Get-PFMPublicFolderTree" -InformationAction Continue
+                    Write-Warning -message "Not Implemented, rewriting to use Get-PFMPublicFolderTree" -WarningAction Stop
+                }#end Scoped
+                'AllPublicFolders'
+                {
+                    Write-Information -MessageData "Not Implemented, rewriting to use Get-PFMPublicFolderTree" -InformationAction Continue
+                    Write-Warning -message "Not Implemented, rewriting to use Get-PFMPublicFolderTree" -WarningAction Stop
+                }#end AllMailboxes
+                'EntryID'
+                {
+                    Write-Information -MessageData "Not Implemented, rewriting to use Get-PFMPublicFolderTree" -InformationAction Continue
+                    Write-Warning -message "Not Implemented, rewriting to use Get-PFMPublicFolderTree" -WarningAction Stop
+                }
+                'InfoObject'
+                {
+                    $InScopeFolders = $PublicFolderInfoObject
+                }
+            }#end Switch
+        }#end try
+        Catch
+        {
+            $myError = $_
+            WriteLog -Message $message -EntryType Failed -ErrorLog
+            WriteLog -Message $myError.tostring() -ErrorLog
+            throw("Failed: $Message")
+        }
+        $InScopeFolderCount = $InScopeFolders.count
+        WriteLog -Message "Got $InScopeFolderCount In Scope Folder Objects" -EntryType Notification
+        #EndRegion GetInScopePublicFolders
+
+        #Region GetInScopeMailPublicFolders
+        $message = 'Get Mail Enabled Public Folders To support retrieval of SendAS and/or SendOnBehalf Permissions and for additional output information for ClientPermissions.'
+        WriteLog -message $message -entryType Attempting -verbose
+        $PossibleMailEnabledPF = $InScopeFolders.where( { $_.MailEnabled -eq 'TRUE' -or $true -eq $_.MailEnabled })
+        $InScopeMailPublicFolders = @(GetMailPublicFolderPerUserPublicFolder -ExchangeSession $script:PSSession -PublicFolder $PossibleMailEnabledPF -ErrorAction Stop)
+        WriteLog -message $message -entryType Succeeded -verbose
+        WriteLog -Message "Got $($InScopeMailPublicFolders.count) In Scope Mail Public Folder Objects" -EntryType Notification -verbose
+        $InScopeMailPublicFoldersHash = @{ }
+        $InScopeMailPublicFolders.foreach( { $InScopeMailPublicFoldersHash.$($_.EntryID.ToString()) = $_ })
+        #EndRegion GetInScopeMailPublicFolders
+
+        #Region GetSIDHistoryData
+        if ($IncludeSIDHistory -eq $true)
+        {
+            $SIDHistoryRecipientHash = GetSIDHistoryRecipientHash -ADPSDriveName $ADPSDriveName -ExchangeSession $Script:PSSession -ErrorAction Stop
+        }
+        else
+        {
+            $SIDHistoryRecipientHash = @{ }
+        }
+        #EndRegion GetSIDHistoryData
+
         #Region BuildLookupHashTables
         #these have to be populated as we go
         WriteLog -Message "Building Recipient Lookup HashTables" -EntryType Notification
@@ -366,6 +264,7 @@ Function Get-PFMPublicFolderPermission
                 Write-Progress -Activity $message -status "Items processed: $($ISRCounter) of $($InScopeFolderCount)" -percentComplete (($ISRCounter / $InScopeFolderCount) * 100)
                 Try
                 {
+                    Confirm-PFMExchangeConnection -PSSession $Script:PSSession
                     WriteLog -Message $message -EntryType Attempting
                     $PermissionExportObjects = @(
                         If ($IncludeSendOnBehalf -and $InScopeMailPublicFoldersHash.ContainsKey($ID))
@@ -381,15 +280,18 @@ Function Get-PFMPublicFolderPermission
                         If ($IncludeSendAs -and $InScopeMailPublicFoldersHash.ContainsKey($ID))
                         {
                             WriteLog -Message "Getting SendAS Permissions for Target $ID" -entryType Notification
-                            if ($ExchangeOrganizationIsInExchangeOnline)
+                            switch ($script:ExchangeOrganizationType)
                             {
-                                #WriteLog -Message "Getting SendAS Permissions for Target $ID Via Exchange Commands" -entryType Notification
-                                GetSendASPermissionsViaExchange -TargetPublicFolder $ISRR -TargetMailPublicFolder $ISRR -ExchangeSession $Script:PSSession -ObjectGUIDHash $ObjectGUIDHash -excludedTrusteeGUIDHash $ -dropInheritedPermissions $dropInheritedPermissions -DomainPrincipalHash $DomainPrincipalHash -ExchangeOrganization $ExchangeOrganization -ExchangeOrganizationIsInExchangeOnline $ExchangeOrganizationIsInExchangeOnline -HRPropertySet $HRPropertySet -UnfoundIdentitiesHash $UnfoundIdentitiesHash
-                            }
-                            else
-                            {
-                                #WriteLog -Message "Getting SendAS Permissions for Target $ID Via AD Commands" -entryType Notification
-                                GetSendASPermisssionsViaADPSDrive -TargetPublicFolder $ISR -TargetMailPublicFolder $ISRR -ExchangeSession $Script:PSSession -ObjectGUIDHash $ObjectGUIDHash -excludedTrusteeGUIDHash $excludedTrusteeGUIDHash -dropInheritedPermissions $dropInheritedPermissions -DomainPrincipalHash $DomainPrincipalHash -ExchangeOrganization $ExchangeOrganization -ExchangeOrganizationIsInExchangeOnlin $ExchangeOrganizationIsInExchangeOnline -HRPropertySet $HRPropertySet -UnfoundIdentitiesHash $UnfoundIdentitiesHash -ADPSDriveName $ADPSDriveName
+                                'ExchangeOnline'
+                                {
+                                    #WriteLog -Message "Getting SendAS Permissions for Target $ID Via Exchange Commands" -entryType Notification
+                                    GetSendASPermissionsViaExchange -TargetPublicFolder $ISRR -TargetMailPublicFolder $ISRR -ExchangeSession $Script:PSSession -ObjectGUIDHash $ObjectGUIDHash -excludedTrusteeGUIDHash $ -dropInheritedPermissions $dropInheritedPermissions -DomainPrincipalHash $DomainPrincipalHash -ExchangeOrganization $ExchangeOrganization -HRPropertySet $HRPropertySet -UnfoundIdentitiesHash $UnfoundIdentitiesHash
+                                }
+                                'ExchangeOnPremises'
+                                {
+                                    #WriteLog -Message "Getting SendAS Permissions for Target $ID Via AD Commands" -entryType Notification
+                                    GetSendASPermisssionsViaADPSDrive -TargetPublicFolder $ISR -TargetMailPublicFolder $ISRR -ExchangeSession $Script:PSSession -ObjectGUIDHash $ObjectGUIDHash -excludedTrusteeGUIDHash $excludedTrusteeGUIDHash -dropInheritedPermissions $dropInheritedPermissions -DomainPrincipalHash $DomainPrincipalHash -ExchangeOrganization $ExchangeOrganization -HRPropertySet $HRPropertySet -UnfoundIdentitiesHash $UnfoundIdentitiesHash -ADPSDriveName $ADPSDriveName
+                                }
                             }
                         }
                     )
@@ -409,118 +311,44 @@ Function Get-PFMPublicFolderPermission
                         }
                         if ($dropExpandedParentGroupPermissions -eq $true)
                         { $splat.dropExpandedParentGroupPermissions = $true }
-                        if ($ExchangeOrganizationIsInExchangeOnline)
+                        switch ($Script:ExchangeOrganizationType)
                         {
-                            $splat.UseExchangeCommandsInsteadOfADOrLDAP = $true
-                        }
-                        else
-                        {
-                            $splat.ADPSDriveName = $ADPSDriveName
+                            'ExchangeOnline'
+                            {
+                                $splat.UseExchangeCommandsInsteadOfADOrLDAP = $true
+                            }
+                            'ExchangeOnPremises'
+                            {
+                                $splat.ADPSDriveName = $ADPSDriveName
+                            }
                         }
                         $PermissionExportObjects = @(ExpandGroupPermission @splat)
                     }
-                    if (Test-PFMExchangePSSession -PSSession $Script:PSSession)
+
+                    if ($PermissionExportObjects.Count -eq 0 -and -not $ExcludeNonePermissionOutput -eq $true)
                     {
-                        if ($PermissionExportObjects.Count -eq 0 -and -not $ExcludeNonePermissionOutput -eq $true)
-                        {
-                            $GPEOParams = @{
-                                TargetPublicFolder         = $ISR
-                                TargetMailPublicFolder     = $ISRR
-                                TrusteeIdentity            = 'Not Applicable'
-                                TrusteeRecipientObject     = $null
-                                PermissionType             = 'None'
-                                AssignmentType             = 'None'
-                                SourceExchangeOrganization = $ExchangeOrganization
-                                None                       = $true
-                            }
-                            $NonPerm = NewPermissionExportObject @GPEOParams
-                            Write-Output $NonPerm
+                        $GPEOParams = @{
+                            TargetPublicFolder         = $ISR
+                            TargetMailPublicFolder     = $ISRR
+                            TrusteeIdentity            = 'Not Applicable'
+                            TrusteeRecipientObject     = $null
+                            PermissionType             = 'None'
+                            AssignmentType             = 'None'
+                            SourceExchangeOrganization = $ExchangeOrganization
+                            None                       = $true
                         }
-                        elseif ($PermissionExportObjects.Count -gt 0)
-                        {
-                            Write-Output $PermissionExportObjects
-                        }
-                        WriteLog -Message $message -EntryType Succeeded
+                        $NonPerm = NewPermissionExportObject @GPEOParams
+                        $NonPerm
                     }
-                    else
+                    elseif ($PermissionExportObjects.Count -gt 0)
                     {
-                        WriteLog -Message 'Removing Existing Failed PSSession' -EntryType Notification -verbose
-                        Remove-PSSession -Session $script:PsSession -ErrorAction SilentlyContinue
-                        WriteLog -Message 'Establish New PSSession to Exchange Organization' -EntryType Attempting -verbose
-                        $GetPFMExchangePSSessionParams = GetGetPFMExchangePSSessionParams
-                        try
-                        {
-                            Start-Sleep -Seconds 10
-                            $script:PsSession = Get-PFMExchangePSSession @GetPFMExchangePSSessionParams
-                            WriteLog -Message 'Establish New PSSession to Exchange Organization' -EntryType Succeeded -verbose
-                            $ResumeIndex = $i
-                            $ISRCounter--
-                            $Recovering = $true
-                            continue nextISR
-                        }
-                        catch
-                        {
-                            $myerror = $_
-                            WriteLog -Message 'Establish New PSSession to Exchange Organization' -EntryType Failed
-                            WriteLog -Message $myerror.tostring() -ErrorLog -Verbose
-                            WriteLog -Message $message -EntryType Failed -ErrorLog -Verbose
-                            $exitmessage = "Testing Showed that Exchange Session Failed/Disconnected during permission processing for ID $ID."
-                            WriteLog -Message $exitmessage -EntryType Notification -ErrorLog -Verbose
-                            if ($EnableResume -eq $true)
-                            {
-                                WriteLog -Message "Resume File $ResumeFile is available to resume this operation after you have re-connected the Exchange Session" -Verbose
-                                WriteLog -Message "Resume Recipient ID is $ID" -Verbose
-                                $ResumeIDFile = ExportResumeID -ID $ID -outputFolderPath $OutputFolderPath -TimeStamp $BeginTimeStamp -NextPermissionID $Script:PermissionIdentity -ResumeIndex $i
-                                WriteLog -Message "Resume ID $ID exported to file $resumeIDFile" -Verbose
-                                WriteLog -Message "Next Permission Identity $($Script:PermissionIdentity) exported to file $resumeIDFile" -Verbose
-                                $message = "Run `'Get-ExchangePermission -ResumeFile $ResumeFile`' and also specify any common parameters desired (such as -verbose) since common parameters are not included in the Resume Data File."
-                                WriteLog -Message $message -EntryType Notification -verbose
-                            }
-                            Break nextISR
-                        }
+                        $PermissionExportObjects
                     }
+                    WriteLog -Message $message -EntryType Succeeded
                 }
                 Catch
                 {
-                    $myerror = $_
-                    WriteLog -Message $message -EntryType Failed -ErrorLog -Verbose
-                    $exitmessage = "Exchange Session Failed/Disconnected during permission processing for ID $ID. The next Log entry is the error from the Exchange Session."
-                    WriteLog -Message $exitmessage -EntryType Notification -ErrorLog -Verbose
-                    WriteLog -Message $myError.tostring() -ErrorLog -Verbose
-                    WriteLog -Message 'Removing Existing Failed PSSession' -EntryType Notification
-                    Remove-PSSession -Session $script:PsSession -ErrorAction SilentlyContinue
-                    WriteLog -Message 'Establish New PSSession to Exchange Organization' -EntryType Attempting
-                    $GetPFMExchangePSSessionParams = GetGetPFMExchangePSSessionParams
-                    try
-                    {
-                        Start-Sleep -Seconds 10
-                        $script:PsSession = Get-PFMExchangePSSession @GetPFMExchangePSSessionParams
-                        WriteLog -Message 'Establish New PSSession to Exchange Organization' -EntryType Succeeded
-                        $ResumeIndex = $i
-                        $ISRCounter--
-                        $Recovering = $true
-                        continue nextISR
-                    }
-                    catch
-                    {
-                        $myerror = $_
-                        WriteLog -Message 'Establish New PSSession to Exchange Organization' -EntryType Failed
-                        WriteLog -Message $myerror.tostring() -ErrorLog -Verbose
-                        WriteLog -Message $message -EntryType Failed -ErrorLog -Verbose
-                        $exitmessage = "Testing Showed that Exchange Session Failed/Disconnected during permission processing for ID $ID."
-                        WriteLog -Message $exitmessage -EntryType Notification -ErrorLog -Verbose
-                        if ($EnableResume -eq $true)
-                        {
-                            WriteLog -Message "Resume File $ResumeFile is available to resume this operation after you have re-connected the Exchange Session" -Verbose
-                            WriteLog -Message "Resume Recipient ID is $ID" -Verbose
-                            $ResumeIDFile = ExportResumeID -ID $ID -outputFolderPath $OutputFolderPath -TimeStamp $BeginTimeStamp -NextPermissionID $Script:PermissionIdentity -ResumeIndex $i
-                            WriteLog -Message "Resume ID $ID exported to file $resumeIDFile" -Verbose
-                            WriteLog -Message "Next Permission Identity $($Script:PermissionIdentity) exported to file $resumeIDFile" -Verbose
-                            $message = "Run `'Get-ExchangePermission -ResumeFile $ResumeFile`' and also specify any common parameters desired (such as -verbose) since common parameters are not included in the Resume Data File."
-                            WriteLog -Message $message -EntryType Notification -verbose
-                        }
-                        Break nextISR
-                    }
+                    WriteLog -Message $message -EntryType Failed
                 }
             }#Foreach recipient in set
         )# end ExportedPermissions
@@ -530,30 +358,15 @@ Function Get-PFMPublicFolderPermission
             {
                 $message = "Export $($ExportedPermissions.Count) Exported Permissions to File $ExportedExchangePublicFolderPermissionsFile."
                 WriteLog -Message $message -EntryType Attempting -verbose
-                switch ($PSCmdlet.ParameterSetName -eq 'Resume')
-                {
-                    $true
-                    {
-                        $ExportedPermissions | Export-Csv -Path $ExportedExchangePublicFolderPermissionsFile -Append -Encoding UTF8 -ErrorAction Stop -NoTypeInformation #-Force
-                    }
-                    $false
-                    {
-                        $ExportedPermissions | Export-Csv -Path $ExportedExchangePublicFolderPermissionsFile -NoClobber -Encoding UTF8 -ErrorAction Stop -NoTypeInformation
-                    }
-                }
+                $ExportedPermissions | Export-Csv -Path $ExportedExchangePublicFolderPermissionsFile -NoClobber -Encoding UTF8 -ErrorAction Stop -NoTypeInformation
                 WriteLog -Message $message -EntryType Succeeded -verbose
-                if ($KeepExportedPermissionsInGlobalVariable -eq $true)
-                {
-                    WriteLog -Message "Saving Exported Permissions to Global Variable $($BeginTimeStamp + "ExportedExchangePermissions") for recovery/manual export." -Verbose
-                    Set-Variable -Name $($BeginTimeStamp + "ExportedExchangePermissions") -Value $ExportedPermissions -Scope Global
-                }
             }
             Catch
             {
                 $myerror = $_
                 WriteLog -Message $message -EntryType Failed -ErrorLog -Verbose
                 WriteLog -Message $myError.tostring() -ErrorLog
-                WriteLog -Message "Saving Exported Permissions to Global Variable $($BeginTimeStamp + "ExportedExchangePermissions") for recovery/manual export if desired/required.  This is separate from performing a Resume with a Resume file." -verbose
+                WriteLog -Message "Saving Exported Permissions to Global Variable $($BeginTimeStamp + "ExportedExchangePermissions") for recovery/manual export if desired/required." -verbose
                 Set-Variable -Name $($BeginTimeStamp + "ExportedExchangePermissions") -Value $ExportedPermissions -Scope Global
             }
         }

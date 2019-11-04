@@ -1,6 +1,5 @@
 Function GetSendOnBehalfPermission
 {
-
     #Get Delegate Users (NOTE: actual permissions are stored in the mailbox . . . so these are not directly equivalent to delegates just a likely correlation to delegates)
     [cmdletbinding()]
     param
@@ -52,7 +51,7 @@ Function GetSendOnBehalfPermission
         }
         foreach ($sb in $sbTrustees)
         {
-            $trusteeRecipient = GetTrusteeObject -TrusteeIdentity $sb.objectguid.guid -HRPropertySet $HRPropertySet -ObjectGUIDHash $ObjectGUIDHash -DomainPrincipalHash $DomainPrincipalHash -SIDHistoryHash $SIDHistoryRecipientHash -ExchangeSession $ExchangeSession -ExchangeOrganizationIsInExchangeOnline $ExchangeOrganizationIsInExchangeOnline -UnfoundIdentitiesHash $UnFoundIdentitiesHash
+            $trusteeRecipient = GetTrusteeObject -TrusteeIdentity $sb.objectguid.guid -HRPropertySet $HRPropertySet -ObjectGUIDHash $ObjectGUIDHash -DomainPrincipalHash $DomainPrincipalHash -SIDHistoryHash $SIDHistoryRecipientHash -ExchangeSession $ExchangeSession -UnfoundIdentitiesHash $UnFoundIdentitiesHash
             switch ($null -eq $trusteeRecipient)
             {
                 $true

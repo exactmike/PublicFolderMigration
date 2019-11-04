@@ -21,8 +21,6 @@ Function GetGroupMemberExpandedViaADPSDrive
         $SIDHistoryRecipientHash
         ,
         [hashtable]$UnfoundIdentitiesHash
-        ,
-        $ExchangeOrganizationIsInExchangeOnline
     )
     #enumerate groups: http://stackoverflow.com/questions/8055338/listing-users-in-ad-group-recursively-with-powershell-script-without-cmdlets/8055996#8055996
     $LDAPFilter = "(&(memberof:1.2.840.113556.1.4.1941:=$($Identity))(objectCategory=user))"
@@ -49,7 +47,7 @@ Function GetGroupMemberExpandedViaADPSDrive
     foreach ($to in $TrusteeObjects)
     {
         $TrusteeIdentity = $to.objectguid.guid
-        $trusteeRecipient = GetTrusteeObject -TrusteeIdentity $TrusteeIdentity -HRPropertySet $HRPropertySet -ObjectGUIDHash $ObjectGUIDHash -DomainPrincipalHash $DomainPrincipalHash -SIDHistoryHash $SIDHistoryRecipientHash -ExchangeSession $ExchangeSession -ExchangeOrganizationIsInExchangeOnline $ExchangeOrganizationIsInExchangeOnline -UnfoundIdentitiesHash $UnFoundIdentitiesHash
+        $trusteeRecipient = GetTrusteeObject -TrusteeIdentity $TrusteeIdentity -HRPropertySet $HRPropertySet -ObjectGUIDHash $ObjectGUIDHash -DomainPrincipalHash $DomainPrincipalHash -SIDHistoryHash $SIDHistoryRecipientHash -ExchangeSession $ExchangeSession -UnfoundIdentitiesHash $UnFoundIdentitiesHash
         if ($null -ne $trusteeRecipient) { $trusteeRecipient }
     }
 
