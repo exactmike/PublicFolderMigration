@@ -197,7 +197,7 @@ Function Get-PFMPublicFolderPermission
         #Region GetInScopeMailPublicFolders
         $message = 'Get Mail Enabled Public Folders To support retrieval of SendAS and/or SendOnBehalf Permissions and for additional output information for ClientPermissions.'
         WriteLog -message $message -entryType Attempting -verbose
-        $PossibleMailEnabledPF = $InScopeFolders.where( { $_.MailEnabled -eq 'TRUE' -or $true -eq $_.MailEnabled })
+        $PossibleMailEnabledPF = $InScopeFolders.where( { ($_.MailEnabled -is [bool] -and $_.MailEnabled -eq $true) -or $_.MailEnabled -eq 'TRUE' })
         $InScopeMailPublicFolders = @(GetMailPublicFolderPerUserPublicFolder -ExchangeSession $script:PSSession -PublicFolder $PossibleMailEnabledPF -ErrorAction Stop)
         WriteLog -message $message -entryType Succeeded -verbose
         WriteLog -Message "Got $($InScopeMailPublicFolders.count) In Scope Mail Public Folder Objects" -EntryType Notification -verbose
