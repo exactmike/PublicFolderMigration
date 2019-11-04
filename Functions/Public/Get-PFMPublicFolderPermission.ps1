@@ -14,7 +14,7 @@ Function Get-PFMPublicFolderPermission
         [string[]]$PublicFolderEntryID = @()
         ,
         [parameter(ParameterSetName = 'InfoObject', Mandatory)]
-        [string[]]$PublicFolderInfoObject = @()
+        [psobject[]]$PublicFolderInfoObject = @()
         ,
         [Parameter(Mandatory)]
         [ValidateScript( { TestIsWriteableDirectory -Path $_ })]
