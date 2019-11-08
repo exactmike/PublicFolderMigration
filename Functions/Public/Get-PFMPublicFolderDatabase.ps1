@@ -21,7 +21,8 @@ function Get-PFMPublicFolderDatabase
 
     Gets a public folder database information object from USCLTEX10PF01.us.clt.contoso.com and exports it to csv, json, and xml formats in c:\PFReports
     #>
-    [CmdletBinding(DefaultParameterSetName = 'All')]
+    [CmdletBinding(ConfirmImpact = 'None', DefaultParameterSetName = 'All')]
+    [OutputType([System.Object[]])]
     param (
         [parameter(Mandatory, ParameterSetName = 'Identity')]
         [string[]]$Identity
@@ -55,7 +56,7 @@ function Get-PFMPublicFolderDatabase
         WriteLog -Message "Exchange Session is Running in Exchange Organzation $ExchangeOrganization" -EntryType Notification
     }
 
-    Get-Process
+    Process
     {
         $pfDatabaseInfoObjects = @(
             switch ($PSCmdlet.ParameterSetName)
