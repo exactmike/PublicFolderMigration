@@ -29,6 +29,9 @@ function Get-PFMPublicFolderDatabase
         [parameter(Mandatory, ParameterSetName = 'Server')]
         [string[]]$Server
         ,
+        [parameter()]
+        [switch]$Passthru
+        ,
         [parameter(Mandatory)]
         [ValidateScript( { TestIsWriteableDirectory -path $_ })]
         [string]$OutputFolderPath
@@ -52,7 +55,7 @@ function Get-PFMPublicFolderDatabase
         WriteLog -Message "Exchange Session is Running in Exchange Organzation $ExchangeOrganization" -EntryType Notification
     }
 
-    process
+    Get-Process
     {
         $pfDatabaseInfoObjects = @(
             switch ($PSCmdlet.ParameterSetName)
