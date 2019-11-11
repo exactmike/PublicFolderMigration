@@ -64,18 +64,7 @@ Function Get-PFMPublicFolderTree
     WriteLog -Message "Calling Invocation = $($MyInvocation.Line)" -EntryType Notification
     $ExchangeOrganization = Invoke-Command -Session $Script:PSSession -ScriptBlock { Get-OrganizationConfig | Select-Object -ExpandProperty Identity | Select-Object -ExpandProperty Name }
     WriteLog -Message "Exchange Session is Running in Exchange Organzation $ExchangeOrganization" -EntryType Notification
-    #region ValidateParameters
-    #is this verification even necessary for this function?  don't think so . . . makes sense for stats, not for this?
-    $VerifyPFDatabase = @(
-        Invoke-Command -Session $script:PSSession -scriptblock {
-            Get-PublicFolderDatabase -server $using:PublicFolderMailboxServer -ErrorAction SilentlyContinue
-        }
-    )
-    if ($VerifyPFDatabase.Count -ne 1)
-    {
-        Write-Error "$PublicFolderMailboxServer does not host a public folder database."
-        Return
-    }
+
     #Using/Abusing? switch here.  Switch wants to unroll the array so using scriptblock options
     $publicFolderPathType = switch ($null) #types are Root, SingleNonRoot, MultipleWithRoot, MultipleNonRoot
     {
