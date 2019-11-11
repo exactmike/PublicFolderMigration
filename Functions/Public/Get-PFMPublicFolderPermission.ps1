@@ -5,16 +5,16 @@ Function Get-PFMPublicFolderPermission
     param
     (
         [parameter(ParameterSetName = 'Scoped', Mandatory)]
-        [string[]]$PublicFolderPath = @()
+        [string[]]$PublicFolderPath
         ,
         [parameter(ParameterSetName = 'Scoped')]
         [switch]$Recurse
         ,
         [parameter(ParameterSetName = 'EntryID', Mandatory)]
-        [string[]]$PublicFolderEntryID = @()
+        [string[]]$PublicFolderEntryID
         ,
         [parameter(ParameterSetName = 'InfoObject', Mandatory)]
-        [psobject[]]$PublicFolderInfoObject = @()
+        [psobject[]]$PublicFolderInfoObject
         ,
         [Parameter(Mandatory)]
         [ValidateScript( { TestIsWriteableDirectory -Path $_ })]
