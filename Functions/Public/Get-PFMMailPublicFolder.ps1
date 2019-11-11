@@ -1,6 +1,6 @@
-Function Get-PFMAllMailPublicFolder
+Function Get-PFMMailPublicFolder
 {
-    [cmdletbinding()]
+    [cmdletbinding(DefaultParameterSetName = 'All')]
     [OutputType([System.Object[]])]
     param(
     )
