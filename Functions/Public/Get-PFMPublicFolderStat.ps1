@@ -80,89 +80,100 @@ function Get-PFMPublicFolderStat
     $ExchangeOrganization = Invoke-Command -Session $Script:PSSession -ScriptBlock { Get-OrganizationConfig | Select-Object -ExpandProperty Identity | Select-Object -ExpandProperty Name }
     WriteLog -Message "Exchange Session is Running in Exchange Organzation $ExchangeOrganization" -EntryType Notification
     #region ValidateParameters
-    #if the user specified public folder mailbox servers, validate them:
-    function Get-PublicFolderMailboxServerDatabase
+    switch ($script:ExchangeOrganizationType)
     {
-        [cmdletbinding()]
-        param(
-            $PublicFolderMailboxServer
-        )
-        switch ($PublicFolderMailboxServer.Count)
+        'ExchangeOnline'
         {
-            0
-            {
-                $ServerDatabases = @(
-                    Invoke-Command -Session $script:PSSession -ScriptBlock {
-                        Get-PublicFolderDatabase
-                    } | Select-Object -Property @{n = 'DatabaseName'; e = { $_.Name } }, @{n = 'ServerName'; e = { $_.Server } }, @{n = 'ServerFQDN'; e = { $_.RpcClientAccessServer } }
-                )
 
-            }
-            { $_ -gt 0 }
+        }
+        'ExchangeOnPremises'
+        {
+            function Get-PublicFolderMailboxServerDatabase
             {
-                $ServerDatabases = @(
-                    foreach ($Server in $PublicFolderMailboxServer)
-                    {
-
-                        Invoke-Command -Session $script:PSSession -scriptblock {
-                            Get-PublicFolderDatabase -server $using:Server -ErrorAction SilentlyContinue
-                        } | Select-Object -Property @{n = 'DatabaseName'; e = { $_.Name } }, @{n = 'ServerName'; e = { $_.Server } }, @{n = 'ServerFQDN'; e = { $_.RpcClientAccessServer } }
-                    }
+                [cmdletbinding()]
+                param(
+                    $PublicFolderMailboxServer
                 )
-                if ($ServerDatabases.Count -ne $PublicFolderMailboxServer.Count)
+                switch ($PublicFolderMailboxServer.Count)
                 {
-                    Write-Error "One or more of the specified PublicFolderMailboxServers $($PublicFolderMailboxServer -join ', ') does not host a public folder database."
+                    0
+                    {
+                        $ServerDatabases = @(
+                            Invoke-Command -Session $script:PSSession -ScriptBlock {
+                                Get-PublicFolderDatabase
+                            } | Select-Object -Property @{n = 'DatabaseName'; e = { $_.Name } }, @{n = 'ServerName'; e = { $_.Server } }, @{n = 'ServerFQDN'; e = { $_.RpcClientAccessServer } }
+                        )
+
+                    }
+                    { $_ -gt 0 }
+                    {
+                        $ServerDatabases = @(
+                            foreach ($Server in $PublicFolderMailboxServer)
+                            {
+
+                                Invoke-Command -Session $script:PSSession -scriptblock {
+                                    Get-PublicFolderDatabase -server $using:Server -ErrorAction SilentlyContinue
+                                } | Select-Object -Property @{n = 'DatabaseName'; e = { $_.Name } }, @{n = 'ServerName'; e = { $_.Server } }, @{n = 'ServerFQDN'; e = { $_.RpcClientAccessServer } }
+                            }
+                        )
+                        if ($ServerDatabases.Count -ne $PublicFolderMailboxServer.Count)
+                        {
+                            Write-Error "One or more of the specified PublicFolderMailboxServers $($PublicFolderMailboxServer -join ', ') does not host a public folder database."
+                            Return $null
+                        }
+                    }
+                }
+                $ServerDatabases
+            }
+            $ServerDatabase = @(Get-PublicFolderMailboxServerDatabase -PublicFolderMailboxServer $PublicFolderMailboxServer)
+            $PublicFolderMailboxServerNames = $ServerDatabase.ServerName -join ', '
+            WriteLog -Message "Public Folder Mailbox Servers Included: $PublicFolderMailboxServerNames" -EntryType Notification -Verbose
+            #Make Server PSSessions
+            $connectSessionFailure = [System.Collections.Generic.List[String]]::new()
+            $connectSessionSuccess = [System.Collections.Generic.List[String]]::new()
+            foreach ($s in $ServerDatabase)
+            {
+                $ConnectPFMExchangeParams = @{
+                    ExchangeOnPremisesServer = $s.ServerFQDN
+                    IsParallel               = $true
+                    ErrorAction              = 'Stop'
+                }
+                if ($null -ne $Script:PSSessionOption)
+                {
+                    $ConnectPFMExchangeParams.PSSessionOption = $Script:PSSessionOption
+                }
+                try
+                {
+                    Connect-PFMExchange @ConnectPFMExchangeParams
+                    writelog -message "Connected Parallel PSSession to $($s.ServerFQDN) for Stats operations" -entrytype Notification -verbose
+                    $connectSessionSuccess.Add($s.ServerFQDN)
+                }
+                catch
+                {
+                    Writelog -message "Unable to connect a remote Exchange Powershell session to $($s.ServerFQDN)" -entryType Failed -Verbose
+                    $connectSessionFailure.Add($s.ServerFQDN)
+                }
+            }
+            $ServerDatabaseToProcess, $ServerDatabaseRetry = $ServerDatabase.where( { $_.ServerFQDN -in $connectSessionSuccess }, 'Split')
+            if ($connectSessionFailure.Count -ge 1)
+            {
+                writelog -message "Connect Session Failures: $($connectSessionFailure -join ',')" -entrytype Notification
+                if ($PSCmdlet.ParameterSetName -in @('InfoObject', 'Path'))
+                {
+                    throw('Not all required or specified public folder servers were connected to for stats operations. Quitting to avoid incomplete data return')
                     Return $null
                 }
             }
+            if ($connectSessionSuccess.count -eq 0)
+            {
+                throw('None of the specified public folder servers were connected to for stats operations. Quitting to avoid incomplete data return')
+                Return $null
+            }
         }
-        $ServerDatabases
     }
-    $ServerDatabase = @(Get-PublicFolderMailboxServerDatabase -PublicFolderMailboxServer $PublicFolderMailboxServer)
-    $PublicFolderMailboxServerNames = $ServerDatabase.ServerName -join ', '
-    WriteLog -Message "Public Folder Mailbox Servers Included: $PublicFolderMailboxServerNames" -EntryType Notification -Verbose
+
     #region GetPublicFolderStats
-    #Make Server PSSessions
-    $connectSessionFailure = [System.Collections.Generic.List[String]]::new()
-    $connectSessionSuccess = [System.Collections.Generic.List[String]]::new()
-    foreach ($s in $ServerDatabase)
-    {
-        $ConnectPFMExchangeParams = @{
-            ExchangeOnPremisesServer = $s.ServerFQDN
-            IsParallel               = $true
-            ErrorAction              = 'Stop'
-        }
-        if ($null -ne $Script:PSSessionOption)
-        {
-            $ConnectPFMExchangeParams.PSSessionOption = $Script:PSSessionOption
-        }
-        try
-        {
-            Connect-PFMExchange @ConnectPFMExchangeParams
-            writelog -message "Connected Parallel PSSession to $($s.ServerFQDN) for Stats operations" -entrytype Notification -verbose
-            $connectSessionSuccess.Add($s.ServerFQDN)
-        }
-        catch
-        {
-            Writelog -message "Unable to connect a remote Exchange Powershell session to $($s.ServerFQDN)" -entryType Failed -Verbose
-            $connectSessionFailure.Add($s.ServerFQDN)
-        }
-    }
-    $ServerDatabaseToProcess, $ServerDatabaseRetry = $ServerDatabase.where( { $_.ServerFQDN -in $connectSessionSuccess }, 'Split')
-    if ($connectSessionFailure.Count -ge 1)
-    {
-        writelog -message "Connect Session Failures: $($connectSessionFailure -join ',')" -entrytype Notification
-        if ($PSCmdlet.ParameterSetName -in @('InfoObject', 'Path'))
-        {
-            throw('Not all required or specified public folder servers were connected to for stats operations. Quitting to avoid incomplete data return')
-            Return $null
-        }
-    }
-    if ($connectSessionSuccess.count -eq 0)
-    {
-        throw('None of the specified public folder servers were connected to for stats operations. Quitting to avoid incomplete data return')
-        Return $null
-    }
+
     #Get Stats from successful connections
     $publicFolderStats =
     @(
