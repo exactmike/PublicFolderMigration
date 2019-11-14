@@ -15,6 +15,8 @@ $ModuleVariableNames = (
 $ModuleVariableNames.ForEach( { Set-Variable -Scope Script -Name $_ -Value $null })
 
 enum ExportDataOutputFormat { csv; json; xml; clixml }
+enum EmptyFolderValidation { NoSubFolders; NotMailEnabled; NoItems }
+enum FolderActivityTime { CreationTime; LastAccessTime; LastModificationTime; LastUserAccessTime; LastUserModificationTime }
 
 ###############################################################################################
 #Public Folder Migration Module Functions
