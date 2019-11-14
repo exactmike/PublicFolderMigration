@@ -24,7 +24,7 @@ enum FolderActivityTime { CreationTime; LastAccessTime; LastModificationTime; La
 $AllFunctionFiles = Get-ChildItem -Recurse -File -Path $(Join-Path -Path $PSScriptRoot -ChildPath 'Functions')
 #$PublicFunctionFiles = $AllFunctionFiles.where( { $_.PSParentPath -like '*\Public' })
 #$PrivateFunctionFiles = $AllFunctionFiles.where( { $_.PSParentPath -like '*\Private' })
-foreach ($ff in $AllFunctionFiles) { . $ff.fullname }
+foreach ($ff in $AllFunctionFiles) { if ($ff.fullname -like '*.ps1') { . $ff.fullname } }
 
 ###############################################################################################
 #Public Folder Migration Module Removal Routines
