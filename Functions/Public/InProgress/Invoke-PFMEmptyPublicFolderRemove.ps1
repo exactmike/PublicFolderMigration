@@ -9,6 +9,8 @@
     Use to specify the identity(ies) of the public folder(s) to be validated for and processed for removal.
     .PARAMETER Validations
     Use to specify the validations to run before processing a public folder for removal. NoSubfolders,NotMailEnabled,NoItems
+    .PARAMETER DateValidations
+    Use to specify any date validations to run before processing a public folder for removal.  For each date validation you want to perform, an object must be provided with the name of the attribute, the comparison date, and a comparison operator. The function New-DateValidation can be used to create these objects.  All Date validations are treated as AND conditions.
     .PARAMETER Passthru
     Controls whether the public folder validation/removal result objects are returned to the PowerShell pipeline for further processing.
     .PARAMETER OutputFolderPath
@@ -22,3 +24,31 @@
     If public folders are on Exchange 2010, the ExchangeOnPremisesServer must be an Exchange 2010 server.
     Gets public folder tree data from USCLTEX10PF01.us.clt.contoso.com and exports it to csv, json, and xml formats in c:\PFReports
 #>
+Function Invoke-PFMEmptyPublicFolderRemoval
+{
+    [cmdletbinding()]
+    [OutputType([psobject])]
+    param(
+        [parameter()]
+        $PublicFolderMailboxServer
+        ,
+        [parameter()]
+        $Identity
+        ,
+        [parameter()]
+        [EmptyFolderValidation[]]$Validations
+        ,
+        [parameter()]
+        #[FolderActivityTimeValidation[]]
+        $DateValidations
+        ,
+        [parameter()]
+        $Passthru
+        ,
+        [parameter()]
+        $OutputFolderPath
+        ,
+        [parameter()]
+        $OutputFormat
+    )
+}
