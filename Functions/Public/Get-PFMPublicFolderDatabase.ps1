@@ -15,6 +15,8 @@ function Get-PFMPublicFolderDatabase
     Mandatory parameter for the already existing directory location where you want public folder replication and stats reports to be placed.  Operational log files will also go to this location.
     .PARAMETER OutputFormat
     Mandatory parameter used to specify whether you want csv, json, xml, clixml or any combination of these.
+    .PARAMETER Encoding
+    Allows user to specify the encoding of the output file(s). Default is UTF8.
     .EXAMPLE
     Connect-PFMExchange -ExchangeOnPremisesServer USCLTEX10PF01.us.clt.contoso.com -credential $cred
     Get-PFMPublicFolderDatabase -OutputFolderPath c:\PFReports -OutputFormats csv,json,xml -Server USCLTEX10PF01

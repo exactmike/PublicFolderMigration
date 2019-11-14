@@ -15,6 +15,9 @@ Credential parameter requires a PSCredential object which will be used to connec
 PSSessionOption parameter accepts a PSSessionOption object to configure PSSessionOptions for environments where proxy options or other PSSessionOptions are required for successful Exchange Powershell connections.
 .PARAMETER IsParallel
 Intended for internal module use only, this parameter is used when creating one or more secondare Exchange PSSessions for public folder statistics operations performed in parallel by Get-PublicFolderReplicationReport.
+.PARAMETER UseAlternateParallelism
+Intended for internal module use only, this parameter is used when creating one or more secondare Exchange PSSessions for public folder statistics operations performed in parallel by Get-PublicFolderReplicationReport.
+
 .EXAMPLE
     PS C:\> $cred = get-credential
     PS C:\> Connect-PFMExchange -ExchangeOnPremisesServer PublicFolderServer1.us.wa.contoso.com -credential $cred

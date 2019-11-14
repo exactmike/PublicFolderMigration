@@ -1,5 +1,22 @@
 Function Get-PFMPublicFolderPermission
 {
+    <#
+    .SYNOPSIS
+        Gets public folder permission objects for client, sendas, and sendonbehalf types.
+    .DESCRIPTION
+        Gets public folder permission objects for client, sendas, and sendonbehalf types for all public folders, or for a selected subset by tree or entryid.
+        Can optionally exclude public folders, permission holders (trustees), expand group permissions, and drop inherited permissions.
+
+    .EXAMPLE
+        Get-PFMPublicFolderPermission
+        Gets permissions for all public folders. uses the default settings for inclusion of various permisison types
+    .INPUTS
+        Inputs (if any)
+    .OUTPUTS
+        Output (if any)
+    .NOTES
+        General notes
+    #>
     [cmdletbinding(DefaultParameterSetName = 'AllPublicFolders', ConfirmImpact = 'none')]
     [OutputType([System.Object[]])]
     param
@@ -28,26 +45,31 @@ Function Get-PFMPublicFolderPermission
         [parameter()]
         [string[]]$ExcludedIdentities
         ,
-        [parameter()]#These will be resolved to trustee objects
+        [parameter()]#These will be resolved to trustee objects and permisisons with these trustees will be omitted from output
         [string[]]$ExcludedTrusteeIdentities
         ,
-        [Parameter()]
+        [Parameter()]#include public folder client permissions
         [bool]$IncludeClientPermission = $true
         ,
-        [Parameter()]
+        [Parameter()]#include sendas permissions
         [bool]$IncludeSendAs = $true
         ,
-        [Parameter()]
+        [Parameter()]#include sendonbehalf permissions
         [bool]$IncludeSendOnBehalf = $true
         ,
+        #Expand group permissions to individual trustees if possible
         [bool]$ExpandGroups = $true
         ,
+        #Drop the original group permission if ExpandGroups is True
         [bool]$DropExpandedParentGroupPermissions = $false
         ,
+        #Drop inherited permissions
         [bool]$DropInheritedPermissions = $false
         ,
+        #lookup SIDHistory for matching SIDs in permissions to an actual trustee
         [switch]$IncludeSIDHistory
         ,
+        #exclude output where the resulting permission is 'none'
         [switch]$ExcludeNonePermissionOutput
     )#End Param
     Begin

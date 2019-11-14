@@ -18,6 +18,8 @@ function Get-PFMPublicFolderStat
     Mandatory parameter for the already existing directory location where you want public folder stats output to be placed.  Operational log files will also go to this location.
     .PARAMETER OutputFormat
     Mandatory parameter used to specify whether you want csv, json, xml, clixml or any combination of these.
+    .PARAMETER Encoding
+    Allows user to specify the encoding of the output file(s). Default is UTF8.
     .PARAMETER SendEmail
     This switch will set the script to send an email report.  To use this parameter you must have already used the Set-PFMEmailConfiguration cmdlet to configure your email settings.
     .EXAMPLE
