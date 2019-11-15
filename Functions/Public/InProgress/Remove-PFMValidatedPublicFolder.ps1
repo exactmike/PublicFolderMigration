@@ -3,7 +3,7 @@ Function Remove-PFMValidatedPublicFolder
     [cmdletbinding()]
     [OutputType([pscustomobject])]
     param(
-        [PublicFolderValidation]$PublicFolderValidation
+        [PSTypeName("PublicFolderValidation")]$PublicFolderValidation
     )
     $PublicFolderValidation
 }
