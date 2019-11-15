@@ -70,7 +70,7 @@
 
     # Functions to export from this module
     #ToUpdateThis $("'" + $($(get-childitem | select -ExpandProperty basename) -join "','") + "'")
-    FunctionsToExport    = @('Export-PFMData', 'Connect-PFMExchange', 'Get-PFMPublicFolderTree', 'Get-PFMPublicFolderStat', 'Get-PFMPublicFolderPermission', 'Get-PFMPublicFolderDatabase', 'Invoke-PFMRemovePublicFolder', 'Remove-PFMValidatedPublicFolder') #'Get-PFMPublicFolderReplicationReport', 'Set-PFMEmailConfiguration'
+    FunctionsToExport    = @('Export-PFMData', 'Connect-PFMExchange', 'Get-PFMPublicFolderTree', 'Get-PFMPublicFolderStat', 'Get-PFMPublicFolderPermission', 'Get-PFMPublicFolderDatabase', 'Invoke-PFMValidatePublicFolder', 'Remove-PFMValidatedPublicFolder') #'Get-PFMPublicFolderReplicationReport', 'Set-PFMEmailConfiguration'
 
     # Cmdlets to export from this module
     #CmdletsToExport = '*'
