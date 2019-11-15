@@ -105,7 +105,6 @@ function Get-PFMPublicFolderStat
                                 Get-PublicFolderDatabase
                             } | Select-Object -Property @{n = 'DatabaseName'; e = { $_.Name } }, @{n = 'ServerName'; e = { $_.Server } }, @{n = 'ServerFQDN'; e = { $_.RpcClientAccessServer } }
                         )
-
                     }
                     { $_ -gt 0 }
                     {
@@ -147,19 +146,19 @@ function Get-PFMPublicFolderStat
                 try
                 {
                     Connect-PFMExchange @ConnectPFMExchangeParams
-                    writelog -message "Connected Parallel PSSession to $($s.ServerFQDN) for Stats operations" -entrytype Notification -verbose
+                    WriteLog -message "Connected Parallel PSSession to $($s.ServerFQDN) for Stats operations" -entrytype Notification -verbose
                     $connectSessionSuccess.Add($s.ServerFQDN)
                 }
                 catch
                 {
-                    Writelog -message "Unable to connect a remote Exchange Powershell session to $($s.ServerFQDN)" -entryType Failed -Verbose
+                    WriteLog -message "Unable to connect a remote Exchange Powershell session to $($s.ServerFQDN)" -entryType Failed -Verbose
                     $connectSessionFailure.Add($s.ServerFQDN)
                 }
             }
             $ServerDatabaseToProcess, $ServerDatabaseRetry = $ServerDatabase.where( { $_.ServerFQDN -in $connectSessionSuccess }, 'Split')
             if ($connectSessionFailure.Count -ge 1)
             {
-                writelog -message "Connect Session Failures: $($connectSessionFailure -join ',')" -entrytype Notification
+                WriteLog -message "Connect Session Failures: $($connectSessionFailure -join ',')" -entrytype Notification
                 if ($PSCmdlet.ParameterSetName -in @('InfoObject', 'Path'))
                 {
                     throw('Not all required or specified public folder servers were connected to for stats operations. Quitting to avoid incomplete data return')
@@ -456,7 +455,7 @@ function Get-PFMPublicFolderStat
     $CreatedFilePath = @(
         foreach ($of in $Outputformat)
         {
-            writelog -message "Exporting statistics data to format $of" -entryType Notification -Verbose
+            WriteLog -message "Exporting statistics data to format $of" -entryType Notification -Verbose
             Export-Data -ExportFolderPath $OutputFolderPath -DataToExportTitle 'PublicFolderStats' -ReturnExportFilePath -Encoding $Encoding -DataFormat $of -DataToExport $publicFolderStats -verbose
         }
     )
