@@ -6,5 +6,11 @@ Function Remove-PFMValidatedPublicFolder
         [parameter(Mandatory, ValueFromPipeline)]
         [PSTypeName("PublicFolderValidation")]$PublicFolderValidation
     )
-    $PublicFolderValidation
+    process
+    {
+        foreach ($pfv in $PublicFolderValidation)
+        {
+            $pfv
+        }
+    }
 }
