@@ -119,7 +119,7 @@ Function Invoke-PFMRemovePublicFolder
                     foreach ($r in $foundfolder.replicas)
                     {
                         $ServerFQDN = $DatabaseServerLookup.$r.ServerFQDN
-                        Invoke-Command -Session $ServerSession -ScriptBlock {
+                        Invoke-Command -Session $Script:PSSession -ScriptBlock {
                             Get-PublicFolderStatistics -Identity $using:EntryID -Server $using:ServerFQDN -ErrorAction SilentlyContinue
                         }
                     }
