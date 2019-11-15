@@ -60,7 +60,6 @@ Function Invoke-PFMRemovePublicFolder
         $ExchangeOrganization = Invoke-Command -Session $Script:PSSession -ScriptBlock { Get-OrganizationConfig | Select-Object -ExpandProperty Identity | Select-Object -ExpandProperty Name }
         WriteLog -Message "Exchange Session is Running in Exchange Organzation $ExchangeOrganization" -EntryType Notification
         $GetPublicFolderParams = @{
-            Recurse     = $false
             ResultSize  = 'Unlimited'
             ErrorAction = 'Stop'
         }
