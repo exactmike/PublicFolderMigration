@@ -183,7 +183,7 @@ Function Invoke-PFMRemovePublicFolder
             #output to pipeline
             $result
             #output to Validation Records
-            $ValidationRecords.add($(ConvertTo-Json -InputObject $result -Compress))
+            $null = $ValidationRecords.add($(ConvertTo-Json -InputObject $result -Compress))
         }
     }
     end
