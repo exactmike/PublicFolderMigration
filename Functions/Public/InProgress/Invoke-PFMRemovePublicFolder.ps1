@@ -184,7 +184,6 @@ Function Invoke-PFMRemovePublicFolder
                         {
                             $vResult.Result = $false
                         }
-                        $null = $result.ValidationResults.add()
                     }
                     'NotMailEnabled'
                     {
