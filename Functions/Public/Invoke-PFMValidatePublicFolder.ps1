@@ -1,8 +1,8 @@
 <#
     .SYNOPSIS
-    Processes Empty Public Folder Information Objects for possible removal
+    Processes Public Folders for the specified validations and emits an overall result object
     .DESCRIPTION
-    Accepts one or more EntryIDs or other Public Folder Unique Identifiers and processes them for removal if they meet the required validations.
+    Accepts one or more EntryIDs or other Public Folder Unique Identifiers and processes the specified validations.
     .PARAMETER PublicFolderMailboxServer
     Use to  specifies the Exchange server from which to retrieve folder information to generate the Public Folder Information Objects.
     .PARAMETER Identity
@@ -11,12 +11,8 @@
     Use to specify the validations to run before processing a public folder for removal. NoSubfolders,NotMailEnabled,NoItems
     .PARAMETER DateValidations
     Use to specify a set of time validations to run before processing a public folder for removal.  Create a set of time validations using New-PFMTimeValidationSet and New-PFMTimeValidation.  This parameter accepts the name of a previously created set.
-    .PARAMETER Passthru
-    Controls whether the public folder validation/removal result objects are returned to the PowerShell pipeline for further processing.
     .PARAMETER OutputFolderPath
     Mandatory parameter for the already existing directory location where you want public folder replication and stats reports to be placed.  Operational log files will also go to this location.
-    .PARAMETER OutputFormat
-    Mandatory parameter used to specify whether you want csv, json, xml, clixml or any combination of these.
     .EXAMPLE
     Connect-PFMExchange -ExchangeOnPremisesServer USCLTEX10PF01.us.clt.contoso.com -credential $cred
     Invoke-PFMEmptyPublicFolderRemoval
@@ -24,24 +20,21 @@
     If public folders are on Exchange 2010, the ExchangeOnPremisesServer must be an Exchange 2010 server.
     Gets public folder tree data from USCLTEX10PF01.us.clt.contoso.com and exports it to csv, json, and xml formats in c:\PFReports
 #>
-Function Invoke-PFMRemovePublicFolder
+Function Invoke-PFMValidatePublicFolder
 {
     [cmdletbinding()]
     [OutputType([psobject])]
     param(
-        [parameter()]
-        $PublicFolderMailboxServer
-        ,
         [parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
         [string[]]$Identity
         ,
         [parameter()]
         [FolderValidation[]]$Validations
         ,
-        [parameter()]
+        #[parameter()]
         #[FolderActivityTimeValidation[]]
-        [psobject[]]$TimeValidations
-        ,
+        #[psobject[]]$TimeValidations
+        #,
         [parameter(Mandatory)]
         [ValidateScript( { TestIsWriteableDirectory -path $_ })]
         [string]$OutputFolderPath
@@ -54,8 +47,8 @@ Function Invoke-PFMRemovePublicFolder
     {
         Confirm-PFMExchangeConnection -PSSession $Script:PSSession
         $BeginTimeStamp = Get-Date -Format yyyyMMdd-HHmmss
-        $script:LogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'InvokeRemovePublicFolder.log')
-        $script:ErrorLogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'InvokeRemovePublicFolder-ERRORS.log')
+        $script:LogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'InvokeValidatePublicFolder.log')
+        $script:ErrorLogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'InvokeValidatePublicFolder-ERRORS.log')
         WriteLog -Message "Calling Invocation = $($MyInvocation.Line)" -EntryType Notification
         $ExchangeOrganization = Invoke-Command -Session $Script:PSSession -ScriptBlock { Get-OrganizationConfig | Select-Object -ExpandProperty Identity | Select-Object -ExpandProperty Name }
         WriteLog -Message "Exchange Session is Running in Exchange Organzation $ExchangeOrganization" -EntryType Notification
@@ -74,20 +67,22 @@ Function Invoke-PFMRemovePublicFolder
         }
         $ValidationRecords = [System.Collections.ArrayList]::new()
     }
-    process
+    Get-Process
     {
         :nexti foreach ($i in $Identity)
         {
             #setup the result object
             $result = [pscustomobject]@{
-                InputIdentity       = $i
-                FoundEntryID        = ''
-                FoundIdentity       = ''
-                FoldersFound        = $null
-                ValidationResults   = [System.Collections.ArrayList]::new()
-                ValidatedForRemoval = $false
-                RemovalResult       = $null
-                RemovalError        = ''
+                PSTypeName         = 'PublicFolderValidation'
+                InputIdentity      = $i
+                FoundEntryID       = ''
+                FoundIdentity      = ''
+                FoldersFound       = $null
+                ValidationResults  = [System.Collections.ArrayList]::new()
+                Validated          = $false
+                ValidatedTimeStamp = $null
+                RemovalResult      = $null
+                RemovalError       = ''
             }
             #region getfolder
             $folder = @(
@@ -177,9 +172,11 @@ Function Invoke-PFMRemovePublicFolder
             }
             if ($result.ValidationResults.Result -notcontains $false)
             {
-                $result.ValidatedForRemoval = $true
+                $result.Validated = $true
+                $result.ValidatedTimeStamp = Get-Date -Format yyyyMMdd-HHmmss
             }
             #endregion validate
+
             #output to pipeline
             $result
             #output to Validation Records
