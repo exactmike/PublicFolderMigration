@@ -33,7 +33,6 @@ Function Remove-PFMValidatedPublicFolder
                 $RemovePFParams = @{
                     ErrorAction = 'Stop'
                     Confirm     = $false
-                    Whatif      = $True
                     Identity    = $pfv.FoundEntryID
                 }
                 try
