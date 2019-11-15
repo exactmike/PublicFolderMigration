@@ -87,7 +87,7 @@ Function ExpandGroupPermission
                                     PermissionType             = $gp.PermissionType
                                     AccessRights               = $gp.AccessRights
                                     AssignmentType             = 'GroupMembership'
-                                    SourceExchangeOrganization = $ExchangeOrganization
+                                    SourceExchangeOrganization = $Script:ExchangeOrganization
                                     IsInherited                = $gp.IsInherited
                                     ParentPermissionIdentity   = $gp.PermissionIdentity
                                 }

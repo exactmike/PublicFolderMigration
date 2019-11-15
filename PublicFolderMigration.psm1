@@ -7,6 +7,7 @@ $ModuleVariableNames = (
     'ExchangeCredential',
     'EmailConfiguration',
     'ExchangeOrganizationType',
+    'ExchangeOrganization',
     'ExchangeOnPremisesServer',
     'ParallelPSSession',
     'PSSession',

@@ -80,8 +80,7 @@ Function Get-PFMPublicFolderPermission
         $script:ErrorLogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'GetPublicFolderPermission-ERRORS.log')
         #$Stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
         WriteLog -Message "Calling Invocation = $($MyInvocation.Line)" -EntryType Notification
-        $ExchangeOrganization = Invoke-Command -Session $Script:PSSession -ScriptBlock { Get-OrganizationConfig | Select-Object -ExpandProperty Identity | Select-Object -ExpandProperty Name }
-        WriteLog -Message "Exchange Session is Running in Exchange Organzation $ExchangeOrganization" -EntryType Notification
+        WriteLog -Message "Exchange Session is Running in Exchange Organzation $script:ExchangeOrganization" -EntryType Notification
         switch ($script:ExchangeOrganizationType)
         {
             'ExchangeOnline'

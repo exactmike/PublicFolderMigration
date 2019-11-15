@@ -64,8 +64,7 @@ Function Get-PFMPublicFolderTree
     $script:LogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'GetPublicFolderTree.log')
     $script:ErrorLogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'GetPublicFolderTree-ERRORS.log')
     WriteLog -Message "Calling Invocation = $($MyInvocation.Line)" -EntryType Notification
-    $ExchangeOrganization = Invoke-Command -Session $Script:PSSession -ScriptBlock { Get-OrganizationConfig | Select-Object -ExpandProperty Identity | Select-Object -ExpandProperty Name }
-    WriteLog -Message "Exchange Session is Running in Exchange Organzation $ExchangeOrganization" -EntryType Notification
+    WriteLog -Message "Exchange Session is Running in Exchange Organzation $Script:ExchangeOrganization" -EntryType Notification
 
     #Using/Abusing? switch here.  Switch wants to unroll the array so using scriptblock options
     $publicFolderPathType = switch ($null) #types are Root, SingleNonRoot, MultipleWithRoot, MultipleNonRoot
