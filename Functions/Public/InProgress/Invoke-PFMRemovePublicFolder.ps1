@@ -71,46 +71,6 @@ Function Invoke-PFMRemovePublicFolder
             )
             $DatabaseServerLookup = @{ }
             $ServerDatabase.foreach( { $DatabaseServerLookup.$($_.DatabaseName) = $_ })
-            $connectSessionFailure = [System.Collections.Generic.List[String]]::new()
-            $connectSessionSuccess = [System.Collections.Generic.List[String]]::new()
-            foreach ($s in $ServerDatabase)
-            {
-                $ConnectPFMExchangeParams = @{
-                    ExchangeOnPremisesServer = $s.ServerFQDN
-                    IsParallel               = $true
-                    ErrorAction              = 'Stop'
-                }
-                if ($null -ne $Script:PSSessionOption)
-                {
-                    $ConnectPFMExchangeParams.PSSessionOption = $Script:PSSessionOption
-                }
-                try
-                {
-                    Connect-PFMExchange @ConnectPFMExchangeParams
-                    WriteLog -message "Connected Parallel PSSession to $($s.ServerFQDN) for Stats operations" -entrytype Notification -verbose
-                    $connectSessionSuccess.Add($s.ServerFQDN)
-                }
-                catch
-                {
-                    WriteLog -message "Unable to connect a remote Exchange Powershell session to $($s.ServerFQDN)" -entryType Failed -Verbose
-                    $connectSessionFailure.Add($s.ServerFQDN)
-                }
-            }
-            $ServerDatabaseToProcess, $ServerDatabaseRetry = $ServerDatabase.where( { $_.ServerFQDN -in $connectSessionSuccess }, 'Split')
-            if ($connectSessionFailure.Count -ge 1)
-            {
-                WriteLog -message "Connect Session Failures: $($connectSessionFailure -join ',')" -entrytype Notification
-                if ($PSCmdlet.ParameterSetName -in @('InfoObject', 'Path'))
-                {
-                    throw('Not all required or specified public folder servers were connected to for stats operations. Quitting to avoid incomplete data return')
-                    Return $null
-                }
-            }
-            if ($connectSessionSuccess.count -eq 0)
-            {
-                throw('None of the specified public folder servers were connected to for stats operations. Quitting to avoid incomplete data return')
-                Return $null
-            }
         }
         $ValidationRecords = [System.Collections.ArrayList]::new()
     }
@@ -158,11 +118,9 @@ Function Invoke-PFMRemovePublicFolder
                 $folderstats = @(
                     foreach ($r in $foundfolder.replicas)
                     {
-                        $ServerSession = Get-PFMParallelPSSession -name $DatabaseServerLookup.$r.ServerFQDN
-                        Confirm-PFMExchangeConnection -IsParallel -PSSession $ServerSession
-                        $ServerSession = Get-PFMParallelPSSession -name $DatabaseServerLookup.$r.ServerFQDN
+                        $ServerFQDN = $DatabaseServerLookup.$r.ServerFQDN
                         Invoke-Command -Session $ServerSession -ScriptBlock {
-                            Get-PublicFolderStatistics -Identity $using:EntryID -Server $using:ServerName -ErrorAction SilentlyContinue
+                            Get-PublicFolderStatistics -Identity $using:EntryID -Server $using:ServerFQDN -ErrorAction SilentlyContinue
                         }
                     }
                 )
