@@ -67,7 +67,7 @@ Function Invoke-PFMValidatePublicFolder
         }
         $ValidationRecords = [System.Collections.ArrayList]::new()
     }
-    Get-Process
+    process
     {
         :nexti foreach ($i in $Identity)
         {
