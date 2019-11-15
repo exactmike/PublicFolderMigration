@@ -154,6 +154,7 @@ Function Invoke-PFMRemovePublicFolder
             #endregion getfolder
             if ($Validations -contains 'NoItems' -or $TimeValidations.Count -ge 1 )
             {
+                $EntryID = $foundfolder.EntryID
                 $folderstats = @(
                     foreach ($r in $foundfolder.replicas)
                     {
