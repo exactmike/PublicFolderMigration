@@ -128,11 +128,13 @@ Function Invoke-PFMRemovePublicFolder
             #region validate
             foreach ($v in $Validations)
             {
-                $vResult = [pscustomobject]@{ Name = $v; Result = $null }
+                $vResult = [pscustomobject]@{ Name = $v; Result = $null ; EvaluatedAttribute = ''; EvaluatedValue = $null }
                 switch ($v)
                 {
                     'NoSubFolders'
                     {
+                        $vResult.EvaluatedAttribute = 'hasSubfolders'
+                        $vResult.EvaluatedValue = $foundfolder.hasSubfolders
                         if ($false -eq $foundfolder.hasSubfolders)
                         {
                             $vResult.Result = $true
@@ -144,6 +146,8 @@ Function Invoke-PFMRemovePublicFolder
                     }
                     'NotMailEnabled'
                     {
+                        $vResult.EvaluatedAttribute = 'MailEnabled'
+                        $vResult.EvaluatedValue = $foundfolder.MailEnabled
                         if ($false -eq $foundfolder.mailenabled)
                         {
                             $vResult.Result = $true
@@ -155,8 +159,10 @@ Function Invoke-PFMRemovePublicFolder
                     }
                     'NoItems'
                     {
+                        $vResult.EvaluatedAttribute = 'ItemCount'
                         $max = 0
                         $folderstats.foreach( { if ($max -lt $_.itemcount) { $max = $_.itemcount } })
+                        $vResult.EvaluatedValue = $max
                         if ($max -eq 0)
                         {
                             $vResult.Result = $true
