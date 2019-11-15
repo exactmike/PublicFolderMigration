@@ -80,8 +80,10 @@ Function Invoke-PFMValidatePublicFolder
                 ValidationResults  = [System.Collections.ArrayList]::new()
                 Validated          = $false
                 ValidatedTimeStamp = $null
-                RemovalResult      = $null
-                RemovalError       = ''
+                ActionName         = ''
+                ActionResult       = $null
+                ActionError        = ''
+                ActionTimeStamp    = $null
             }
             #region getfolder
             $folder = @(
