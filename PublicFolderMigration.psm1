@@ -25,10 +25,10 @@ enum ItemActivityTime { LastUserModificationTime; LastUserAccessTime; CreationTi
 ###############################################################################################
 #Public Folder Migration Module Functions
 ###############################################################################################
-$AllFunctionFiles = Get-ChildItem -Recurse -File -Path $(Join-Path -Path $PSScriptRoot -ChildPath 'Functions')
+$AllFunctionFiles = Get-ChildItem -Recurse -File -Filter *.ps1 -Path $(Join-Path -Path $PSScriptRoot -ChildPath 'Functions')
 #$PublicFunctionFiles = $AllFunctionFiles.where( { $_.PSParentPath -like '*\Public' })
 #$PrivateFunctionFiles = $AllFunctionFiles.where( { $_.PSParentPath -like '*\Private' })
-foreach ($ff in $AllFunctionFiles) { if ($ff.fullname -like '*.ps1') { . $ff.fullname } }
+$AllFunctionFiles.foreach( { . $_.fullname })
 
 ###############################################################################################
 #Public Folder Migration Module Removal Routines
