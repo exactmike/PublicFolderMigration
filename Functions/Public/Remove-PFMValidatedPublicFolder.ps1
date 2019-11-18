@@ -35,7 +35,7 @@ Function Remove-PFMValidatedPublicFolder
                     Confirm     = $false
                     Identity    = $pfv.FoundEntryID
                 }
-                Confirm-PFMExchangeConnection -IsParallel -Session $ParallelSession
+                Confirm-PFMExchangeConnection -IsParallel -PSSession $ParallelSession
                 $ParallelSession = Get-PFMParallelPSSession -name $script:ExchangeOnPremisesServer
                 try
                 {
