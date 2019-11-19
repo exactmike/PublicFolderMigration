@@ -1,4 +1,4 @@
-Function Export-Data
+Function Export-PFMData
 {
     [cmdletbinding(DefaultParameterSetName = 'delimited')]
     param(
