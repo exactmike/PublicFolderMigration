@@ -16,6 +16,8 @@ Function Get-PFMExchangePSSession
         [System.Management.Automation.Remoting.PSSessionOption]$PSSessionOption
         ,
         [switch]$IsParallel
+        ,
+        [switch]$UseBasicAuth
     )
     $NewPsSessionParams = @{
         ErrorAction       = 'Stop'
@@ -44,7 +46,13 @@ Function Get-PFMExchangePSSession
                 $false
                 { $NewPsSessionParams.ConnectionURI = 'http://' + $ExchangeServer + '/PowerShell/' }
             }
-            $NewPsSessionParams.Authentication = 'Kerberos'
+            switch ($true -eq $UseBasicAuth)
+            {
+                $true
+                { $NewPsSessionParams.Authentication = 'Basic' }
+                $false
+                { $NewPsSessionParams.Authentication = 'Kerberos' }
+            }
             $NewPsSessionParams.Name = $ExchangeServer
         }
     }

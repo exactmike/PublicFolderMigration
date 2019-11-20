@@ -59,6 +59,10 @@ Intended for internal module use only, this parameter is used when creating one 
         [parameter(Mandatory, ParameterSetName = 'ExchangeOnPremisesParallel')]
         [parameter(Mandatory, ParameterSetName = 'ExchangeOnlineParallel')]
         [switch]$IsParallel
+        ,
+        [parameter(ParameterSetName = 'ExchangeOnPremises')]
+        [parameter(ParameterSetName = 'ExchangeOnPremisesParallel')]
+        [switch]$UseBasicAuth
     )
 
     #Force user to run Connect-PFMExchange for organization before IsParallel
@@ -105,6 +109,10 @@ Intended for internal module use only, this parameter is used when creating one 
         {
             $GetPFMExchangePSSessionParams.ExchangeServer = $ExchangeOnPremisesServer
         }
+    }
+    if ($true -eq $UseBasicAuth)
+    {
+        $GetPFMExchangePSSessionParams.UseBasicAuth = $true
     }
 
     #Get the Required Exchange Session
