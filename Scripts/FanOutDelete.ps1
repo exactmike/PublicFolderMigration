@@ -168,27 +168,51 @@ $credential = Get-Credential
 $ListDataFile = Read-OpenFileDialog -WindowTitle 'Select Data File to Process'
 $ServersFile = Read-OpenFileDialog -WindowTitle 'Select Servers File to Process'
 $ListData = Import-Csv $ListDataFile
-$Servers = (Import-Csv $ServersFile).rpclientaccessserver
+$Servers = Import-Csv $ServersFile
 
-$SplitArrayRange = New-SplitArrayRange -inputArray $ListData -parts $Servers.count
+#$SplitArrayRange = New-SplitArrayRange -inputArray $ListData -parts $Servers.count
 $part = 0
 foreach ($s in $Servers)
 {
     $part++
-    $thisSplitArrayRange = $SplitArrayRange.where( { $_.Part -eq $part })
-    $SplitData = $ListData[$thisSplitArrayRange.Start..$thisSplitArrayRange.end]
+    #$thisSplitArrayRange = $SplitArrayRange.where( { $_.Part -eq $part })
+    $SplitData = $ListData.where($_.rpcClientAccessServer -eq $s)
     $StartComplexJobParams = @{
         name      = $s
-        arguments = @($SplitData, $s, $credential)
+        arguments = @($SplitData, $s, $credential, $part)
         script    = [scriptblock] {
             Import-Module PublicFolderMigration
             $List = $args[0]
             $Server = $args[1]
             $credential = $args[2]
+            $part = $args[3]
+            $RecordCount = $List.count
+            $Record = 0
+            $Interval = 10
             Connect-PFMExchange -ExchangeOnPremisesServer $Server -Credential $credential
+            $Stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
             $List.EntryID |
             Invoke-PFMValidatePublicFolder -Validations NoSubFolders, NotMailEnabled, NoItems -OutputFolderPath D:\PerficientReports\PFDeletions\ |
-            Remove-PFMValidatedPublicFolder -OutputFolderPath D:\PerficientReports\PFDeletions\
+            Remove-PFMValidatedPublicFolder -OutputFolderPath D:\PerficientReports\PFDeletions\ -passthru |
+            & { process
+                {
+                    $Record++
+                    if ($Record % $Interval -eq 0)
+                    {
+                        $SecondsPerRecord = [math]::Round($($(Stopwatch.TotalSeconds) / $Record), 1)
+                        $RemainingRecords = $RecordCount - $Record
+                        $SecondsRemaining = $SecondsPerRecord * $RemainingRecords
+                        $ProgressParams = @{
+                            Activity         = 'PF Removals'
+                            Status           = "Minutes Elapsed:$($Stopwatch.TotalMinutes). "
+                            PercentComplete  = $($Record / $RecordCount * 100)
+                            SecondsRemaining = $SecondsRemaining
+                            ParentID         = 0
+                            ID               = $part
+                        }
+                        Write-Progress @ProgressParams
+                    }
+                } }
         }
     }
     Start-ComplexJob @StartComplexJobParams
