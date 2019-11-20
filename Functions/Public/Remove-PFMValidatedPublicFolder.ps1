@@ -13,6 +13,9 @@ Function Remove-PFMValidatedPublicFolder
         [parameter()]
         [ValidateSet('Unicode', 'BigEndianUnicode', 'Ascii', 'Default', 'UTF8', 'UTF8NOBOM', 'UTF7', 'UTF32')]
         [string]$Encoding = 'UTF8'
+        ,
+        [parameter()]
+        [switch]$Passthru
     )
     begin
     {
@@ -63,6 +66,10 @@ Function Remove-PFMValidatedPublicFolder
             if ($true -eq $haderror)
             {
                 Out-File -InputObject $pfvjson -Append -FilePath $ErrorResultPath -Encoding $Encoding
+            }
+            if ($true -eq $Passthru)
+            {
+                $pfv
             }
         }
     }
