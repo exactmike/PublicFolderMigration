@@ -91,7 +91,7 @@ function Get-PFMPublicFolderDatabase
         $CreatedFilePath = @(
             foreach ($of in $Outputformat)
             {
-                Export-Data -ExportFolderPath $OutputFolderPath -DataToExportTitle 'PublicFolderDatabases' -ReturnExportFilePath -Encoding $Encoding -DataFormat $of -DataToExport $pfDatabaseInfoObjects
+                Export-PFMData -ExportFolderPath $OutputFolderPath -DataToExportTitle 'PublicFolderDatabases' -ReturnExportFilePath -Encoding $Encoding -DataFormat $of -DataToExport $pfDatabaseInfoObjects
             }
         )
         WriteLog -Message "Output files created: $($CreatedFilePath -join '; ')" -entryType Notification -verbose

@@ -86,6 +86,7 @@ Function Invoke-PFMValidatePublicFolder
                 ActionTimeStamp    = $null
             }
             #region getfolder
+            Confirm-PFMExchangeConnection -PSSession $Script:PSSession
             $folder = @(
                 try
                 {
@@ -110,6 +111,7 @@ Function Invoke-PFMValidatePublicFolder
             #endregion getfolder
             if ($Validations -contains 'NoItems' -or $TimeValidations.Count -ge 1 )
             {
+                Confirm-PFMExchangeConnection -PSSession $Script:PSSession
                 $EntryID = $foundfolder.EntryID
                 $folderstats = @(
                     foreach ($r in $foundfolder.replicas)

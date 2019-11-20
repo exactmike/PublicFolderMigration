@@ -81,16 +81,16 @@ function Find-PFMOrphanedMailEnabledPublicFolder
     {
         $message = "Found Public Folders which are mail enabled but for which no mail enabled public folder object was found with get-mailpublicfolder.  Exporting Data."
         WriteLog -message $message -Verbose
-        $file1 = Export-Data -DataToExport $EPFMEWithoutMEPF -DataToExportTitle 'PublicFoldersMissingMailEnabledObject' -Depth 3 -DataFormat json -ReturnExportFilePath
-        $file2 = Export-Data -DataToExport $EPFMEWithoutMEPF -DataToExportTitle 'PublicFoldersMissingMailEnabledObject' -DataFormat csv -ReturnExportFilePath
+        $file1 = Export-PFMData -DataToExport $EPFMEWithoutMEPF -DataToExportTitle 'PublicFoldersMissingMailEnabledObject' -Depth 3 -DataFormat json -ReturnExportFilePath
+        $file2 = Export-PFMData -DataToExport $EPFMEWithoutMEPF -DataToExportTitle 'PublicFoldersMissingMailEnabledObject' -DataFormat csv -ReturnExportFilePath
         WriteLog -Message "Exported Files: $file1,$file2" -Verbose
     }
     if ($MEPFWithoutEPFME.Count -ge 1)
     {
         $message = "Found Mail Enabled Public Folders for which no public folder object was found.  Exporting Data."
         WriteLog -message $message -Verbose
-        $file1 = Export-Data -DataToExport $MEPFWithoutEPFME -DataToExportTitle 'MailEnabledPublicFolderMissingPublicFolderObject' -Depth 3 -DataFormat json -ReturnExportFilePath
-        $file2 = Export-Data -DataToExport $MEPFWithoutEPFME -DataToExportTitle 'MailEnabledPublicFolderMissingPublicFolderObject' -DataFormat csv -ReturnExportFilePath
+        $file1 = Export-PFMData -DataToExport $MEPFWithoutEPFME -DataToExportTitle 'MailEnabledPublicFolderMissingPublicFolderObject' -Depth 3 -DataFormat json -ReturnExportFilePath
+        $file2 = Export-PFMData -DataToExport $MEPFWithoutEPFME -DataToExportTitle 'MailEnabledPublicFolderMissingPublicFolderObject' -DataFormat csv -ReturnExportFilePath
         WriteLog -Message "Exported Files: $file1,$file2" -Verbose
     }
 }

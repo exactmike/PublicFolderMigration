@@ -151,7 +151,7 @@ Function Get-PFMPublicFolderTree
     $CreatedFilePath = @(
         foreach ($of in $Outputformat)
         {
-            Export-Data -ExportFolderPath $OutputFolderPath -DataToExportTitle 'PublicFolderTree' -ReturnExportFilePath -Encoding $Encoding -DataFormat $of -DataToExport $Folders
+            Export-PFMData -ExportFolderPath $OutputFolderPath -DataToExportTitle 'PublicFolderTree' -ReturnExportFilePath -Encoding $Encoding -DataFormat $of -DataToExport $Folders
         }
     )
     WriteLog -Message "Output files created: $($CreatedFilePath -join '; ')" -entryType Notification -verbose
