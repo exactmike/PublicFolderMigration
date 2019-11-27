@@ -55,7 +55,7 @@ function Get-PFMPublicFolderStat
         ,
         [parameter(Mandatory)]
         [ExportDataOutputFormat[]]$Outputformat
-        ,
+        <#,
         [parameter()]
         #Add ValidateScript to verify Email Configuration is set
         [ValidateScript( {
@@ -69,7 +69,7 @@ function Get-PFMPublicFolderStat
                     $true
                 } })]
         [switch]$SendEmail
-        ,
+        #>,
         [parameter()]
         [ValidateSet('Unicode', 'BigEndianUnicode', 'Ascii', 'Default', 'UTF8', 'UTF8NOBOM', 'UTF7', 'UTF32')]
         [string]$Encoding = 'UTF8'
