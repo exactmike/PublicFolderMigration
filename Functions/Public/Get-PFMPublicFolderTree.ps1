@@ -87,8 +87,6 @@ Function Get-PFMPublicFolderTree
     WriteLog -Message "PublicFolder Path Type specified by user parameters: $PublicFolderPathType"  -EntryType Notification -verbose
     #endregion ValidateParameters
     #region BuildServerAndDatabaseLists
-    WriteLog -Message "Validated Public Folder Mailbox Server To Query: $PublicFolderMailboxServer" -EntryType Notification -Verbose
-
     #setup property list to retrieve
     $PropertyList = $Script:PublicFolderPropertyList
 
