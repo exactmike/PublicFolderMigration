@@ -71,6 +71,8 @@ Function Get-PFMPublicFolderPermission
         ,
         #exclude output where the resulting permission is 'none'
         [switch]$ExcludeNonePermissionOutput
+        ,
+        [switch]$ExcludedIdentitiesAreEntryID
     )#End Param
     Begin
     {
@@ -111,31 +113,43 @@ Function Get-PFMPublicFolderPermission
         #Region GetExcludedRecipients
         if ($PSBoundParameters.ContainsKey('ExcludedIdentities'))
         {
-            try
+            switch ($true -eq $ExcludedIdentitiesAreEntryID)
             {
-                $message = "Get public folder object(s) from Exchange Organization $ExchangeOrganization for the $($ExcludedIdentities.Count) ExcludedIdentities provided."
-                WriteLog -Message $message -EntryType Attempting -verbose
-                $excludedPublicFolders = @(
-                    $ExcludedIdentities | ForEach-Object {
-                        $splat = @{
-                            Identity    = $_
-                            ErrorAction = 'Stop'
-                        }
-                        Invoke-Command -Session $Script:PSSession -ScriptBlock { Get-PublicFolder @Using:splat | Select-Object -Property $using:PFPropertySet } -ErrorAction 'Stop'
+                $true
+                {
+                    try
+                    {
+                        $message = "Get public folder object(s) from Exchange Organization $ExchangeOrganization for the $($ExcludedIdentities.Count) ExcludedIdentities provided."
+                        WriteLog -Message $message -EntryType Attempting -verbose
+                        $excludedPublicFolders = @(
+                            $ExcludedIdentities | ForEach-Object {
+                                $splat = @{
+                                    Identity    = $_
+                                    ErrorAction = 'Stop'
+                                }
+                                Invoke-Command -Session $Script:PSSession -ScriptBlock { Get-PublicFolder @Using:splat | Select-Object -Property $using:PFPropertySet } -ErrorAction 'Stop'
+                            }
+                        )
+                        WriteLog -Message $message -EntryType Succeeded -verbose
                     }
-                )
-                WriteLog -Message $message -EntryType Succeeded -verbose
+                    Catch
+                    {
+                        $myError = $_
+                        WriteLog -Message $message -EntryType Failed -ErrorLog
+                        WriteLog -Message $myError.tostring() -ErrorLog
+                        throw("Failed: $Message")
+                    }
+                    WriteLog -Message "Found $($excludedPublicFolders.count) Public Folders for Exclusion from processing" -EntryType Notification
+                    $excludedPublicFoldersEntryIDHash = @{ }
+                    $excludedPublicFolders.foreach( { $excludedPublicFoldersEntryIDHash.$($_.EntryID.tostring()) = $_ })
+                }
+                $false
+                {
+                    WriteLog -Message "Processing $($ExcludedIdentities.count) EntryIDs for Exclusion from processing" -EntryType Notification
+                    $excludedPublicFoldersEntryIDHash = @{ }
+                    $ExcludedIdentities.foreach( { $excludedPublicFoldersEntryIDHash.$($_) = $_ } )
+                }
             }
-            Catch
-            {
-                $myError = $_
-                WriteLog -Message $message -EntryType Failed -ErrorLog
-                WriteLog -Message $myError.tostring() -ErrorLog
-                throw("Failed: $Message")
-            }
-            WriteLog -Message "Got $($excludedPublicFolders.count) Excluded Objects" -EntryType Notification
-            $excludedPublicFoldersEntryIDHash = @{ }
-            $excludedPublicFolders.foreach( { $excludedPublicFoldersEntryIDHash.$($_.EntryID.tostring()) = $_ })
         }
         else
         {
@@ -270,7 +284,7 @@ Function Get-PFMPublicFolderPermission
                 $ID = $ISR.EntryID.tostring()
                 if ($excludedPublicFoldersEntryIDHash.ContainsKey($ID))
                 {
-                    WriteLog -Message "Excluding Excluded Folder with EntryID $ID"
+                    #WriteLog -Message "Excluding Excluded Folder with EntryID $ID"
                     continue nextISR
                 }
                 if ($InScopeMailPublicFoldersHash.ContainsKey($ID))
@@ -290,17 +304,17 @@ Function Get-PFMPublicFolderPermission
                     $PermissionExportObjects = @(
                         If ($IncludeSendOnBehalf -and $InScopeMailPublicFoldersHash.ContainsKey($ID))
                         {
-                            WriteLog -Message "Getting SendOnBehalf Permissions for Target $ID" -entryType Notification
+                            #WriteLog -Message "Getting SendOnBehalf Permissions for Target $ID" -entryType Notification
                             GetSendOnBehalfPermission -TargetPublicFolder $ISR -TargetMailPublicFolder $ISRR -ObjectGUIDHash $ObjectGUIDHash -ExchangeSession $Script:PSSession -ExcludedTrusteeGUIDHash $excludedTrusteeGUIDHash -ExchangeOrganization $ExchangeOrganization -HRPropertySet $HRPropertySet -DomainPrincipalHash $DomainPrincipalHash -UnfoundIdentitiesHash $UnfoundIdentitiesHash
                         }
                         If ($IncludeClientPermission)
                         {
-                            WriteLog -Message "Getting Client Permissions for Target $ID" -entryType Notification
+                            #WriteLog -Message "Getting Client Permissions for Target $ID" -entryType Notification
                             GetClientPermission -TargetPublicFolder $ISR -TargetMailPublicFolder $ISRR -ObjectGUIDHash $ObjectGUIDHash -ExchangeSession $Script:PSSession -excludedTrusteeGUIDHash $excludedTrusteeGUIDHash -ExchangeOrganization $ExchangeOrganization -DomainPrincipalHash $DomainPrincipalHash -HRPropertySet $HRPropertySet -UnfoundIdentitiesHash $UnfoundIdentitiesHash
                         }
                         If ($IncludeSendAs -and $InScopeMailPublicFoldersHash.ContainsKey($ID))
                         {
-                            WriteLog -Message "Getting SendAS Permissions for Target $ID" -entryType Notification
+                            #WriteLog -Message "Getting SendAS Permissions for Target $ID" -entryType Notification
                             switch ($script:ExchangeOrganizationType)
                             {
                                 'ExchangeOnline'
@@ -318,7 +332,7 @@ Function Get-PFMPublicFolderPermission
                     )
                     if ($expandGroups -eq $true)
                     {
-                        WriteLog -Message "Expanding Group Based Permissions for Target $ID" -entryType Notification
+                        #WriteLog -Message "Expanding Group Based Permissions for Target $ID" -entryType Notification
                         $splat = @{
                             Permission              = $PermissionExportObjects
                             ObjectGUIDHash          = $ObjectGUIDHash
