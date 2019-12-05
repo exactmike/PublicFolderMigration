@@ -6,8 +6,6 @@ Function Get-PFMPublicFolderTree
     .DESCRIPTION
     Gets Public Folder Information Objects for all or specified public folders.  Returns a custom public folder information object which includes the following attributes:
     EntryID (A Unique Identifier), Name, Identity, MapiIdentity, ParentPath, HasSubFolders, ReplicasString (delimited with ;), Replicas, ReplicaCount, UseDatabaseReplicationSchedule, ReplicationScheduleString, ReplicationSchedule, PerUserReadStateEnabled, FolderType, MailEnabled, HiddenFromAddressListsEnabled, MaxItemSize, UseDatabaseQuotaDefaults, IssueWarningQuota, ProhibitPostQuota, UseDatabaseRetentionDefaults, RetainDeletedItemsFor, UseDatabaseAgeDefaults, AgeLimit, HasRules, HasModerator, IsValid
-    .PARAMETER PublicFolderMailboxServer
-    This parameter specifies the Exchange server from which to retrieve folder information to generate the Public Folder Information Objects.
     .PARAMETER PublicFolderPath
     This parameter specifies the Public Folder(s) to scan. If this is omitted, all public folders are scanned (except System Public Folders - see the IncludeSystemPublicFolders parameter). Include the leading '\'.
     .PARAMETER Recurse
@@ -32,9 +30,6 @@ Function Get-PFMPublicFolderTree
     [OutputType([System.Object[]])]
     param
     (
-        [parameter(Mandatory)]
-        [string]$PublicFolderMailboxServer
-        ,
         [parameter()]
         [string[]]$PublicFolderPath = @()
         ,
