@@ -126,8 +126,8 @@ Function Invoke-PFMValidatePublicFolder
             #region validate
             foreach ($v in $Validations)
             {
-                $vResult = [pscustomobject]@{ Name = $v; Result = $null ; EvaluatedAttribute = ''; EvaluatedValue = $null }
-                switch ($v)
+                $vResult = [pscustomobject]@{ Name = $v.tostring(); Result = $null ; EvaluatedAttribute = ''; EvaluatedValue = $null }
+                switch ($v.tostring()) #the .tostring is not strictly necessary here but it is in the assignment above
                 {
                     'NoSubFolders'
                     {
