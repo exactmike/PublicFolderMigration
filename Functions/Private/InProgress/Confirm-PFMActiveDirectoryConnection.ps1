@@ -1,0 +1,83 @@
+function Confirm-PFMExchangeConnection
+{
+    [cmdletbinding(DefaultParameterSetName = 'OrganizationConnection')]
+    Param(
+        [parameter(Mandatory, ParameterSetName = 'ParallelConnection')]
+        [switch]$IsParallel
+        ,
+        [parameter(Mandatory, ParameterSetName = 'ParallelConnection')]
+        [parameter(Mandatory, ParameterSetName = 'OrganizationConnection')]
+        [AllowNull()]
+        [System.Management.Automation.Runspaces.PSSession]$PSSession
+    )
+    switch ($script:ConnectExchangeOrganizationCompleted)
+    {
+        $true
+        {
+            switch (Test-PFMExchangePSSession -PSSession $PSSession)
+            {
+                $false
+                {
+                    #Remove storage of the existing session
+                    WriteLog -Message "Removing Existing Failed PSSession: $($PSSession.Name)" -EntryType Notification
+                    switch ($PSCmdlet.ParameterSetName)
+                    {
+                        'OrganizationConnection'
+                        {
+                            Remove-PSSession -Session $PsSession -ErrorAction SilentlyContinue
+                            $script:PSSession = $null
+                        }
+                        'ParallelConnection'
+                        {
+                            #nothing at this stage Add-PFMParallelPSSession does the work to update $script:ParalellPSSession
+                        }
+                    }
+                    #establish a new session
+                    WriteLog -Message "Establishing New PSSession to $($PSSession.Name)" -EntryType Notification
+                    $GetPFMExchangePSSessionParams = @{
+                        ErrorAction = 'Stop'
+                        Credential  = $Script:ExchangeCredential
+                    }
+                    if ($null -ne $Script:PSSessionOption)
+                    {
+                        $GetPFMExchangePSSessionParams.PSSessionOption = $script:PSSessionOption
+                    }
+                    switch ($Script:ExchangeOrganizationType)
+                    {
+                        'ExchangeOnline'
+                        {
+                            $GetPFMExchangePSSessionParams.ExchangeOnline = $true
+                        }
+                        'ExchangeOnPremises'
+                        {
+                            if ($true -eq $IsParallel)
+                            { $GetPFMExchangePSSessionParams.IsParallel = $true }
+                            $GetPFMExchangePSSessionParams.ExchangeServer = $PSSession.Name
+                        }
+                    }
+                    $NewPSSession = Get-PFMExchangePSSession @GetPFMExchangePSSessionParams
+                    #Update storage of the updated session
+                    switch ($PSCmdlet.ParameterSetName)
+                    {
+                        'OrganizationConnection'
+                        {
+                            $Script:PSSession = $NewPSSession
+                        }
+                        'ParallelConnection'
+                        {
+                            Add-PFMParallelPSSession -PSSession $NewPSSession
+                        }
+                    }
+                }
+            }
+        }
+        $false
+        {
+            Write-ConnectPFMExchangeUserError
+        }
+        $null
+        {
+            Write-ConnectPFMExchangeUserError
+        }
+    }
+}
