@@ -77,6 +77,10 @@ Function Get-PFMPublicFolderPermission
     Begin
     {
         Confirm-PFMExchangeConnection -PSSession $Script:PSSession
+        If ($script:ExchangeOrganizationType -eq 'ExchangeOnPremises')
+        {
+            Confirm-PFMActiveDirectoryConnection -PSSession $script:ADPSSession
+        }
         $BeginTimeStamp = Get-Date -Format yyyyMMdd-HHmmss
         $script:LogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'GetPublicFolderPermission.log')
         $script:ErrorLogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'GetPublicFolderPermission-ERRORS.log')

@@ -11,6 +11,7 @@ $ModuleVariableNames = (
     'ExchangeOnPremisesServer',
     'ParallelPSSession',
     'PSSession',
+    'ADPSSession',
     'PSSessionOption',
     'UseAlternateParallelism',
     'PublicFolderPropertyList'
