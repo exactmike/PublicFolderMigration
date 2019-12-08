@@ -1,4 +1,4 @@
-Function Get-PFMExchangePSSession
+Function Get-PFMActiveDirectoryPSSession
 {
     [CmdletBinding()]
     [OutputType([System.Management.Automation.Runspaces.PSSession])]

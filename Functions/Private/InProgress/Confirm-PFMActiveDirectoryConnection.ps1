@@ -1,4 +1,4 @@
-function Confirm-PFMExchangeConnection
+function Confirm-PFMActiveDirectoryConnection
 {
     [cmdletbinding(DefaultParameterSetName = 'OrganizationConnection')]
     Param(
