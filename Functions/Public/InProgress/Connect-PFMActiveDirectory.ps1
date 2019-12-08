@@ -36,9 +36,6 @@ PSSessionOption parameter accepts a PSSessionOption object to configure PSSessio
             })]
         [string]$DomainController
         ,
-        [parameter()]
-        [switch]$UseAlternateParallelism
-        ,
         [parameter(Mandatory)]
         [pscredential]$Credential
         ,
@@ -47,12 +44,6 @@ PSSessionOption parameter accepts a PSSessionOption object to configure PSSessio
         [parameter()]
         [switch]$UseBasicAuth
     )
-
-    #Force user to run Connect-PFMExchange for organization before IsParallel
-    if ($null -eq $ConnectActiveDirectoryCompleted -or $false -eq $ConnectActiveDirectoryCompleted)
-    {
-        Write-ConnectPFMActiveDirectoryUserError
-    }
 
     #set module variables for credential and Active Directory
     $script:ADCredential = $Credential
