@@ -45,7 +45,7 @@ Function Get-PFMActiveDirectoryPSSession
     }
     try
     {
-        Invoke-Command -Session $ActiveDirectorySession -ScriptBlock { New-PSDrive -PSProvider ActiveDirectory -GlobalCatalog -Root '' -Name 'GC' -ErrorAction Stop } -ErrorAction Stop
+        $null = Invoke-Command -Session $ActiveDirectorySession -ScriptBlock { New-PSDrive -PSProvider ActiveDirectory -GlobalCatalog -Root '' -Name 'GC' -ErrorAction Stop } -ErrorAction Stop
         $GCDriveCreated = $true
     }
     catch
