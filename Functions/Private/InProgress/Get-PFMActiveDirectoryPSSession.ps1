@@ -12,8 +12,6 @@ Function Get-PFMActiveDirectoryPSSession
         ,
         [System.Management.Automation.Remoting.PSSessionOption]$PSSessionOption
         ,
-        [switch]$IsParallel
-        ,
         [switch]$UseBasicAuth
     )
     $NewPsSessionParams = @{
