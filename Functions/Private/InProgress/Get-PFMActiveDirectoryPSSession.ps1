@@ -32,6 +32,7 @@ Function Get-PFMActiveDirectoryPSSession
         { $NewPsSessionParams.Authentication = 'Kerberos' }
     }
     $NewPsSessionParams.Name = $DomainController
+    $NewPSSessionParams.Computer = $DomainController
     $ActiveDirectorySession = New-PSSession @NewPsSessionParams
     $ADModuleImported = $false
     $GCDriveCreated = $false
