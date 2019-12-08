@@ -13,6 +13,7 @@ $ModuleVariableNames = (
     'ExchangeOnPremisesServer',
     'DomainController',
     'ParallelPSSession',
+    'ParallelADPSSession',
     'PSSession',
     'ADPSSession',
     'PSSessionOption',
