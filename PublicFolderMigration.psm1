@@ -4,11 +4,14 @@
 ###############################################################################################
 $ModuleVariableNames = (
     'ConnectExchangeOrganizationCompleted',
+    'ConnectActiveDirectoryCompleted',
     'ExchangeCredential',
+    'ADCredential',
     'EmailConfiguration',
     'ExchangeOrganizationType',
     'ExchangeOrganization',
     'ExchangeOnPremisesServer',
+    'DomainController',
     'ParallelPSSession',
     'PSSession',
     'ADPSSession',
