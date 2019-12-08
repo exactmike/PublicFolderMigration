@@ -34,6 +34,7 @@ Function Get-PFMExchangePSSession
     $NewPsSessionParams.Name = $DomainController
     $ActiveDirectorySession = New-PSSession @NewPsSessionParams
     $ADModuleImported = $false
+    $GCDriveCreated = $false
     try
     {
         Invoke-Command -Session $ActiveDirectorySession -ScriptBlock { Import-Module ActiveDirectory -ErrorAction Stop } -ErrorAction Stop
@@ -43,7 +44,16 @@ Function Get-PFMExchangePSSession
     {
         throw ($_)
     }
-    if ($true -eq $ADModuleImported)
+    try
+    {
+        Invoke-Command -Session $ActiveDirectorySession -ScriptBlock { New-PSDrive -PSProvider ActiveDirectory -GlobalCatalog -Root '' -Name 'GC' -ErrorAction Stop } -ErrorAction Stop
+        $GCDriveCreated = $true
+    }
+    catch
+    {
+        throw ($_)
+    }
+    if ($true -eq $ADModuleImported -and $true -eq $GCDriveCreated)
     {
         $ActiveDirectorySession
     }
