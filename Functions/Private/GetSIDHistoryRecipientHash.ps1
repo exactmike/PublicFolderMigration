@@ -23,7 +23,7 @@ Function GetSIDHistoryRecipientHash
     {
         $message = "Get AD Objects with Exchange Attributes and SIDHistory from AD Drive $ADPSDriveName"
         WriteLog -Message $message -EntryType Attempting
-        $sidHistoryUsers = @(Get-adobject -ldapfilter $ldapfilter -Properties sidhistory, legacyExchangeDN -ErrorAction Stop)
+        $sidHistoryUsers = @(Get-ADObject -ldapfilter $ldapfilter -Properties sidhistory, legacyExchangeDN -ErrorAction Stop)
         WriteLog -Message $message -EntryType Succeeded
     }
     Catch
