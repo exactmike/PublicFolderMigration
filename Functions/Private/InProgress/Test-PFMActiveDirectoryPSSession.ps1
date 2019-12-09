@@ -1,4 +1,4 @@
-Function Test-PFMExchangePSSession
+Function Test-PFMActiveDirectoryPSSession
 {
 
     [CmdletBinding()]
