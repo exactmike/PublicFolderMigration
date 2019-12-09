@@ -240,7 +240,7 @@ Function Get-PFMPublicFolderPermission
         #Region GetSIDHistoryData
         if ($IncludeSIDHistory -eq $true)
         {
-            $SIDHistoryRecipientHash = GetSIDHistoryRecipientHash -ADPSDriveName $ADPSDriveName -ExchangeSession $Script:PSSession -ErrorAction Stop
+            $SIDHistoryRecipientHash = Get-SIDHistoryRecipientHash -ExchangePSSession $Script:PSSession -ADPSSession $Script:ADPSSession -ErrorAction Stop
         }
         else
         {
