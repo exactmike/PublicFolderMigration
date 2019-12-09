@@ -37,10 +37,6 @@ Function Get-PFMPublicFolderPermission
         [ValidateScript( { TestIsWriteableDirectory -Path $_ })]
         $OutputFolderPath
         ,
-        [parameter()]
-        [ValidateScript( { TestADPSDrive -name $_ -IsRootofDirectory })]
-        $ADPSDriveName
-        ,
         #Public Folder identities to exclude from permissions gathering (use folder name, full path, or EntryID).  EntryID is preferred as it is guaranteed to be unique.
         [parameter()]
         [string[]]$ExcludedIdentities
@@ -100,17 +96,14 @@ Function Get-PFMPublicFolderPermission
             {
                 If ($true -eq $IncludeSidHistory -or $true -eq $IncludeSendAs -or $true -eq $ExpandGroups)
                 {
-                    if ($null -eq $ADPSDriveName)
-                    {
-                        throw ('You need to use the ADPSDrive name parameter to provide an existing PowerShell Active Directory PSdrive connection to the AD forest where Exchange is installed')
-                    }
+                    Confirm-PFMActiveDirectoryConnection -pssession $script:ADPSSession
                 }
             }
         }
         #Configure properties to retain in memory / hashtables for retrieved public folders and Recipients
         $PFPropertySet = @('EntryID', 'Identity', 'Name', 'ParentPath', 'FolderType', 'Has*', 'HiddenFromAddressListsEnabled', '*Quota', 'MailEnabled', 'Replicas', 'ReplicationSchedule', 'RetainDeletedItemsFor', 'Use*')
         $HRPropertySet = @('*name*', '*addr*', 'RecipientType*', '*Id', 'Identity', 'GrantSendOnBehalfTo')
-        $ExportedExchangePublicFolderPermissionsFile = Join-Path -Path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'ExportedExchangePublicFolderPermissions.csv')
+        $ExportedExchangePublicFolderPermissionsFile = Join-Path -Path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'ExchangePublicFolderPermissions.csv')
         $ResumeIndex = 0
         [uint32]$Script:PermissionIdentity = 0
         #create a property set for storing of recipient data during processing.  We don't need all attributes in memory/storage.
@@ -119,7 +112,7 @@ Function Get-PFMPublicFolderPermission
         {
             switch ($true -eq $ExcludedIdentitiesAreEntryID)
             {
-                $true
+                $false
                 {
                     try
                     {
@@ -147,7 +140,7 @@ Function Get-PFMPublicFolderPermission
                     $excludedPublicFoldersEntryIDHash = @{ }
                     $excludedPublicFolders.foreach( { $excludedPublicFoldersEntryIDHash.$($_.EntryID.tostring()) = $_ })
                 }
-                $false
+                $true
                 {
                     WriteLog -Message "Processing $($ExcludedIdentities.count) EntryIDs for Exclusion from processing" -EntryType Notification
                     $excludedPublicFoldersEntryIDHash = @{ }
