@@ -80,4 +80,5 @@ PSSessionOption parameter accepts a PSSessionOption object to configure PSSessio
     $script:ADPSSession = $ADPSSession
     $script:ConnectActiveDirectoryCompleted = $true
     $script:ADForest = Invoke-Command -Session $Script:ADPSSession -ScriptBlock { Set-Location -Path 'AD:\'; Get-ADForest | Select-Object -ExpandProperty Name }
+    Write-Information -MessageData "Connected to AD Forest $script:ADForest"
 }

@@ -126,6 +126,7 @@ Intended for internal module use only, this parameter is used when creating one 
             switch -wildcard ($PSCmdlet.ParameterSetName)
             { 'ExchangeOnPremises*' { $Script:ExchangeOrganizationType = 'ExchangeOnPremises' } 'ExchangeOnline*' { $Script:ExchangeOrganizationType = 'ExchangeOnline' } }
             $script:ExchangeOrganization = Invoke-Command -Session $Script:PSSession -ScriptBlock { Get-OrganizationConfig | Select-Object -ExpandProperty Identity | Select-Object -ExpandProperty Name }
+            Write-Information -MessageData "Connected to Exchange Organization $script:ExchangeOrganization"
         }
         $true
         {
