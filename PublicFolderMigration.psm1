@@ -10,6 +10,7 @@ $ModuleVariableNames = (
     'EmailConfiguration',
     'ExchangeOrganizationType',
     'ExchangeOrganization',
+    'ADForest',
     'ExchangeOnPremisesServer',
     'DomainController',
     'ParallelPSSession',

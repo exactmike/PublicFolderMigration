@@ -1,83 +1,47 @@
 function Confirm-PFMActiveDirectoryConnection
 {
-    [cmdletbinding(DefaultParameterSetName = 'OrganizationConnection')]
+    [cmdletbinding()]
     Param(
-        [parameter(Mandatory, ParameterSetName = 'ParallelConnection')]
-        [switch]$IsParallel
-        ,
-        [parameter(Mandatory, ParameterSetName = 'ParallelConnection')]
-        [parameter(Mandatory, ParameterSetName = 'OrganizationConnection')]
+        [parameter(Mandatory)]
         [AllowNull()]
         [System.Management.Automation.Runspaces.PSSession]$PSSession
     )
-    switch ($script:ConnectExchangeOrganizationCompleted)
+    switch ($script:ConnectActiveDirectoryCompleted)
     {
         $true
         {
-            switch (Test-PFMExchangePSSession -PSSession $PSSession)
+            switch (Test-PFMActiveDirectoryPSSession -PSSession $PSSession)
             {
                 $false
                 {
                     #Remove storage of the existing session
                     WriteLog -Message "Removing Existing Failed PSSession: $($PSSession.Name)" -EntryType Notification
-                    switch ($PSCmdlet.ParameterSetName)
-                    {
-                        'OrganizationConnection'
-                        {
-                            Remove-PSSession -Session $PsSession -ErrorAction SilentlyContinue
-                            $script:PSSession = $null
-                        }
-                        'ParallelConnection'
-                        {
-                            #nothing at this stage Add-PFMParallelPSSession does the work to update $script:ParalellPSSession
-                        }
-                    }
+                    Remove-PSSession -Session $PsSession -ErrorAction SilentlyContinue
+                    $script:PSSession = $null
                     #establish a new session
                     WriteLog -Message "Establishing New PSSession to $($PSSession.Name)" -EntryType Notification
-                    $GetPFMExchangePSSessionParams = @{
+                    $GetPFMActiveDirectoryPSSessionParams = @{
                         ErrorAction = 'Stop'
-                        Credential  = $Script:ExchangeCredential
+                        Credential  = $Script:ADCredential
                     }
                     if ($null -ne $Script:PSSessionOption)
                     {
-                        $GetPFMExchangePSSessionParams.PSSessionOption = $script:PSSessionOption
+                        $GetPFMActiveDirectoryPSSessionParams.PSSessionOption = $script:PSSessionOption
                     }
-                    switch ($Script:ExchangeOrganizationType)
-                    {
-                        'ExchangeOnline'
-                        {
-                            $GetPFMExchangePSSessionParams.ExchangeOnline = $true
-                        }
-                        'ExchangeOnPremises'
-                        {
-                            if ($true -eq $IsParallel)
-                            { $GetPFMExchangePSSessionParams.IsParallel = $true }
-                            $GetPFMExchangePSSessionParams.ExchangeServer = $PSSession.Name
-                        }
-                    }
-                    $NewPSSession = Get-PFMExchangePSSession @GetPFMExchangePSSessionParams
+                    $GetPFMActiveDirectoryPSSessionParams.DomainController = $PSSession.Name
+                    $NewPSSession = Get-PFMActiveDirectoryPSSession @GetPFMActiveDirectoryPSSessionParams
                     #Update storage of the updated session
-                    switch ($PSCmdlet.ParameterSetName)
-                    {
-                        'OrganizationConnection'
-                        {
-                            $Script:PSSession = $NewPSSession
-                        }
-                        'ParallelConnection'
-                        {
-                            Add-PFMParallelPSSession -PSSession $NewPSSession
-                        }
-                    }
+                    $Script:ADPSSession = $NewPSSession
                 }
             }
         }
         $false
         {
-            Write-ConnectPFMExchangeUserError
+            Write-ConnectPFMActiveDirectoryUserError
         }
         $null
         {
-            Write-ConnectPFMExchangeUserError
+            Write-ConnectPFMActiveDirectoryUserError
         }
     }
 }
