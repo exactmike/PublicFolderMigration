@@ -351,10 +351,10 @@ Function Get-PFMPublicFolderPermission
                             }
                             'ExchangeOnPremises'
                             {
-                                $splat.ADPSDriveName = $ADPSDriveName
+                                $splat.ADPSSession = $Script:ADPSSession
                             }
                         }
-                        $PermissionExportObjects = @(ExpandGroupPermission @splat)
+                        $PermissionExportObjects = @(Expand-GroupPermission @splat)
                     }
 
                     if ($PermissionExportObjects.Count -eq 0 -and -not $ExcludeNonePermissionOutput -eq $true)
