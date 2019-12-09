@@ -58,7 +58,7 @@ Function Get-SIDHistoryRecipientHash
         {
             Foreach ($sidhistorysid in $shu.sidhistory)
             {
-                $SIDHistoryRecipientHash.$($sidhistorysid.value) = $sidhistoryuserrecipient
+                $SIDHistoryRecipientHash.$($sidhistorysid) = $sidhistoryuserrecipient
             }#End Foreach
         }#end If
     }#End Foreach
