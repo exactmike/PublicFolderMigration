@@ -19,6 +19,7 @@ $ModuleVariableNames = (
     'ADPSSession',
     'PSSessionOption',
     'UseAlternateParallelism',
+    'AlternateParallelismMap',
     'PublicFolderPropertyList'
 )
 $ModuleVariableNames.ForEach( { Set-Variable -Scope Script -Name $_ -Value $null })
