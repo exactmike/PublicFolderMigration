@@ -108,8 +108,10 @@ Function Get-PFMPublicFolderPermission
         [uint32]$Script:PermissionIdentity = 0
         #create a property set for storing of recipient data during processing.  We don't need all attributes in memory/storage.
         #Region GetExcludedRecipients
+
         if ($PSBoundParameters.ContainsKey('ExcludedIdentities'))
         {
+            Confirm-PFMExchangeConnection -PSSession $script:PSSession
             switch ($true -eq $ExcludedIdentitiesAreEntryID)
             {
                 $false
@@ -157,6 +159,7 @@ Function Get-PFMPublicFolderPermission
         #Region GetExcludedTrustees
         if ($PSBoundParameters.ContainsKey('ExcludedTrusteeIdentities'))
         {
+            Confirm-PFMExchangeConnection -PSSession $script:PSSession
             try
             {
                 $message = "Get recipent object(s) from Exchange Organization $ExchangeOrganization for the $($ExcludedTrusteeIdentities.Count) ExcludedTrusteeIdentities provided."
@@ -227,19 +230,29 @@ Function Get-PFMPublicFolderPermission
         #EndRegion GetInScopePublicFolders
 
         #Region GetInScopeMailPublicFolders
-        $message = 'Get Mail Enabled Public Folders To support retrieval of SendAS and/or SendOnBehalf Permissions and for additional output information for ClientPermissions.'
-        WriteLog -message $message -entryType Attempting -verbose
-        $PossibleMailEnabledPF = $InScopeFolders.where( { ($_.MailEnabled -is [bool] -and $_.MailEnabled -eq $true) -or $_.MailEnabled -eq 'TRUE' })
-        $InScopeMailPublicFolders = @(GetMailPublicFolderPerUserPublicFolder -ExchangeSession $script:PSSession -PublicFolder $PossibleMailEnabledPF -ErrorAction Stop)
-        WriteLog -message $message -entryType Succeeded -verbose
-        WriteLog -Message "Got $($InScopeMailPublicFolders.count) In Scope Mail Public Folder Objects" -EntryType Notification -verbose
-        $InScopeMailPublicFoldersHash = @{ }
-        $InScopeMailPublicFolders.foreach( { $InScopeMailPublicFoldersHash.$($_.EntryID.ToString()) = $_ })
+        If ($true -eq $IncludeSendAs -or $true -eq $IncludeSendOnBehalf)
+        {
+            Confirm-PFMExchangeConnection -PSSession $script:PSSessio
+            $message = 'Get Mail Enabled Public Folders To support retrieval of SendAS and/or SendOnBehalf Permissions and for additional output information for ClientPermissions.'
+            WriteLog -message $message -entryType Attempting -verbose
+            $PossibleMailEnabledPF = $InScopeFolders.where( { ($_.MailEnabled -is [bool] -and $_.MailEnabled -eq $true) -or $_.MailEnabled -eq 'TRUE' })
+            $InScopeMailPublicFolders = @(GetMailPublicFolderPerUserPublicFolder -ExchangeSession $script:PSSession -PublicFolder $PossibleMailEnabledPF -ErrorAction Stop)
+            WriteLog -message $message -entryType Succeeded -verbose
+            WriteLog -Message "Got $($InScopeMailPublicFolders.count) In Scope Mail Public Folder Objects" -EntryType Notification -verbose
+            $InScopeMailPublicFoldersHash = @{ }
+            $InScopeMailPublicFolders.foreach( { $InScopeMailPublicFoldersHash.$($_.EntryID.ToString()) = $_ })
+        }
+        else
+        {
+            $InScopeMailPublicFoldersHash = @{ }
+        }
         #EndRegion GetInScopeMailPublicFolders
 
         #Region GetSIDHistoryData
         if ($IncludeSIDHistory -eq $true)
         {
+            Confirm-PFMActiveDirectoryConnection -PSSession $script:ADPSSession
+            Confirm-PFMExchangeConnection -PSSession $script:PSSession
             $SIDHistoryRecipientHash = Get-SIDHistoryRecipientHash -ExchangePSSession $Script:PSSession -ADPSSession $Script:ADPSSession -ErrorAction Stop
         }
         else
@@ -275,6 +288,11 @@ Function Get-PFMPublicFolderPermission
                 #$ISR in $InScopeFolders[$ResumeIndex..$()]
             )
             {
+                Confirm-PFMExchangeConnection -PSSession $script:PSSession
+                if ($true -eq $IncludeSendAs -or $true -eq $IncludeSendOnBehalf)
+                {
+                    Confirm-PFMActiveDirectoryConnection -PSSession $script:ADPSSession
+                }
                 $Recovering = $false
                 $ISRCounter++
                 $ISR = $InScopeFolders[$i]
