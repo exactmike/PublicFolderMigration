@@ -232,7 +232,7 @@ Function Get-PFMPublicFolderPermission
         #Region GetInScopeMailPublicFolders
         If ($true -eq $IncludeSendAs -or $true -eq $IncludeSendOnBehalf)
         {
-            Confirm-PFMExchangeConnection -PSSession $script:PSSessio
+            Confirm-PFMExchangeConnection -PSSession $script:PSSession
             $message = 'Get Mail Enabled Public Folders To support retrieval of SendAS and/or SendOnBehalf Permissions and for additional output information for ClientPermissions.'
             WriteLog -message $message -entryType Attempting -verbose
             $PossibleMailEnabledPF = $InScopeFolders.where( { ($_.MailEnabled -is [bool] -and $_.MailEnabled -eq $true) -or $_.MailEnabled -eq 'TRUE' })
