@@ -1,4 +1,4 @@
-Function Get-SendASPermisssionsViaADPS
+Function Get-SendASPermissionsViaADPS
 {
 
     [cmdletbinding()]
