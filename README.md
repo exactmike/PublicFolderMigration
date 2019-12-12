@@ -2,7 +2,7 @@
 
 PublicFolderManagement is intended to be a collection of functions to support the management and/or migration of Exchange Public Folders. It presents the following functions:
 
-As a historical note, PublicFolderManagement started out as a re-write of Get-PublicFolderReplicationReport.ps1 from the Technet Sript Gallery. https://gallery.technet.microsoft.com/office/Exchange-2010-Public-944df6ee.
+As a historical note, PublicFolderManagement started out as a re-write of Get-PublicFolderReplicationReport.ps1 from the [Technet Script Gallery](https://gallery.technet.microsoft.com/office/Exchange-2010-Public-944df6ee)
 
 ## Improvements that inspired this module
 
