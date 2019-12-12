@@ -400,6 +400,7 @@ Function Get-PFMPublicFolderPermission
                 }
                 Catch
                 {
+                    WriteLog -Message $_.Tostring() -entryType Failed
                     WriteLog -Message $message -EntryType Failed
                 }
             }#Foreach recipient in set
