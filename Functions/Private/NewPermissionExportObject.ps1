@@ -72,7 +72,7 @@ Function NewPermissionExportObject
     {
         $PermissionExportObject.TargetObjectGUID = $TargetMailPublicFolder.Guid.Guid
         $PermissionExportObject.TargetDistinguishedName = $TargetMailPublicFolder.DistinguishedName
-        $PermissionExportObject.TargetPrimarySMTPAddress = $TargetMailPublicFolder.PrimarySmtpAddress.ToString()
+        $PermissionExportObject.TargetPrimarySMTPAddress = $TargetMailPublicFolder.PrimarySmtpAddress  #.ToString()
         $PermissionExportObject.TargetRecipientType = $TargetMailPublicFolder.RecipientType
         $PermissionExportObject.TargetRecipientTypeDetails = $TargetMailPublicFolder.RecipientTypeDetails
     }
@@ -81,7 +81,7 @@ Function NewPermissionExportObject
         $PermissionExportObject.TrusteeObjectGUID = $TrusteeRecipientObject.guid.Guid
         $PermissionExportObject.TrusteeExchangeGUID = $TrusteeRecipientObject.ExchangeGuid.Guid
         $PermissionExportObject.TrusteeDistinguishedName = $TrusteeRecipientObject.DistinguishedName
-        $PermissionExportObject.TrusteePrimarySMTPAddress = $TrusteeRecipientObject.PrimarySmtpAddress.ToString()
+        $PermissionExportObject.TrusteePrimarySMTPAddress = $TrusteeRecipientObject.PrimarySmtpAddress  #.ToString()
         $PermissionExportObject.TrusteeRecipientType = $TrusteeRecipientObject.RecipientType
         $PermissionExportObject.TrusteeRecipientTypeDetails = $TrusteeRecipientObject.RecipientTypeDetails
     }
