@@ -37,10 +37,6 @@ Function Get-PFMPublicFolderPermission
         [ValidateScript( { TestIsWriteableDirectory -Path $_ })]
         $OutputFolderPath
         ,
-        [parameter()]
-        [ValidateScript( { TestADPSDrive -name $_ -IsRootofDirectory })]
-        $ADPSDriveName
-        ,
         #Public Folder identities to exclude from permissions gathering (use folder name, full path, or EntryID).  EntryID is preferred as it is guaranteed to be unique.
         [parameter()]
         [string[]]$ExcludedIdentities
@@ -77,6 +73,10 @@ Function Get-PFMPublicFolderPermission
     Begin
     {
         Confirm-PFMExchangeConnection -PSSession $Script:PSSession
+        If ($script:ExchangeOrganizationType -eq 'ExchangeOnPremises')
+        {
+            Confirm-PFMActiveDirectoryConnection -PSSession $script:ADPSSession
+        }
         $BeginTimeStamp = Get-Date -Format yyyyMMdd-HHmmss
         $script:LogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'GetPublicFolderPermission.log')
         $script:ErrorLogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'GetPublicFolderPermission-ERRORS.log')
@@ -96,26 +96,25 @@ Function Get-PFMPublicFolderPermission
             {
                 If ($true -eq $IncludeSidHistory -or $true -eq $IncludeSendAs -or $true -eq $ExpandGroups)
                 {
-                    if ($null -eq $ADPSDriveName)
-                    {
-                        throw ('You need to use the ADPSDrive name parameter to provide an existing PowerShell Active Directory PSdrive connection to the AD forest where Exchange is installed')
-                    }
+                    Confirm-PFMActiveDirectoryConnection -pssession $script:ADPSSession
                 }
             }
         }
         #Configure properties to retain in memory / hashtables for retrieved public folders and Recipients
         $PFPropertySet = @('EntryID', 'Identity', 'Name', 'ParentPath', 'FolderType', 'Has*', 'HiddenFromAddressListsEnabled', '*Quota', 'MailEnabled', 'Replicas', 'ReplicationSchedule', 'RetainDeletedItemsFor', 'Use*')
         $HRPropertySet = @('*name*', '*addr*', 'RecipientType*', '*Id', 'Identity', 'GrantSendOnBehalfTo')
-        $ExportedExchangePublicFolderPermissionsFile = Join-Path -Path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'ExportedExchangePublicFolderPermissions.csv')
+        $ExportedExchangePublicFolderPermissionsFile = Join-Path -Path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'ExchangePublicFolderPermissions.csv')
         $ResumeIndex = 0
         [uint32]$Script:PermissionIdentity = 0
         #create a property set for storing of recipient data during processing.  We don't need all attributes in memory/storage.
         #Region GetExcludedRecipients
+
         if ($PSBoundParameters.ContainsKey('ExcludedIdentities'))
         {
+            Confirm-PFMExchangeConnection -PSSession $script:PSSession
             switch ($true -eq $ExcludedIdentitiesAreEntryID)
             {
-                $true
+                $false
                 {
                     try
                     {
@@ -143,7 +142,7 @@ Function Get-PFMPublicFolderPermission
                     $excludedPublicFoldersEntryIDHash = @{ }
                     $excludedPublicFolders.foreach( { $excludedPublicFoldersEntryIDHash.$($_.EntryID.tostring()) = $_ })
                 }
-                $false
+                $true
                 {
                     WriteLog -Message "Processing $($ExcludedIdentities.count) EntryIDs for Exclusion from processing" -EntryType Notification
                     $excludedPublicFoldersEntryIDHash = @{ }
@@ -160,6 +159,7 @@ Function Get-PFMPublicFolderPermission
         #Region GetExcludedTrustees
         if ($PSBoundParameters.ContainsKey('ExcludedTrusteeIdentities'))
         {
+            Confirm-PFMExchangeConnection -PSSession $script:PSSession
             try
             {
                 $message = "Get recipent object(s) from Exchange Organization $ExchangeOrganization for the $($ExcludedTrusteeIdentities.Count) ExcludedTrusteeIdentities provided."
@@ -230,20 +230,30 @@ Function Get-PFMPublicFolderPermission
         #EndRegion GetInScopePublicFolders
 
         #Region GetInScopeMailPublicFolders
-        $message = 'Get Mail Enabled Public Folders To support retrieval of SendAS and/or SendOnBehalf Permissions and for additional output information for ClientPermissions.'
-        WriteLog -message $message -entryType Attempting -verbose
-        $PossibleMailEnabledPF = $InScopeFolders.where( { ($_.MailEnabled -is [bool] -and $_.MailEnabled -eq $true) -or $_.MailEnabled -eq 'TRUE' })
-        $InScopeMailPublicFolders = @(GetMailPublicFolderPerUserPublicFolder -ExchangeSession $script:PSSession -PublicFolder $PossibleMailEnabledPF -ErrorAction Stop)
-        WriteLog -message $message -entryType Succeeded -verbose
-        WriteLog -Message "Got $($InScopeMailPublicFolders.count) In Scope Mail Public Folder Objects" -EntryType Notification -verbose
-        $InScopeMailPublicFoldersHash = @{ }
-        $InScopeMailPublicFolders.foreach( { $InScopeMailPublicFoldersHash.$($_.EntryID.ToString()) = $_ })
+        If ($true -eq $IncludeSendAs -or $true -eq $IncludeSendOnBehalf)
+        {
+            Confirm-PFMExchangeConnection -PSSession $script:PSSession
+            $message = 'Get Mail Enabled Public Folders To support retrieval of SendAS and/or SendOnBehalf Permissions and for additional output information for ClientPermissions.'
+            WriteLog -message $message -entryType Attempting -verbose
+            $PossibleMailEnabledPF = $InScopeFolders.where( { ($_.MailEnabled -is [bool] -and $_.MailEnabled -eq $true) -or $_.MailEnabled -eq 'TRUE' })
+            $InScopeMailPublicFolders = @(GetMailPublicFolderPerUserPublicFolder -ExchangeSession $script:PSSession -PublicFolder $PossibleMailEnabledPF -ErrorAction Stop)
+            WriteLog -message $message -entryType Succeeded -verbose
+            WriteLog -Message "Got $($InScopeMailPublicFolders.count) In Scope Mail Public Folder Objects" -EntryType Notification -verbose
+            $InScopeMailPublicFoldersHash = @{ }
+            $InScopeMailPublicFolders.foreach( { $InScopeMailPublicFoldersHash.$($_.EntryID.ToString()) = $_ })
+        }
+        else
+        {
+            $InScopeMailPublicFoldersHash = @{ }
+        }
         #EndRegion GetInScopeMailPublicFolders
 
         #Region GetSIDHistoryData
         if ($IncludeSIDHistory -eq $true)
         {
-            $SIDHistoryRecipientHash = GetSIDHistoryRecipientHash -ADPSDriveName $ADPSDriveName -ExchangeSession $Script:PSSession -ErrorAction Stop
+            Confirm-PFMActiveDirectoryConnection -PSSession $script:ADPSSession
+            Confirm-PFMExchangeConnection -PSSession $script:PSSession
+            $SIDHistoryRecipientHash = Get-SIDHistoryRecipientHash -ExchangePSSession $Script:PSSession -ADPSSession $Script:ADPSSession -ErrorAction Stop
         }
         else
         {
@@ -278,6 +288,11 @@ Function Get-PFMPublicFolderPermission
                 #$ISR in $InScopeFolders[$ResumeIndex..$()]
             )
             {
+                Confirm-PFMExchangeConnection -PSSession $script:PSSession
+                if ($true -eq $IncludeSendAs -or $true -eq $IncludeSendOnBehalf)
+                {
+                    Confirm-PFMActiveDirectoryConnection -PSSession $script:ADPSSession
+                }
                 $Recovering = $false
                 $ISRCounter++
                 $ISR = $InScopeFolders[$i]
@@ -325,11 +340,13 @@ Function Get-PFMPublicFolderPermission
                                 'ExchangeOnPremises'
                                 {
                                     #WriteLog -Message "Getting SendAS Permissions for Target $ID Via AD Commands" -entryType Notification
-                                    GetSendASPermisssionsViaADPSDrive -TargetPublicFolder $ISR -TargetMailPublicFolder $ISRR -ExchangeSession $Script:PSSession -ObjectGUIDHash $ObjectGUIDHash -excludedTrusteeGUIDHash $excludedTrusteeGUIDHash -dropInheritedPermissions $dropInheritedPermissions -DomainPrincipalHash $DomainPrincipalHash -ExchangeOrganization $ExchangeOrganization -HRPropertySet $HRPropertySet -UnfoundIdentitiesHash $UnfoundIdentitiesHash -ADPSDriveName $ADPSDriveName
+                                    Get-SendASPermissionsViaADPS -TargetPublicFolder $ISR -TargetMailPublicFolder $ISRR -ExchangeSession $Script:PSSession -ADPSSession $script:ADPSSession -ObjectGUIDHash $ObjectGUIDHash -excludedTrusteeGUIDHash $excludedTrusteeGUIDHash -dropInheritedPermissions $dropInheritedPermissions -DomainPrincipalHash $DomainPrincipalHash -ExchangeOrganization $ExchangeOrganization -HRPropertySet $HRPropertySet -UnfoundIdentitiesHash $UnfoundIdentitiesHash
                                 }
                             }
                         }
                     )
+                    $message = "$($PermissionExportObjects.count) Permission Export Objects generated by Get* commands for further processing."
+                    WriteLog -Message $message -EntryType Notification
                     if ($expandGroups -eq $true)
                     {
                         #WriteLog -Message "Expanding Group Based Permissions for Target $ID" -entryType Notification
@@ -354,10 +371,10 @@ Function Get-PFMPublicFolderPermission
                             }
                             'ExchangeOnPremises'
                             {
-                                $splat.ADPSDriveName = $ADPSDriveName
+                                $splat.ADPSSession = $Script:ADPSSession
                             }
                         }
-                        $PermissionExportObjects = @(ExpandGroupPermission @splat)
+                        $PermissionExportObjects = @(Expand-GroupPermission @splat)
                     }
 
                     if ($PermissionExportObjects.Count -eq 0 -and -not $ExcludeNonePermissionOutput -eq $true)
@@ -383,6 +400,7 @@ Function Get-PFMPublicFolderPermission
                 }
                 Catch
                 {
+                    WriteLog -Message $_.Tostring() -entryType Failed
                     WriteLog -Message $message -EntryType Failed
                 }
             }#Foreach recipient in set

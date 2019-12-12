@@ -1,4 +1,4 @@
-Function GetSIDHistoryRecipientHash
+Function Get-SIDHistoryRecipientHash
 {
 
     [cmdletbinding()]
@@ -6,24 +6,28 @@ Function GetSIDHistoryRecipientHash
     param
     (
         [parameter(Mandatory)]
-        [string]$ADPSDriveName
+        [Alias('ExchangeSession')]
+        [System.Management.Automation.Runspaces.PSSession]$ExchangePSSession
         ,
-        [System.Management.Automation.Runspaces.PSSession]$ExchangeSession
+        [parameter(Mandatory)]
+        [System.Management.Automation.Runspaces.PSSession]$ADPSSession
     )
 
     $ldapfilter = "(&(legacyExchangeDN=*)(sidhistory=*))"
 
     GetCallerPreference -Cmdlet $PSCmdlet -SessionState $ExecutionContext.SessionState -Name VerbosePreference
-    Push-Location
-    $ADPSDrivePath = $ADPSDriveName + ':\'
-    Set-Location -Path $ADPSDrivePath -ErrorAction Stop
 
     #Region GetSIDHistoryUsers
     Try
     {
-        $message = "Get AD Objects with Exchange Attributes and SIDHistory from AD Drive $ADPSDriveName"
+        $message = "Get AD Objects with Exchange Attributes and SIDHistory from AD Global Catalog"
         WriteLog -Message $message -EntryType Attempting
-        $sidHistoryUsers = @(Get-adobject -ldapfilter $ldapfilter -Properties sidhistory, legacyExchangeDN -ErrorAction Stop)
+        Invoke-Command -Session $ADPSSession -ScriptBlock { Set-Location -Path 'GC:\' -ErrorAction Stop } -ErrorAction Stop
+        $sidHistoryUsers = @(
+            Invoke-Command -Session $ADPSSession -ScriptBlock {
+                Get-ADObject -ldapfilter $using:ldapfilter -Properties sidhistory, legacyExchangeDN -ErrorAction Stop
+            }
+        )
         WriteLog -Message $message -EntryType Succeeded
     }
     Catch
@@ -33,8 +37,7 @@ Function GetSIDHistoryRecipientHash
         WriteLog -Message $myError.tostring() -ErrorLog
         throw("Failed: $Message")
     }
-    Pop-Location
-    WriteLog -Message "Got $($sidHistoryUsers.count) AD Objects with Exchange Attributes and SIDHistory from AD Drive $ADPSDriveName" -EntryType Notification
+    WriteLog -Message "Got $($sidHistoryUsers.count) AD Objects with Exchange Attributes and SIDHistory from AD Global Catalog" -EntryType Notification
     #EndRegion GetSIDHistoryObjects
 
     $sidhistoryusercounter = 0
@@ -50,15 +53,14 @@ Function GetSIDHistoryRecipientHash
         }
         $splat = @{Identity = $shu.ObjectGuid.guid; ErrorAction = 'SilentlyContinue' } #is this a good assumption?
         $sidhistoryuserrecipient = $Null
-        $sidhistoryuserrecipient = Invoke-Command -Session $ExchangeSession -ScriptBlock { Get-Recipient @using:splat } -ErrorAction SilentlyContinue
+        $sidhistoryuserrecipient = Invoke-Command -Session $ExchangePSSession -ScriptBlock { Get-Recipient @using:splat } -ErrorAction SilentlyContinue
         If ($null -ne $sidhistoryuserrecipient)
         {
             Foreach ($sidhistorysid in $shu.sidhistory)
             {
-                $SIDHistoryRecipientHash.$($sidhistorysid.value) = $sidhistoryuserrecipient
+                $SIDHistoryRecipientHash.$($sidhistorysid) = $sidhistoryuserrecipient
             }#End Foreach
         }#end If
     }#End Foreach
     $SIDHistoryRecipientHash
-
 }

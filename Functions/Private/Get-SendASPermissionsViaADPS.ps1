@@ -1,4 +1,4 @@
-Function GetSendASPermisssionsViaADPSDrive
+Function Get-SendASPermissionsViaADPS
 {
 
     [cmdletbinding()]
@@ -12,7 +12,7 @@ Function GetSendASPermisssionsViaADPSDrive
         [System.Management.Automation.Runspaces.PSSession]$ExchangeSession
         ,
         [parameter(Mandatory)]
-        [string]$ADPSDriveName
+        [System.Management.Automation.Runspaces.PSSession]$ADPSSession
         ,
         [hashtable]$ObjectGUIDHash
         ,
@@ -30,21 +30,19 @@ Function GetSendASPermisssionsViaADPSDrive
     )
     GetCallerPreference -Cmdlet $PSCmdlet -SessionState $ExecutionContext.SessionState -Name VerbosePreference
 
-    #use the AD Drive Provided
-    Push-Location
-    $ADPSDrivePath = $ADPSDriveName + ':\'
-    Set-Location -Path $ADPSDrivePath -ErrorAction Stop
-
     #Well-known GUID for Send As Permissions, see function Get-SendASRightGUID
     $SendASRight = [GUID]'ab721a54-1e2f-11d0-9819-00aa0040529b'
+    Invoke-Command -Session $ADPSSession -ScriptBlock { Set-Location -path 'GC:\' -ErrorAction Stop } -ErrorAction Stop
 
     $saRawPermissions = @(
         Try
         {
-            $RawACEs = @((Get-Acl -Path $TargetMailPublicFolder.DistinguishedName -ErrorAction Stop).Access)
-            $SendASACEs = $RawACEs | Where-Object -FilterScript { (($_.ObjectType -eq $SendASRight) -or ($_.ActiveDirectoryRights -eq 'GenericAll')) -and ($_.AccessControlType -eq 'Allow') }
-            $SendASNotSelf = $SendASACEs | Where-Object -FilterScript { $_.IdentityReference.tostring() -ne "NT AUTHORITY\SELF" }
-            $SendAsNotSelf | Select-Object -Property identityreference, IsInherited
+            Invoke-Command -Session $ADPSSession -ScriptBlock {
+                $RawACEs = @((Get-Acl -Path $($Using:TargetMailPublicFolder).DistinguishedName -ErrorAction Stop).Access)
+                $SendASACEs = $RawACEs | Where-Object -FilterScript { (($_.ObjectType -eq $using:SendASRight) -or ($_.ActiveDirectoryRights -eq 'GenericAll')) -and ($_.AccessControlType -eq 'Allow') } #GenericAll also grants SendAS rights
+                $SendASNotSelf = $SendASACEs | Where-Object -FilterScript { $_.IdentityReference.tostring() -ne "NT AUTHORITY\SELF" }
+                $SendAsNotSelf | Select-Object -Property identityreference, IsInherited
+            }
             # Where-Object -FilterScript {($_.identityreference.ToString().split('\')[0]) -notin $ExcludedTrusteeDomains} #not doing this part yet
             # Where-Object -FilterScript {$_.identityreference.tostring() -notin $ExcludedTrustees} #we do this below now
         }
@@ -55,7 +53,6 @@ Function GetSendASPermisssionsViaADPSDrive
         }
     )
     #WriteLog -message "Found $($saRawPermissions.Count) SendAS Permisisons"
-    Pop-Location
 
     if ($dropInheritedPermissions -eq $true)
     {
