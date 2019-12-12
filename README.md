@@ -26,12 +26,16 @@ Some of the reasons for a re-write of Get-PublicFolderReplicationReport.ps1 that
 
 ## Usage Example
 
+```PowerShell
+
 Connect-PFMExchange -Credential $admincred -ExchangeOnPremisesServer 'pfdatabaseserver.au.contoso.com'
 $pftree = Get-PFMPublicFolderTree -OutputFolderPath d:\Reports -OutputFormat csv,json -encoding utf8 -passthru
 Get-PFMPublicFolderDatabase -outputfolderpath d:\Reports -OutputFormat csv,xml
 Get-PFMPublicFolderStat -PublicFolderInfoObject $pftree -outputFolderPath d:\reports -outputformat json,csv -encoding utf8
 Connect-PFMActiveDirectory -Credential $admincred -DomainController 'dc22.au.contoso.com'
 Get-PFMPublicFolderPermission -OutputFolderPath d:\Reports -includeSendAs $true -includeSendOnBehalf $true -DropInheritedPermissions $true -IncludeSIDHistory -ExpandGroups $false
+
+```
 
 ## License
 

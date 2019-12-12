@@ -12,7 +12,7 @@
     RootModule           = 'PublicFolderMigration.psm1'
 
     # Version number of this module.
-    ModuleVersion        = '3.0.0.4'
+    ModuleVersion        = '3.0.0.5'
 
     # ID used to uniquely identify this module
     GUID                 = '821e8a2b-080b-4d8d-a9d4-29f431935878'
