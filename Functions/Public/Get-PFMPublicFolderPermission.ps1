@@ -69,6 +69,9 @@ Function Get-PFMPublicFolderPermission
         [switch]$ExcludeNonePermissionOutput
         ,
         [switch]$ExcludedIdentitiesAreEntryID
+        ,
+        #Use to submit a SidHistoryMap rather than having Get-PFMPublicFolderPermission generate it for you. Use with IncludeSidHistory switch.
+        [psobject[]]$SidHistoryRecipientMap
     )#End Param
     Begin
     {
@@ -253,7 +256,18 @@ Function Get-PFMPublicFolderPermission
         {
             Confirm-PFMActiveDirectoryConnection -PSSession $script:ADPSSession
             Confirm-PFMExchangeConnection -PSSession $script:PSSession
-            $SIDHistoryRecipientHash = Get-SIDHistoryRecipientHash -ExchangePSSession $Script:PSSession -ADPSSession $Script:ADPSSession -ErrorAction Stop
+            switch ($PSBoundParameters.ContainsKey('SidHistoryRecipientMap'))
+            {
+                $true
+                {
+                    $SIDHistoryRecipientHash = $SidHistoryRecipientMap
+                }
+                $false
+                {
+                    $SIDHistoryRecipientHash = Get-PFMSIDHistoryRecipientMap -ExchangePSSession $Script:PSSession -ADPSSession $Script:ADPSSession -ErrorAction Stop
+                }
+            }
+
         }
         else
         {
@@ -317,15 +331,15 @@ Function Get-PFMPublicFolderPermission
                     Confirm-PFMExchangeConnection -PSSession $Script:PSSession
                     WriteLog -Message $message -EntryType Attempting
                     $PermissionExportObjects = @(
-                        If ($IncludeSendOnBehalf -and $InScopeMailPublicFoldersHash.ContainsKey($ID))
-                        {
-                            #WriteLog -Message "Getting SendOnBehalf Permissions for Target $ID" -entryType Notification
-                            GetSendOnBehalfPermission -TargetPublicFolder $ISR -TargetMailPublicFolder $ISRR -ObjectGUIDHash $ObjectGUIDHash -ExchangeSession $Script:PSSession -ExcludedTrusteeGUIDHash $excludedTrusteeGUIDHash -ExchangeOrganization $ExchangeOrganization -HRPropertySet $HRPropertySet -DomainPrincipalHash $DomainPrincipalHash -UnfoundIdentitiesHash $UnfoundIdentitiesHash
-                        }
                         If ($IncludeClientPermission)
                         {
                             #WriteLog -Message "Getting Client Permissions for Target $ID" -entryType Notification
-                            GetClientPermission -TargetPublicFolder $ISR -TargetMailPublicFolder $ISRR -ObjectGUIDHash $ObjectGUIDHash -ExchangeSession $Script:PSSession -excludedTrusteeGUIDHash $excludedTrusteeGUIDHash -ExchangeOrganization $ExchangeOrganization -DomainPrincipalHash $DomainPrincipalHash -HRPropertySet $HRPropertySet -UnfoundIdentitiesHash $UnfoundIdentitiesHash
+                            GetClientPermission -TargetPublicFolder $ISR -TargetMailPublicFolder $ISRR -ObjectGUIDHash $ObjectGUIDHash -ExchangeSession $Script:PSSession -excludedTrusteeGUIDHash $excludedTrusteeGUIDHash -ExchangeOrganization $ExchangeOrganization -DomainPrincipalHash $DomainPrincipalHash -HRPropertySet $HRPropertySet -UnfoundIdentitiesHash $UnfoundIdentitiesHash -SIDHistoryRecipientHash $SIDHistoryRecipientHash
+                        }
+                        If ($IncludeSendOnBehalf -and $InScopeMailPublicFoldersHash.ContainsKey($ID))
+                        {
+                            #WriteLog -Message "Getting SendOnBehalf Permissions for Target $ID" -entryType Notification
+                            GetSendOnBehalfPermission -TargetPublicFolder $ISR -TargetMailPublicFolder $ISRR -ObjectGUIDHash $ObjectGUIDHash -ExchangeSession $Script:PSSession -ExcludedTrusteeGUIDHash $excludedTrusteeGUIDHash -ExchangeOrganization $ExchangeOrganization -HRPropertySet $HRPropertySet -DomainPrincipalHash $DomainPrincipalHash -UnfoundIdentitiesHash $UnfoundIdentitiesHash -SIDHistoryRecipientHash $SIDHistoryRecipientHash
                         }
                         If ($IncludeSendAs -and $InScopeMailPublicFoldersHash.ContainsKey($ID))
                         {
@@ -335,12 +349,12 @@ Function Get-PFMPublicFolderPermission
                                 'ExchangeOnline'
                                 {
                                     #WriteLog -Message "Getting SendAS Permissions for Target $ID Via Exchange Commands" -entryType Notification
-                                    GetSendASPermissionsViaExchange -TargetPublicFolder $ISRR -TargetMailPublicFolder $ISRR -ExchangeSession $Script:PSSession -ObjectGUIDHash $ObjectGUIDHash -excludedTrusteeGUIDHash $ -dropInheritedPermissions $dropInheritedPermissions -DomainPrincipalHash $DomainPrincipalHash -ExchangeOrganization $ExchangeOrganization -HRPropertySet $HRPropertySet -UnfoundIdentitiesHash $UnfoundIdentitiesHash
+                                    GetSendASPermissionsViaExchange -TargetPublicFolder $ISRR -TargetMailPublicFolder $ISRR -ExchangeSession $Script:PSSession -ObjectGUIDHash $ObjectGUIDHash -excludedTrusteeGUIDHash $ -dropInheritedPermissions $dropInheritedPermissions -DomainPrincipalHash $DomainPrincipalHash -ExchangeOrganization $ExchangeOrganization -HRPropertySet $HRPropertySet -UnfoundIdentitiesHash $UnfoundIdentitiesHash -SIDHistoryRecipientHash $SIDHistoryRecipientHash
                                 }
                                 'ExchangeOnPremises'
                                 {
                                     #WriteLog -Message "Getting SendAS Permissions for Target $ID Via AD Commands" -entryType Notification
-                                    Get-SendASPermissionsViaADPS -TargetPublicFolder $ISR -TargetMailPublicFolder $ISRR -ExchangeSession $Script:PSSession -ADPSSession $script:ADPSSession -ObjectGUIDHash $ObjectGUIDHash -excludedTrusteeGUIDHash $excludedTrusteeGUIDHash -dropInheritedPermissions $dropInheritedPermissions -DomainPrincipalHash $DomainPrincipalHash -ExchangeOrganization $ExchangeOrganization -HRPropertySet $HRPropertySet -UnfoundIdentitiesHash $UnfoundIdentitiesHash
+                                    Get-SendASPermissionsViaADPS -TargetPublicFolder $ISR -TargetMailPublicFolder $ISRR -ExchangeSession $Script:PSSession -ADPSSession $script:ADPSSession -ObjectGUIDHash $ObjectGUIDHash -excludedTrusteeGUIDHash $excludedTrusteeGUIDHash -dropInheritedPermissions $dropInheritedPermissions -DomainPrincipalHash $DomainPrincipalHash -ExchangeOrganization $ExchangeOrganization -HRPropertySet $HRPropertySet -UnfoundIdentitiesHash $UnfoundIdentitiesHash -SIDHistoryRecipientHash $SIDHistoryRecipientHash
                                 }
                             }
                         }

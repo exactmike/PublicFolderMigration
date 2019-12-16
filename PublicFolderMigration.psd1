@@ -78,6 +78,7 @@
         'Get-PFMPublicFolderStat'
         'Get-PFMPublicFolderPermission'
         'Get-PFMPublicFolderDatabase'
+        'Get-PFMSidHistoryRecipientMap'
         'Invoke-PFMValidatePublicFolder'
         'Remove-PFMValidatedPublicFolder'
     ) #'Get-PFMPublicFolderReplicationReport', 'Set-PFMEmailConfiguration'
