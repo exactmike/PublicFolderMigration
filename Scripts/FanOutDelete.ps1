@@ -199,12 +199,12 @@ foreach ($s in $Servers)
                     $Record++
                     if ($Record % $Interval -eq 0)
                     {
-                        $SecondsPerRecord = [math]::Round($($(Stopwatch.TotalSeconds) / $Record), 1)
+                        $SecondsPerRecord = [math]::Round($($(Stopwatch.Elapsed.TotalSeconds) / $Record), 1)
                         $RemainingRecords = $RecordCount - $Record
                         $SecondsRemaining = $SecondsPerRecord * $RemainingRecords
                         $ProgressParams = @{
                             Activity         = 'PF Removals'
-                            Status           = "Minutes Elapsed:$($Stopwatch.TotalMinutes)"
+                            Status           = "Minutes Elapsed:$($Stopwatch.Elapsed.TotalMinutes)"
                             PercentComplete  = $($Record / $RecordCount * 100)
                             SecondsRemaining = $SecondsRemaining
                             ParentID         = 0
