@@ -1,4 +1,4 @@
-Function ExpandGroupPermission
+Function Expand-GroupPermission
 {
 
     [CmdletBinding()]
@@ -25,13 +25,17 @@ Function ExpandGroupPermission
         ,
         [System.Management.Automation.Runspaces.PSSession]$ExchangeSession
         ,
-        [string]$ADPSDriveName
+        [System.Management.Automation.Runspaces.PSSession]$ADPSSession
         ,
         $dropExpandedParentGroupPermissions
         ,
         [switch]$UseExchangeCommandsInsteadOfADOrLDAP
     )
     GetCallerPreference -Cmdlet $PSCmdlet -SessionState $ExecutionContext.SessionState -Name VerbosePreference
+    if ($PSBoundParameters.ContainsKey('ADPSSession'))
+    {
+        Invoke-Command -Session $ADPSSession -ScriptBlock { Set-Location -path 'GC:\' -ErrorAction Stop } -ErrorAction Stop
+    }
     $gPermissions = @($Permission | Where-Object -FilterScript { $_.TrusteeRecipientTypeDetails -like '*Group*' })
     $ngPermissions = @($Permission | Where-Object -FilterScript { $_.TrusteeRecipientTypeDetails -notlike '*Group*' -or $null -eq $_.TrusteeRecipientTypeDetails })
     if ($gPermissions.Count -ge 1)
@@ -58,7 +62,7 @@ Function ExpandGroupPermission
                         }
                         else
                         {
-                            $UserTrustees = @(GetGroupMemberExpandedViaADPSDrive -Identity $gp.TrusteeDistinguishedName -ExchangeSession $exchangeSession -hrPropertySet $HRPropertySet -ObjectGUIDHash $ObjectGUIDHash -DomainPrincipalHash $DomainPrincipalHash -SIDHistoryRecipientHash $SIDHistoryRecipientHash -UnfoundIdentitiesHash $UnfoundIdentitiesHash -ADPSDriveName $ADPSDriveName)
+                            $UserTrustees = @(Get-GroupMemberExpandedViaADPSDrive -Identity $gp.TrusteeDistinguishedName -ExchangeSession $exchangeSession -hrPropertySet $HRPropertySet -ObjectGUIDHash $ObjectGUIDHash -DomainPrincipalHash $DomainPrincipalHash -SIDHistoryRecipientHash $SIDHistoryRecipientHash -UnfoundIdentitiesHash $UnfoundIdentitiesHash -ADPSSession $ADPSSession)
                         }
                         #and add them to the expansion hashtable
                         $script:ExpandedGroupsNonGroupMembershipHash.$($gp.TrusteeObjectGUID) = $UserTrustees

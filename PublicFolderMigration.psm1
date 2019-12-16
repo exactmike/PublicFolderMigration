@@ -4,15 +4,22 @@
 ###############################################################################################
 $ModuleVariableNames = (
     'ConnectExchangeOrganizationCompleted',
+    'ConnectActiveDirectoryCompleted',
     'ExchangeCredential',
+    'ADCredential',
     'EmailConfiguration',
     'ExchangeOrganizationType',
     'ExchangeOrganization',
+    'ADForest',
     'ExchangeOnPremisesServer',
+    'DomainController',
     'ParallelPSSession',
+    'ParallelADPSSession',
     'PSSession',
+    'ADPSSession',
     'PSSessionOption',
     'UseAlternateParallelism',
+    'AlternateParallelismMap',
     'PublicFolderPropertyList'
 )
 $ModuleVariableNames.ForEach( { Set-Variable -Scope Script -Name $_ -Value $null })
@@ -36,7 +43,7 @@ $AllFunctionFiles.foreach( { . $_.fullname })
 #Clean up objects that will exist in the Global Scope due to no fault of our own . . .
 $MyInvocation.MyCommand.ScriptBlock.Module.OnRemove =
 {
-    if ($null -ne $Script:PSSession) { Remove-PSSession -Session $script:Pssession }
+    if ($null -ne $Script:PSSession) { Remove-PSSession -Session $script:PSSession }
     if ($null -ne $script:ParallelPSSession)
     {
         foreach ($session in $script:ParallelPSSession)
@@ -44,4 +51,5 @@ $MyInvocation.MyCommand.ScriptBlock.Module.OnRemove =
             Remove-PSSession -Session $session
         }
     }
+    if ($null -ne $Script:ADPSSession) { Remove-PSSession -Session $script:ADPSSession }
 }

@@ -42,7 +42,10 @@ Function Get-PFMExchangePSSession
             switch ($true -eq $IsParallel -and $true -eq $script:UseAlternateParallelism)
             {
                 $True
-                { $NewPsSessionParams.ConnectionURI = 'http://' + $script:ExchangeOnPremisesServer + '/PowerShell/' }
+                {
+                    $ServerToUse = $script:AlternateParallelismMap.$ExchangeServer
+                    $NewPsSessionParams.ConnectionURI = 'http://' + $ServerToUse + '/PowerShell/'
+                }
                 $false
                 { $NewPsSessionParams.ConnectionURI = 'http://' + $ExchangeServer + '/PowerShell/' }
             }

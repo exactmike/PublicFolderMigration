@@ -12,7 +12,7 @@
     RootModule           = 'PublicFolderMigration.psm1'
 
     # Version number of this module.
-    ModuleVersion        = '3.0.0.2'
+    ModuleVersion        = '3.0.0.5'
 
     # ID used to uniquely identify this module
     GUID                 = '821e8a2b-080b-4d8d-a9d4-29f431935878'
@@ -70,7 +70,17 @@
 
     # Functions to export from this module
     #ToUpdateThis $("'" + $($(get-childitem | select -ExpandProperty basename) -join "','") + "'")
-    FunctionsToExport    = @('Export-PFMData', 'Connect-PFMExchange', 'Get-PFMPublicFolderTree', 'Get-PFMPublicFolderStat', 'Get-PFMPublicFolderPermission', 'Get-PFMPublicFolderDatabase', 'Invoke-PFMValidatePublicFolder', 'Remove-PFMValidatedPublicFolder') #'Get-PFMPublicFolderReplicationReport', 'Set-PFMEmailConfiguration'
+    FunctionsToExport    = @(
+        'Export-PFMData'
+        'Connect-PFMExchange'
+        'Connect-PFMActiveDirectory'
+        'Get-PFMPublicFolderTree'
+        'Get-PFMPublicFolderStat'
+        'Get-PFMPublicFolderPermission'
+        'Get-PFMPublicFolderDatabase'
+        'Invoke-PFMValidatePublicFolder'
+        'Remove-PFMValidatedPublicFolder'
+    ) #'Get-PFMPublicFolderReplicationReport', 'Set-PFMEmailConfiguration'
 
     # Cmdlets to export from this module
     #CmdletsToExport = '*'

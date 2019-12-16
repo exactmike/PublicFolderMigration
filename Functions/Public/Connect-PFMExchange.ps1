@@ -14,9 +14,11 @@ Credential parameter requires a PSCredential object which will be used to connec
 .PARAMETER PSSessionOption
 PSSessionOption parameter accepts a PSSessionOption object to configure PSSessionOptions for environments where proxy options or other PSSessionOptions are required for successful Exchange Powershell connections.
 .PARAMETER IsParallel
-Intended for internal module use only, this parameter is used when creating one or more secondare Exchange PSSessions for public folder statistics operations performed in parallel by Get-PublicFolderReplicationReport.
+Intended for internal module use only, this parameter is used when creating one or more secondary Exchange PSSessions for public folder statistics operations performed in parallel by Get-PublicFolderStat.
 .PARAMETER UseAlternateParallelism
-Intended for internal module use only, this parameter is used when creating one or more secondare Exchange PSSessions for public folder statistics operations performed in parallel by Get-PublicFolderReplicationReport.
+This parameter is used when creating one or more secondary Exchange PSSessions for public folder statistics operations performed in parallel by Get-PublicFolderStat.
+.PARAMETER AlternateParallelismMap
+A Hashtable mapping PF database server fqdn to the exchange server to connect to when retrieving stats for that database (used in remote datacenter scenarios where direct PSSession connections are unreliable)
 
 .EXAMPLE
     PS C:\> $cred = get-credential
@@ -47,9 +49,6 @@ Intended for internal module use only, this parameter is used when creating one 
             })]
         [string]$ExchangeOnPremisesServer
         ,
-        [parameter(ParameterSetName = 'ExchangeOnPremises')]
-        [switch]$UseAlternateParallelism
-        ,
         [parameter(Mandatory, ParameterSetName = 'ExchangeOnPremises')]
         [parameter(Mandatory, ParameterSetName = 'ExchangeOnline')]
         [pscredential]$Credential
@@ -63,6 +62,12 @@ Intended for internal module use only, this parameter is used when creating one 
         [parameter(ParameterSetName = 'ExchangeOnPremises')]
         [parameter(ParameterSetName = 'ExchangeOnPremisesParallel')]
         [switch]$UseBasicAuth
+        ,
+        [parameter(ParameterSetName = 'ExchangeOnPremises')]
+        [switch]$UseAlternateParallelism
+        ,
+        [parameter(ParameterSetName = 'ExchangeOnPremises')]
+        [hashtable]$AlternateParallelismMap
     )
 
     #Force user to run Connect-PFMExchange for organization before IsParallel
@@ -80,6 +85,7 @@ Intended for internal module use only, this parameter is used when creating one 
         $script:ExchangeCredential = $Credential
         $script:ExchangeOnPremisesServer = $ExchangeOnPremisesServer
         if ($true -eq $UseAlternateParallelism) { $script:UseAlternateParallelism = $true } else { $script:UseAlternateParallelism = $false }
+        $script:AlternateParallelismMap = $AlternateParallelismMap
     }
 
     #since this is user facing we always assume that if called the existing session needs to be replaced
@@ -126,6 +132,7 @@ Intended for internal module use only, this parameter is used when creating one 
             switch -wildcard ($PSCmdlet.ParameterSetName)
             { 'ExchangeOnPremises*' { $Script:ExchangeOrganizationType = 'ExchangeOnPremises' } 'ExchangeOnline*' { $Script:ExchangeOrganizationType = 'ExchangeOnline' } }
             $script:ExchangeOrganization = Invoke-Command -Session $Script:PSSession -ScriptBlock { Get-OrganizationConfig | Select-Object -ExpandProperty Identity | Select-Object -ExpandProperty Name }
+            Write-Information -MessageData "Connected to Exchange Organization $script:ExchangeOrganization"
         }
         $true
         {

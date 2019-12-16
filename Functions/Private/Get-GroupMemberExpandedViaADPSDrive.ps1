@@ -1,4 +1,4 @@
-Function GetGroupMemberExpandedViaADPSDrive
+Function Get-GroupMemberExpandedViaADPS
 {
 
     [CmdletBinding()]
@@ -10,7 +10,7 @@ Function GetGroupMemberExpandedViaADPSDrive
         [System.Management.Automation.Runspaces.PSSession]$ExchangeSession
         ,
         [parameter(Mandatory)]
-        [string]$ADPSDriveName
+        [System.Management.Automation.Runspaces.PSSession]$ADPSSession
         ,
         $hrPropertySet
         ,
@@ -26,14 +26,14 @@ Function GetGroupMemberExpandedViaADPSDrive
     $LDAPFilter = "(&(memberof:1.2.840.113556.1.4.1941:=$($Identity))(objectCategory=user))"
 
     GetCallerPreference -Cmdlet $PSCmdlet -SessionState $ExecutionContext.SessionState -Name VerbosePreference
-    Push-Location
-    $ADPSDrivePath = $ADPSDriveName + ':\'
-    Set-Location -Path $ADPSDrivePath -ErrorAction Stop
+    Invoke-Command -Session $ADPSSession -ScriptBlock { Set-Location -path 'GC:\' -ErrorAction Stop } -ErrorAction Stop
 
     $TrusteeObjects = @(
         Try
         {
-            Get-ADObject -ldapfilter $LDAPFilter -ErrorAction Stop
+            Invoke-Command -Session $ADPSSession -ScriptBlock {
+                Get-ADObject -ldapfilter $Using:LDAPFilter -ErrorAction Stop
+            } -ErrorAction Stop
         }
         Catch
         {
@@ -41,8 +41,6 @@ Function GetGroupMemberExpandedViaADPSDrive
             WriteLog -Message $myError.tostring() -ErrorLog -EntryType Failed -Verbose
         }
     )
-
-    Pop-Location
 
     foreach ($to in $TrusteeObjects)
     {
