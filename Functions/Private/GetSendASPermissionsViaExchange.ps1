@@ -21,6 +21,8 @@ Function GetSendASPermissionsViaExchange
         ,
         [hashtable]$UnfoundIdentitiesHash
         ,
+        [hashtable]$SIDHistoryRecipientHash
+        ,
         $ExchangeOrganization
         ,
         $HRPropertySet #Property set for recipient object inclusion in object lookup hashtables

@@ -1,4 +1,4 @@
-Function Get-SIDHistoryRecipientHash
+Function Get-PFMSIDHistoryRecipientMap
 {
 
     [cmdletbinding()]

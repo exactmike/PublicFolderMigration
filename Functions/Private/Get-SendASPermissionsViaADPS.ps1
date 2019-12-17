@@ -24,6 +24,8 @@ Function Get-SendASPermissionsViaADPS
         ,
         [hashtable]$UnfoundIdentitiesHash
         ,
+        [hashtable]$SIDHistoryRecipientHash
+        ,
         $ExchangeOrganization
         ,
         $HRPropertySet #Property set for recipient object inclusion in object lookup hashtables
