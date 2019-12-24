@@ -71,7 +71,7 @@ Function Get-PFMPublicFolderPermission
         [switch]$ExcludedIdentitiesAreEntryID
         ,
         #Use to submit a SidHistoryMap rather than having Get-PFMPublicFolderPermission generate it for you. Use with IncludeSidHistory switch.
-        [psobject[]]$SidHistoryRecipientMap
+        [hashtable]$SidHistoryRecipientMap
         ,
         #Use to submit an array of Mail Public Folders rather than having Get-PFMPublicFolderPermission retreive them for you. Use with IncludeSendAs or IncludeSendOnBehalf.
         [parameter()]
