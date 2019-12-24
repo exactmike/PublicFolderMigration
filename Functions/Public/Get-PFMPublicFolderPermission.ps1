@@ -75,7 +75,6 @@ Function Get-PFMPublicFolderPermission
         ,
         #Use to submit an array of Mail Public Folders rather than having Get-PFMPublicFolderPermission retreive them for you. Use with IncludeSendAs or IncludeSendOnBehalf.
         [parameter()]
-        [ValidateScript( { Test-Member -name 'EntryID' -inputObject $_[0] })]
         [psobject[]]$MailPublicFolder
     )#End Param
     Begin
