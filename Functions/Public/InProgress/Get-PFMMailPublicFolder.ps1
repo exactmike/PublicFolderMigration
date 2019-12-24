@@ -48,7 +48,7 @@ Function Get-PFMMailPublicFolder
                         WarningAction = 'SilentlyContinue'
                     }
                     $Status = "Get-MailPublicFolder -Identity $($pf.Identity.tostring())"
-                    Write-Progress -Activity $message -Status $Status -CurrentOperation "$CurrentPF of $($PublicFolderInfoObject.Count)" -PercentComplete $($CurrentPF / $PublicFolderInfoObject.Count * 100)
+                    Write-Progress -Activity 'Get Mail Public Folder For Each Public Folder' -Status $Status -CurrentOperation "$CurrentPF of $($PublicFolderInfoObject.Count)" -PercentComplete $($CurrentPF / $PublicFolderInfoObject.Count * 100)
                     try
                     {
                         #output Selected object with additional properties from the Pf object
