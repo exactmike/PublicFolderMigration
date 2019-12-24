@@ -24,8 +24,20 @@ Function Get-PFMSIDHistoryRecipientMap
         [switch]$Passthru
     )
 
-    Confirm-PFMExchangeConnection -PSSession $Script:PSSession
-    Confirm-PFMActiveDirectoryConnection -PSSession $script:ADPSSession
+    switch ($PSCmdlet.ParameterSetName)
+    {
+        'UserInitiated'
+        {
+            $ExchangePSSession = $script:PSSession
+            $ADPSSession = $script:ADPSSession
+        }
+        'ModuleInitiated'
+        {
+
+        }
+    }
+    Confirm-PFMExchangeConnection -PSSession $ExchangePSSession
+    Confirm-PFMActiveDirectoryConnection -PSSession $ADPSSession
     $BeginTimeStamp = Get-Date -Format yyyyMMdd-HHmmss
     $script:LogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'GetSIDHistoryRecipientMap.log')
     $script:ErrorLogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'GetSIDHistoryRecipientMap-ERRORS.log')
