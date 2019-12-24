@@ -1,17 +1,38 @@
 Function Get-PFMSIDHistoryRecipientMap
 {
 
-    [cmdletbinding()]
+    [cmdletbinding(DefaultParameterSetName = 'UserInitiated')]
     [OutputType([System.Collections.Hashtable])]
     param
     (
-        [parameter(Mandatory)]
+        [parameter(Mandatory, ParameterSetName = 'ModuleInitiated')]
         [Alias('ExchangeSession')]
         [System.Management.Automation.Runspaces.PSSession]$ExchangePSSession
         ,
-        [parameter(Mandatory)]
+        [parameter(Mandatory, ParameterSetName = 'ModuleInitiated')]
         [System.Management.Automation.Runspaces.PSSession]$ADPSSession
+        ,
+        [Parameter(Mandatory, ParameterSetName = 'UserInitiated')]
+        [ValidateScript( { TestIsWriteableDirectory -Path $_ })]
+        $OutputFolderPath
+        ,
+        [parameter(ParameterSetName = 'UserInitiated')]
+        [ValidateSet('Unicode', 'BigEndianUnicode', 'Ascii', 'Default', 'UTF8', 'UTF8NOBOM', 'UTF7', 'UTF32')]
+        [string]$Encoding = 'UTF8'
+        ,
+        [parameter(ParameterSetName = 'UserInitiated')]
+        [switch]$Passthru
     )
+
+    Confirm-PFMExchangeConnection -PSSession $Script:PSSession
+    Confirm-PFMActiveDirectoryConnection -PSSession $script:ADPSSession
+    $BeginTimeStamp = Get-Date -Format yyyyMMdd-HHmmss
+    $script:LogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'GetSIDHistoryRecipientMap.log')
+    $script:ErrorLogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'GetSIDHistoryRecipientMap-ERRORS.log')
+    #$Stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+    WriteLog -Message "Calling Invocation = $($MyInvocation.Line)" -EntryType Notification
+    WriteLog -Message "Exchange Session is Running in Exchange Organzation $script:ExchangeOrganization" -EntryType Notification
+    [ExportDataOutputFormat[]]$Outputformat = 'json', 'clixml'
 
     $ldapfilter = "(&(legacyExchangeDN=*)(sidhistory=*))"
 
@@ -62,5 +83,29 @@ Function Get-PFMSIDHistoryRecipientMap
             }#End Foreach
         }#end If
     }#End Foreach
-    $SIDHistoryRecipientHash
+
+    $ResultCount = $SIDHistoryRecipientHash.count
+    WriteLog -Message "Count of SIDHistory Recipients Retrieved: $ResultCount" -EntryType Notification -verbose
+    switch ($PSCmdlet.ParameterSetName)
+    {
+        'UserInitiated'
+        {
+            $CreatedFilePath = @(
+                foreach ($of in $Outputformat)
+                {
+                    Export-PFMData -ExportFolderPath $OutputFolderPath -DataToExportTitle 'SidHistoryRecipientHash' -ReturnExportFilePath -Encoding $Encoding -DataFormat $of -DataToExport $SIDHistoryRecipientHash
+                }
+            )
+            WriteLog -Message "Output files created: $($CreatedFilePath -join '; ')" -entryType Notification -verbose
+        }
+        'ModuleInitiated'
+        {
+            $Passthru = $true
+        }
+    }
+
+    if ($true -eq $Passthru)
+    {
+        $SIDHistoryRecipientHash
+    }
 }
