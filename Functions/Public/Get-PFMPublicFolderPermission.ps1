@@ -72,6 +72,11 @@ Function Get-PFMPublicFolderPermission
         ,
         #Use to submit a SidHistoryMap rather than having Get-PFMPublicFolderPermission generate it for you. Use with IncludeSidHistory switch.
         [psobject[]]$SidHistoryRecipientMap
+        ,
+        #Use to submit an array of Mail Public Folders rather than having Get-PFMPublicFolderPermission retreive them for you. Use with IncludeSendAs or IncludeSendOnBehalf.
+        [parameter()]
+        [ValidateScript( { Test-Member -name 'EntryID' -inputObject $_[0] })]
+        [psobject[]]$MailPublicFolder
     )#End Param
     Begin
     {
@@ -233,21 +238,27 @@ Function Get-PFMPublicFolderPermission
         #EndRegion GetInScopePublicFolders
 
         #Region GetInScopeMailPublicFolders
+        $InScopeMailPublicFoldersHash = @{ }
         If ($true -eq $IncludeSendAs -or $true -eq $IncludeSendOnBehalf)
         {
-            Confirm-PFMExchangeConnection -PSSession $script:PSSession
-            $message = 'Get Mail Enabled Public Folders To support retrieval of SendAS and/or SendOnBehalf Permissions and for additional output information for ClientPermissions.'
-            WriteLog -message $message -entryType Attempting -verbose
-            $PossibleMailEnabledPF = $InScopeFolders.where( { ($_.MailEnabled -is [bool] -and $_.MailEnabled -eq $true) -or $_.MailEnabled -eq 'TRUE' })
-            $InScopeMailPublicFolders = @(GetMailPublicFolderPerUserPublicFolder -ExchangeSession $script:PSSession -PublicFolder $PossibleMailEnabledPF -ErrorAction Stop)
-            WriteLog -message $message -entryType Succeeded -verbose
-            WriteLog -Message "Got $($InScopeMailPublicFolders.count) In Scope Mail Public Folder Objects" -EntryType Notification -verbose
-            $InScopeMailPublicFoldersHash = @{ }
-            $InScopeMailPublicFolders.foreach( { $InScopeMailPublicFoldersHash.$($_.EntryID.ToString()) = $_ })
-        }
-        else
-        {
-            $InScopeMailPublicFoldersHash = @{ }
+            switch ($PSBoundParameters.ContainsKey('MailPublicFolder'))
+            {
+                $true
+                {
+                    $MailPublicFolder.foreach( { $InScopeMailPublicFoldersHash.$($_.EntryID.ToString()) = $_ })
+                }
+                $false
+                {
+                    Confirm-PFMExchangeConnection -PSSession $script:PSSession
+                    $message = 'Get Mail Enabled Public Folders To support retrieval of SendAS and/or SendOnBehalf Permissions and for additional output information for ClientPermissions.'
+                    WriteLog -message $message -entryType Attempting -verbose
+                    $PossibleMailEnabledPF = $InScopeFolders.where( { ($_.MailEnabled -is [bool] -and $_.MailEnabled -eq $true) -or $_.MailEnabled -eq 'TRUE' })
+                    $InScopeMailPublicFolders = @(GetMailPublicFolderPerUserPublicFolder -ExchangeSession $script:PSSession -PublicFolder $PossibleMailEnabledPF -ErrorAction Stop)
+                    WriteLog -message $message -entryType Succeeded -verbose
+                    WriteLog -Message "Got $($InScopeMailPublicFolders.count) In Scope Mail Public Folder Objects" -EntryType Notification -verbose
+                    $InScopeMailPublicFolders.foreach( { $InScopeMailPublicFoldersHash.$($_.EntryID.ToString()) = $_ })
+                }
+            }
         }
         #EndRegion GetInScopeMailPublicFolders
 
