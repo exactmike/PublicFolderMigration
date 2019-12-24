@@ -304,104 +304,103 @@ Function Get-PFMPublicFolderPermission
         $message = "First Permission Identity will be $($Script:PermissionIdentity)"
         WriteLog -message $message -EntryType Notification
         $ISRCounter = $ResumeIndex
-        $ExportedPermissions = @(
-            :nextISR for
-            (
-                $i = $ResumeIndex
-                $i -le $InScopeFolderCount - 1
-                $(if ($Recovering) { $i = $ResumeIndex } else { $i++ })
-                #$ISR in $InScopeFolders[$ResumeIndex..$()]
-            )
+        :nextISR for
+        (
+            $i = $ResumeIndex
+            $i -le $InScopeFolderCount - 1
+            $(if ($Recovering) { $i = $ResumeIndex } else { $i++ })
+            #$ISR in $InScopeFolders[$ResumeIndex..$()]
+        )
+        {
+            Confirm-PFMExchangeConnection -PSSession $script:PSSession
+            if ($true -eq $IncludeSendAs -or $true -eq $IncludeSendOnBehalf)
             {
-                Confirm-PFMExchangeConnection -PSSession $script:PSSession
-                if ($true -eq $IncludeSendAs -or $true -eq $IncludeSendOnBehalf)
-                {
-                    Confirm-PFMActiveDirectoryConnection -PSSession $script:ADPSSession
-                }
-                $Recovering = $false
-                $ISRCounter++
-                $ISR = $InScopeFolders[$i]
-                $ID = $ISR.EntryID.tostring()
-                if ($excludedPublicFoldersEntryIDHash.ContainsKey($ID))
-                {
-                    #WriteLog -Message "Excluding Excluded Folder with EntryID $ID"
-                    continue nextISR
-                }
-                if ($InScopeMailPublicFoldersHash.ContainsKey($ID))
-                {
-                    $ISRR = $InScopeMailPublicFoldersHash.$ID
-                }
-                else
-                {
-                    $ISRR = $null
-                }
-                $message = "Collect permissions for $($ID)"
-                Write-Progress -Activity $message -status "Items processed: $($ISRCounter) of $($InScopeFolderCount)" -percentComplete (($ISRCounter / $InScopeFolderCount) * 100)
-                Try
-                {
-                    Confirm-PFMExchangeConnection -PSSession $Script:PSSession
-                    WriteLog -Message $message -EntryType Attempting
-                    $PermissionExportObjects = @(
-                        If ($IncludeClientPermission)
-                        {
-                            #WriteLog -Message "Getting Client Permissions for Target $ID" -entryType Notification
-                            GetClientPermission -TargetPublicFolder $ISR -TargetMailPublicFolder $ISRR -ObjectGUIDHash $ObjectGUIDHash -ExchangeSession $Script:PSSession -excludedTrusteeGUIDHash $excludedTrusteeGUIDHash -ExchangeOrganization $ExchangeOrganization -DomainPrincipalHash $DomainPrincipalHash -HRPropertySet $HRPropertySet -UnfoundIdentitiesHash $UnfoundIdentitiesHash -SIDHistoryRecipientHash $SIDHistoryRecipientHash
-                        }
-                        If ($IncludeSendOnBehalf -and $InScopeMailPublicFoldersHash.ContainsKey($ID))
-                        {
-                            #WriteLog -Message "Getting SendOnBehalf Permissions for Target $ID" -entryType Notification
-                            GetSendOnBehalfPermission -TargetPublicFolder $ISR -TargetMailPublicFolder $ISRR -ObjectGUIDHash $ObjectGUIDHash -ExchangeSession $Script:PSSession -ExcludedTrusteeGUIDHash $excludedTrusteeGUIDHash -ExchangeOrganization $ExchangeOrganization -HRPropertySet $HRPropertySet -DomainPrincipalHash $DomainPrincipalHash -UnfoundIdentitiesHash $UnfoundIdentitiesHash -SIDHistoryRecipientHash $SIDHistoryRecipientHash
-                        }
-                        If ($IncludeSendAs -and $InScopeMailPublicFoldersHash.ContainsKey($ID))
-                        {
-                            #WriteLog -Message "Getting SendAS Permissions for Target $ID" -entryType Notification
-                            switch ($script:ExchangeOrganizationType)
-                            {
-                                'ExchangeOnline'
-                                {
-                                    #WriteLog -Message "Getting SendAS Permissions for Target $ID Via Exchange Commands" -entryType Notification
-                                    GetSendASPermissionsViaExchange -TargetPublicFolder $ISRR -TargetMailPublicFolder $ISRR -ExchangeSession $Script:PSSession -ObjectGUIDHash $ObjectGUIDHash -excludedTrusteeGUIDHash $ -dropInheritedPermissions $dropInheritedPermissions -DomainPrincipalHash $DomainPrincipalHash -ExchangeOrganization $ExchangeOrganization -HRPropertySet $HRPropertySet -UnfoundIdentitiesHash $UnfoundIdentitiesHash -SIDHistoryRecipientHash $SIDHistoryRecipientHash
-                                }
-                                'ExchangeOnPremises'
-                                {
-                                    #WriteLog -Message "Getting SendAS Permissions for Target $ID Via AD Commands" -entryType Notification
-                                    Get-SendASPermissionsViaADPS -TargetPublicFolder $ISR -TargetMailPublicFolder $ISRR -ExchangeSession $Script:PSSession -ADPSSession $script:ADPSSession -ObjectGUIDHash $ObjectGUIDHash -excludedTrusteeGUIDHash $excludedTrusteeGUIDHash -dropInheritedPermissions $dropInheritedPermissions -DomainPrincipalHash $DomainPrincipalHash -ExchangeOrganization $ExchangeOrganization -HRPropertySet $HRPropertySet -UnfoundIdentitiesHash $UnfoundIdentitiesHash -SIDHistoryRecipientHash $SIDHistoryRecipientHash
-                                }
-                            }
-                        }
-                    )
-                    $message = "$($PermissionExportObjects.count) Permission Export Objects generated by Get* commands for further processing."
-                    WriteLog -Message $message -EntryType Notification
-                    if ($expandGroups -eq $true)
+                Confirm-PFMActiveDirectoryConnection -PSSession $script:ADPSSession
+            }
+            $Recovering = $false
+            $ISRCounter++
+            $ISR = $InScopeFolders[$i]
+            $ID = $ISR.EntryID.tostring()
+            if ($excludedPublicFoldersEntryIDHash.ContainsKey($ID))
+            {
+                #WriteLog -Message "Excluding Excluded Folder with EntryID $ID"
+                continue nextISR
+            }
+            if ($InScopeMailPublicFoldersHash.ContainsKey($ID))
+            {
+                $ISRR = $InScopeMailPublicFoldersHash.$ID
+            }
+            else
+            {
+                $ISRR = $null
+            }
+            $message = "Collect permissions for $($ID)"
+            Write-Progress -Activity $message -status "Items processed: $($ISRCounter) of $($InScopeFolderCount)" -percentComplete (($ISRCounter / $InScopeFolderCount) * 100)
+            Try
+            {
+                Confirm-PFMExchangeConnection -PSSession $Script:PSSession
+                WriteLog -Message $message -EntryType Attempting
+                $PermissionExportObjects = @(
+                    If ($IncludeClientPermission)
                     {
-                        #WriteLog -Message "Expanding Group Based Permissions for Target $ID" -entryType Notification
-                        $splat = @{
-                            Permission              = $PermissionExportObjects
-                            ObjectGUIDHash          = $ObjectGUIDHash
-                            SIDHistoryHash          = $SIDHistoryRecipientHash
-                            excludedTrusteeGUIDHash = $excludedTrusteeGUIDHash
-                            UnfoundIdentitiesHash   = $UnfoundIdentitiesHash
-                            HRPropertySet           = $HRPropertySet
-                            exchangeSession         = $Script:PSSession
-                            TargetPublicFolder      = $ISR
-                            TargetMailPublicFolder  = $ISRR
-                        }
-                        if ($dropExpandedParentGroupPermissions -eq $true)
-                        { $splat.dropExpandedParentGroupPermissions = $true }
-                        switch ($Script:ExchangeOrganizationType)
+                        #WriteLog -Message "Getting Client Permissions for Target $ID" -entryType Notification
+                        GetClientPermission -TargetPublicFolder $ISR -TargetMailPublicFolder $ISRR -ObjectGUIDHash $ObjectGUIDHash -ExchangeSession $Script:PSSession -excludedTrusteeGUIDHash $excludedTrusteeGUIDHash -ExchangeOrganization $ExchangeOrganization -DomainPrincipalHash $DomainPrincipalHash -HRPropertySet $HRPropertySet -UnfoundIdentitiesHash $UnfoundIdentitiesHash -SIDHistoryRecipientHash $SIDHistoryRecipientHash
+                    }
+                    If ($IncludeSendOnBehalf -and $InScopeMailPublicFoldersHash.ContainsKey($ID))
+                    {
+                        #WriteLog -Message "Getting SendOnBehalf Permissions for Target $ID" -entryType Notification
+                        GetSendOnBehalfPermission -TargetPublicFolder $ISR -TargetMailPublicFolder $ISRR -ObjectGUIDHash $ObjectGUIDHash -ExchangeSession $Script:PSSession -ExcludedTrusteeGUIDHash $excludedTrusteeGUIDHash -ExchangeOrganization $ExchangeOrganization -HRPropertySet $HRPropertySet -DomainPrincipalHash $DomainPrincipalHash -UnfoundIdentitiesHash $UnfoundIdentitiesHash -SIDHistoryRecipientHash $SIDHistoryRecipientHash
+                    }
+                    If ($IncludeSendAs -and $InScopeMailPublicFoldersHash.ContainsKey($ID))
+                    {
+                        #WriteLog -Message "Getting SendAS Permissions for Target $ID" -entryType Notification
+                        switch ($script:ExchangeOrganizationType)
                         {
                             'ExchangeOnline'
                             {
-                                $splat.UseExchangeCommandsInsteadOfADOrLDAP = $true
+                                #WriteLog -Message "Getting SendAS Permissions for Target $ID Via Exchange Commands" -entryType Notification
+                                GetSendASPermissionsViaExchange -TargetPublicFolder $ISRR -TargetMailPublicFolder $ISRR -ExchangeSession $Script:PSSession -ObjectGUIDHash $ObjectGUIDHash -excludedTrusteeGUIDHash $ -dropInheritedPermissions $dropInheritedPermissions -DomainPrincipalHash $DomainPrincipalHash -ExchangeOrganization $ExchangeOrganization -HRPropertySet $HRPropertySet -UnfoundIdentitiesHash $UnfoundIdentitiesHash -SIDHistoryRecipientHash $SIDHistoryRecipientHash
                             }
                             'ExchangeOnPremises'
                             {
-                                $splat.ADPSSession = $Script:ADPSSession
+                                #WriteLog -Message "Getting SendAS Permissions for Target $ID Via AD Commands" -entryType Notification
+                                Get-SendASPermissionsViaADPS -TargetPublicFolder $ISR -TargetMailPublicFolder $ISRR -ExchangeSession $Script:PSSession -ADPSSession $script:ADPSSession -ObjectGUIDHash $ObjectGUIDHash -excludedTrusteeGUIDHash $excludedTrusteeGUIDHash -dropInheritedPermissions $dropInheritedPermissions -DomainPrincipalHash $DomainPrincipalHash -ExchangeOrganization $ExchangeOrganization -HRPropertySet $HRPropertySet -UnfoundIdentitiesHash $UnfoundIdentitiesHash -SIDHistoryRecipientHash $SIDHistoryRecipientHash
                             }
                         }
-                        $PermissionExportObjects = @(Expand-GroupPermission @splat)
                     }
-
+                )
+                $message = "$($PermissionExportObjects.count) Permission Export Objects generated by Get* commands for further processing."
+                WriteLog -Message $message -EntryType Notification
+                if ($expandGroups -eq $true)
+                {
+                    #WriteLog -Message "Expanding Group Based Permissions for Target $ID" -entryType Notification
+                    $splat = @{
+                        Permission              = $PermissionExportObjects
+                        ObjectGUIDHash          = $ObjectGUIDHash
+                        SIDHistoryHash          = $SIDHistoryRecipientHash
+                        excludedTrusteeGUIDHash = $excludedTrusteeGUIDHash
+                        UnfoundIdentitiesHash   = $UnfoundIdentitiesHash
+                        HRPropertySet           = $HRPropertySet
+                        exchangeSession         = $Script:PSSession
+                        TargetPublicFolder      = $ISR
+                        TargetMailPublicFolder  = $ISRR
+                    }
+                    if ($dropExpandedParentGroupPermissions -eq $true)
+                    { $splat.dropExpandedParentGroupPermissions = $true }
+                    switch ($Script:ExchangeOrganizationType)
+                    {
+                        'ExchangeOnline'
+                        {
+                            $splat.UseExchangeCommandsInsteadOfADOrLDAP = $true
+                        }
+                        'ExchangeOnPremises'
+                        {
+                            $splat.ADPSSession = $Script:ADPSSession
+                        }
+                    }
+                    $PermissionExportObjects = @(Expand-GroupPermission @splat)
+                }
+                @(
                     if ($PermissionExportObjects.Count -eq 0 -and -not $ExcludeNonePermissionOutput -eq $true)
                     {
                         $GPEOParams = @{
@@ -421,37 +420,14 @@ Function Get-PFMPublicFolderPermission
                     {
                         $PermissionExportObjects
                     }
-                    WriteLog -Message $message -EntryType Succeeded
-                }
-                Catch
-                {
-                    WriteLog -Message $_.Tostring() -entryType Failed
-                    WriteLog -Message $message -EntryType Failed
-                }
-            }#Foreach recipient in set
-        )# end ExportedPermissions
-        if ($ExportedPermissions.Count -ge 1)
-        {
-            Try
-            {
-                $message = "Export $($ExportedPermissions.Count) Exported Permissions to File $ExportedExchangePublicFolderPermissionsFile."
-                WriteLog -Message $message -EntryType Attempting -verbose
-                $ExportedPermissions | Export-Csv -Path $ExportedExchangePublicFolderPermissionsFile -NoClobber -Encoding UTF8 -ErrorAction Stop -NoTypeInformation
-                WriteLog -Message $message -EntryType Succeeded -verbose
+                ) | Export-Csv -Path $ExportedExchangePublicFolderPermissionsFile -NoClobber -Encoding UTF8 -ErrorAction Stop -NoTypeInformation -Append
+                WriteLog -Message $message -EntryType Succeeded
             }
             Catch
             {
-                $myerror = $_
-                WriteLog -Message $message -EntryType Failed -ErrorLog -Verbose
-                WriteLog -Message $myError.tostring() -ErrorLog
-                WriteLog -Message "Saving Exported Permissions to Global Variable $($BeginTimeStamp + "ExportedExchangePermissions") for recovery/manual export if desired/required." -verbose
-                Set-Variable -Name $($BeginTimeStamp + "ExportedExchangePermissions") -Value $ExportedPermissions -Scope Global
+                WriteLog -Message $_.Tostring() -entryType Failed
+                WriteLog -Message $message -EntryType Failed
             }
-        }
-        else
-        {
-            WriteLog -Message "No Permissions were generated for export by this operation.  Check the logs for errors if this is unexpected." -EntryType Notification -Verbose
-        }
+        }#Foreach recipient in set
     }#end End
-
 }
