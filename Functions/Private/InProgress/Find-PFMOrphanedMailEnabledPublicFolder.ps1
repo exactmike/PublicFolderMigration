@@ -9,7 +9,7 @@ function Find-PFMOrphanedMailEnabledPublicFolder
     #Try to get all Mail Enabled Public Folder Objects in the Organization
     try
     {
-        $MailEnabledPublicFolders = @(Get-PFMAllMailPublicFolder -ExchangeOrganization $ExchangeOrganization -ErrorAction Stop)
+        $MailEnabledPublicFolders = @(Get-PFMMailPublicFolder -ExchangeOrganization $ExchangeOrganization -ErrorAction Stop)
     }
     catch
     {
