@@ -1,15 +1,17 @@
 param(
-#$PublicFolderTreeFile = 
-#,
-$ServersFile
-,
-$DomainControllersFile
-,
-$Credential
-,
-$SidHistoryMapFile
-,
-$MailEnabledFoldersFile
+    #$PublicFolderTreeFile =
+    #,
+    $ServersFile
+    ,
+    $DomainControllersFile
+    ,
+    $Credential
+    ,
+    $SidHistoryMapFile
+    ,
+    $MailEnabledFoldersFile
+    ,
+    $outputfolderpath
 )
 
 Function New-SplitArrayRange
@@ -65,23 +67,23 @@ Function New-SplitArrayRange
 }
 
 
-$servers = get-content -Path $ServersFile
-$domainControllers = get-content -Path $DomainControllersFile
+$servers = Get-Content -Path $ServersFile
+$domainControllers = Get-Content -Path $DomainControllersFile
 #$publicFolderTree = Import-CSV -Path $PublicFolderTreeFile -Encoding UTF8
 #$sidHistoryMap = Get-Content -Raw -Path $SidHistoryMapFile -Encoding UTF8 | ConvertFrom-Json -AsHashtable
 #$mailPublicFolders = Import-Csv -Path $MailEnabledFoldersFile -Encoding UTF8
-$s = 8
 
-#$ranges = New-SplitArrayRange -inputArray $PublicFolderTree -parts $servers.count 
+$ranges = New-SplitArrayRange -inputArray $PublicFolderTree -parts $servers.count
+$s = 0
 #<#
-foreach ($r in @(1))
+foreach ($r in $ranges)
 {
     $server = $servers[$s]
     $dc = $domainControllers[$s]
     $startJobParams = @{
-        name      = $server
-        scriptblock    = [scriptblock] {
-            $file = Join-Path -path 'D:\PerficientReports' -ChildPath $("" + $($using:s + 1) + ".csv")
+        name        = $server
+        scriptblock = [scriptblock] {
+            $file = Join-Path -path $using:outputfolderpath -ChildPath $("" + $($using:r).part + ".csv")
             Write-Verbose -Message "I'm running on server $using:server and dc $using:dc processing file $File" -Verbose
             Import-Module PublicFolderMigration
             #$publicFolderTree = Import-CSV -Path $using:PublicFolderTreeFile -Encoding UTF8 -Verbose
@@ -95,23 +97,23 @@ foreach ($r in @(1))
             Connect-PFMExchange -ExchangeOnPremisesServer $using:server -Credential $using:Credential -verbose
             Connect-PFMActiveDirectory -DomainController $using:dc -Credential $using:Credential -verbose
             $GPGPParams = @{
-                PublicFolderInfoObject = $Treepart
-                OutputFolderPath = 'D:\PerficientReports' 
-                IncludeClientPermission = $true 
-                IncludeSIDHistory = $true
-                IncludeSendAs = $false 
-                IncludeSendOnBehalf = $false 
-                ExpandGroups = $false
-                SidHistoryRecipientMap = $SidHistoryMap 
-                MailPublicFolder = $MailPublicFolders
+                PublicFolderInfoObject  = $Treepart
+                OutputFolderPath        = $using:outputfolderpath
+                IncludeClientPermission = $true
+                IncludeSIDHistory       = $true
+                IncludeSendAs           = $false
+                IncludeSendOnBehalf     = $false
+                ExpandGroups            = $false
+                SidHistoryRecipientMap  = $SidHistoryMap
+                MailPublicFolder        = $MailPublicFolders
                 #Verbose = $true
-                InformationAction = 'Continue'
+                InformationAction       = 'Continue'
             }
             Get-PFMPublicFolderPermission @GPGPParams
         }
     }
     #$StartJobParams
-    Start-Job @StartJobParams 
+    Start-Job @StartJobParams
     $s++
 }
 #>
