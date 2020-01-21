@@ -1,3 +1,4 @@
+#Summarizes the stats from multiple replicas to get the maximum values from all replicas
 param($StatsFile)
 $Stats = $(Import-JSON -Path $StatsFile -Encoding utf8)
 $SortedStats = $Stats | Sort-Object -Property EntryID

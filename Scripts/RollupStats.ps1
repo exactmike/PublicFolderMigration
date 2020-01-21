@@ -1,3 +1,4 @@
+#rolls up stats from subfolders to the containing folders
 param($SummarizedStatsFile)
 
 $SummarizedStats = import-json -path $SummarizedStatsFile -encoding utf8
