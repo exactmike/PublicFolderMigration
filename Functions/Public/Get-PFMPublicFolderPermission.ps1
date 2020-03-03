@@ -80,10 +80,7 @@ Function Get-PFMPublicFolderPermission
     Begin
     {
         Confirm-PFMExchangeConnection -PSSession $Script:PSSession
-        If ($script:ExchangeOrganizationType -eq 'ExchangeOnPremises')
-        {
-            Confirm-PFMActiveDirectoryConnection -PSSession $script:ADPSSession
-        }
+
         $BeginTimeStamp = Get-Date -Format yyyyMMdd-HHmmss
         $script:LogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'GetPublicFolderPermission.log')
         $script:ErrorLogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'GetPublicFolderPermission-ERRORS.log')
@@ -101,7 +98,7 @@ Function Get-PFMPublicFolderPermission
             }
             'ExchangeOnPremises'
             {
-                If ($true -eq $IncludeSidHistory -or $true -eq $IncludeSendAs -or $true -eq $ExpandGroups)
+                If (($true -eq $IncludeSidHistory -or $true -eq $IncludeSendAs -or $true -eq $ExpandGroups) -and -not $PSBoundParameters.ContainsKey('SidHistoryRecipientMap'))
                 {
                     Confirm-PFMActiveDirectoryConnection -pssession $script:ADPSSession
                 }
@@ -264,8 +261,6 @@ Function Get-PFMPublicFolderPermission
         #Region GetSIDHistoryData
         if ($IncludeSIDHistory -eq $true)
         {
-            Confirm-PFMActiveDirectoryConnection -PSSession $script:ADPSSession
-            Confirm-PFMExchangeConnection -PSSession $script:PSSession
             switch ($PSBoundParameters.ContainsKey('SidHistoryRecipientMap'))
             {
                 $true
@@ -274,6 +269,8 @@ Function Get-PFMPublicFolderPermission
                 }
                 $false
                 {
+                    Confirm-PFMActiveDirectoryConnection -PSSession $script:ADPSSession
+                    Confirm-PFMExchangeConnection -PSSession $script:PSSession
                     $SIDHistoryRecipientHash = Get-PFMSIDHistoryRecipientMap -ExchangePSSession $Script:PSSession -ADPSSession $Script:ADPSSession -ErrorAction Stop
                 }
             }
