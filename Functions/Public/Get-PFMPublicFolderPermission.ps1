@@ -85,11 +85,13 @@ Function Get-PFMPublicFolderPermission
             Confirm-PFMActiveDirectoryConnection -PSSession $script:ADPSSession
         }
         $BeginTimeStamp = Get-Date -Format yyyyMMdd-HHmmss
-        $script:LogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'GetPublicFolderPermission.log')
-        $script:ErrorLogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'GetPublicFolderPermission-ERRORS.log')
+        $BeginTimeStampAndServerName = $BeginTimeStamp + '-' + $($($script:ExchangeOnPremisesServer).split('.')[0])
+        $script:LogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStampAndServerName + 'GetPublicFolderPermission.log')
+        $script:ErrorLogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStampAndServerName + 'GetPublicFolderPermission-ERRORS.log')
         #$Stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
         WriteLog -Message "Calling Invocation = $($MyInvocation.Line)" -EntryType Notification
         WriteLog -Message "Exchange Session is Running in Exchange Organzation $script:ExchangeOrganization" -EntryType Notification
+
         switch ($script:ExchangeOrganizationType)
         {
             'ExchangeOnline'
@@ -101,6 +103,7 @@ Function Get-PFMPublicFolderPermission
             }
             'ExchangeOnPremises'
             {
+                WriteLog -Message "Exchange Session is Running on Exchange Server  $script:ExchangeOnPremisesServer" -EntryType Notification
                 If ($true -eq $IncludeSidHistory -or $true -eq $IncludeSendAs -or $true -eq $ExpandGroups)
                 {
                     Confirm-PFMActiveDirectoryConnection -pssession $script:ADPSSession
@@ -110,7 +113,7 @@ Function Get-PFMPublicFolderPermission
         #Configure properties to retain in memory / hashtables for retrieved public folders and Recipients
         $PFPropertySet = @('EntryID', 'Identity', 'Name', 'ParentPath', 'FolderType', 'Has*', 'HiddenFromAddressListsEnabled', '*Quota', 'MailEnabled', 'Replicas', 'ReplicationSchedule', 'RetainDeletedItemsFor', 'Use*')
         $HRPropertySet = @('*name*', '*addr*', 'RecipientType*', '*Id', 'Identity', 'GrantSendOnBehalfTo')
-        $ExportedExchangePublicFolderPermissionsFile = Join-Path -Path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'ExchangePublicFolderPermissions.csv')
+        $ExportedExchangePublicFolderPermissionsFile = Join-Path -Path $OutputFolderPath -ChildPath $($BeginTimeStampAndServerName + 'ExchangePublicFolderPermissions.csv')
         $ResumeIndex = 0
         [uint32]$Script:PermissionIdentity = 0
         #create a property set for storing of recipient data during processing.  We don't need all attributes in memory/storage.
