@@ -1,5 +1,5 @@
 param(
-    #$PublicFolderTreeFile =
+    $PublicFolderTreeFile =
     #,
     $ServersFile
     ,
@@ -69,9 +69,9 @@ Function New-SplitArrayRange
 
 $servers = Get-Content -Path $ServersFile
 $domainControllers = Get-Content -Path $DomainControllersFile
-#$publicFolderTree = Import-CSV -Path $PublicFolderTreeFile -Encoding UTF8
-#$sidHistoryMap = Get-Content -Raw -Path $SidHistoryMapFile -Encoding UTF8 | ConvertFrom-Json -AsHashtable
-#$mailPublicFolders = Import-Csv -Path $MailEnabledFoldersFile -Encoding UTF8
+$publicFolderTree = Import-CSV -Path $PublicFolderTreeFile -Encoding UTF8
+$sidHistoryMap = Get-Content -Raw -Path $SidHistoryMapFile -Encoding UTF8 | ConvertFrom-Json -AsHashtable
+$mailPublicFolders = Import-Csv -Path $MailEnabledFoldersFile -Encoding UTF8
 
 $ranges = New-SplitArrayRange -inputArray $PublicFolderTree -parts $servers.count
 $s = 0
