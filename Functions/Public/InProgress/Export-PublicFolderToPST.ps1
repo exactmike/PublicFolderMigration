@@ -3,50 +3,22 @@ Function Export-PublicFolderToPST
     Param(
         [Parameter(Mandatory)]
         [string]$File,
-        [Parameter()]
+        [Parameter(Mandatory)]
         [string]$PstPath,
-        [Parameter()]
+        [Parameter(Mandatory)]
         [string]$LogPath
     )
 
     Function Get-TimeStamp
     {
-
         "[{0:MM/dd/yy} {0:HH:mm:ss}]" -f (Get-Date)
-
     }
-
-
-    Function Write-Log
-    {
-        param(
-            $Log
-            ,
-            $LogPath
-        )
-
-        Out-File -FilePath $LogPath -Append -InputObject $Log
-    }
+    # Setup log files
+    $LogFile = $LogPath + (hostname) + "-" + (Get-Date -Format "yyyyMMdd-HHmm") + ".txt"
 
     #Import Data file to process against
     $Data = Import-Csv $File
-
-    #Initialize Variables
-    If (!($PstPath))
-    {
-        $PstPath = "C:\temp"
-    }
-    If (!($LogPath))
-    {
-        $LogPath = "C:\temp\LogFiles\"
-    }
-
-    $LogFile = $LogPath + (hostname) + "-" + (Get-Date -Format "yyyyMMdd-HHmm") + ".txt"
-    $WarningLog = $LogPath + (hostname) + "-Warning-" + (Get-Date -Format "yyyyMMdd-HHmm") + ".txt"
     $i = 1
-
-    #Transcript
-    Start-Transcript -path $LogFile
 
     #Open up outlook
     $null = [Reflection.Assembly]::LoadWithPartialname("Microsoft.Office.Interop.Outlook")

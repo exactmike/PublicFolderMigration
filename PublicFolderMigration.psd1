@@ -74,6 +74,7 @@
         'Export-PFMData'
         'Connect-PFMExchange'
         'Connect-PFMActiveDirectory'
+        'Get-PFMMailPublicFolder'
         'Get-PFMPublicFolderTree'
         'Get-PFMPublicFolderStat'
         'Get-PFMPublicFolderPermission'
