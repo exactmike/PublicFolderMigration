@@ -40,7 +40,7 @@ function NewMailEnabledPublicFolder
     # preserve the ability to reply via Outlook's nickname cache post-migration
     $emailAddressesArray = $localFolder.EmailAddresses.ToStringArray() + ("x500:" + $localFolder.LegacyExchangeDN)
 
-    $newParams = @{}
+    $newParams = @{ }
     AddNewOrSetCommonParameters $localFolder $emailAddressesArray $newParams
 
     [string]$commandText = (FormatCommand $script:NewSyncMailPublicFolderCommand $newParams)
@@ -72,7 +72,7 @@ function RemoveMailEnabledPublicFolder
 {
     param ($remoteFolder)
 
-    $removeParams = @{}
+    $removeParams = @{ }
     $removeParams.Add("Identity", $remoteFolder.DistinguishedName)
     $removeParams.Add("Confirm", $false)
     $removeParams.Add("WarningAction", [System.Management.Automation.ActionPreference]::SilentlyContinue)
@@ -116,7 +116,7 @@ function UpdateMailEnabledPublicFolder
     $localEmailAddresses += ("x500:" + $localFolder.LegacyExchangeDN) # preserve the ability to reply via Outlook's nickname cache post-migration
     $emailAddresses = ConsolidateEmailAddresses $localEmailAddresses $remoteFolder.EmailAddresses $remoteFolder.LegacyExchangeDN
 
-    $setParams = @{}
+    $setParams = @{ }
     $setParams.Add("Identity", $remoteFolder.DistinguishedName)
 
     if ($script:mailEnabledSystemFolders.Contains($localFolder.Guid))
@@ -305,30 +305,9 @@ try
     # Get-PublicFolder as that operation would fail. In that case, the script cannot determine which mail public folder
     # objects are linked to system folders under the NON_IPM_SUBTREE.
     $allSystemFoldersInAD = @()
-    if (-not $lockedForMigration)
-    {
-        # See https://technet.microsoft.com/en-us/library/bb397221(v=exchg.141).aspx#Trees
-        # Certain WellKnownFolders in pre-E15 are created with prefix such as OWAScratchPad, StoreEvents.
-        # For instance, StoreEvents folders have the following pattern: "\NON_IPM_SUBTREE\StoreEvents{46F83CF7-2A81-42AC-A0C6-68C7AA49FF18}\internal1"
-        $storeEventAndOwaScratchPadFolders = @(Get-PublicFolder \NON_IPM_SUBTREE -GetChildren -ResultSize:Unlimited | Where-Object { $_.Name -like "StoreEvents*" -or $_.Name -like "OWAScratchPad*" })
-        $allSystemFolderParents = $storeEventAndOwaScratchPadFolders + @($script:WellKnownSystemFolders | Get-PublicFolder -ErrorAction:SilentlyContinue)
-        $allSystemFoldersInAD = @($allSystemFolderParents | Get-PublicFolder -Recurse -ResultSize:Unlimited | Get-MailPublicFolder -ErrorAction:SilentlyContinue)
 
-        foreach ($systemFolder in $allSystemFoldersInAD)
-        {
-            [void]$script:mailEnabledSystemFolders.Add($systemFolder.Guid)
-        }
-    }
-    else
-    {
-        WriteWarningMessage $LocalizedStrings.UnableToDetectSystemMailPublicFolders
-    }
 
-    if ($script:verbose)
-    {
-        WriteVerboseMessage ($LocalizedStrings.SystemFoldersSkipped -f $script:mailEnabledSystemFolders.Count)
-        $allSystemFoldersInAD | Sort-Object Alias | Format-Table -a | Out-String | Write-Host -ForegroundColor Green -BackgroundColor Black
-    }
+
 
     $localFolders = @(Get-MailPublicFolder -ResultSize:Unlimited -IgnoreDefaultScope | Sort-Object Guid)
     WriteInfoMessage $LocalizedStrings.RemoteMailPublicFolderEnumerationStart
@@ -337,8 +316,8 @@ try
 
     $missingOnPremisesGuid = @()
     $pendingRemoves = @()
-    $pendingUpdates = @{}
-    $pendingAdds = @{}
+    $pendingUpdates = @{ }
+    $pendingAdds = @{ }
 
     $localIndex = 0
     $remoteIndex = 0
