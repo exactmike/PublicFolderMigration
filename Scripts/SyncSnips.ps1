@@ -4,4 +4,3 @@ $EXOAcceptedDomains = Invoke-Command -Session $EXOSession -ScriptBlock { Get-Acc
 $EXPAcceptedDomains = Invoke-Command -Session $EXPSession -ScriptBlock { Get-AcceptedDomain }
 $EXOPublicFolders = Invoke-Command -Session $EXOSession -ScriptBlock { Get-PublicFolder -Recurse -ResultSize Unlimited }
 $EXPPublicFolders = Invoke-Command -Session $EXPSession -ScriptBlock { Get-PublicFolder -recurse -ResultSize Unlimited }
-$EX
