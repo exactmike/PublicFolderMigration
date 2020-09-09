@@ -331,9 +331,7 @@ try
     }
 
     $localFolders = @(Get-MailPublicFolder -ResultSize:Unlimited -IgnoreDefaultScope | Sort-Object Guid)
-    WriteInfoMessage $LocalizedStrings.RemoteMailPublicFolderEnumerationStart
     $remoteFolders = @(Get-EXOMailPublicFolder -ResultSize:Unlimited | Sort-Object OnPremisesObjectId)
-    WriteInfoMessage ($LocalizedStrings.RemoteMailPublicFolderEnumerationCompleted -f $remoteFolders.Length)
 
     $missingOnPremisesGuid = @()
     $pendingRemoves = @()
