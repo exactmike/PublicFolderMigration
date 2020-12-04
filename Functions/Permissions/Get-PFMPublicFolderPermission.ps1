@@ -83,8 +83,8 @@ Function Get-PFMPublicFolderPermission
 
         $BeginTimeStamp = Get-Date -Format yyyyMMdd-HHmmss
         $BeginTimeStampAndServerName = $BeginTimeStamp + '-' + $($($script:ExchangeOnPremisesServer).split('.')[0])
-        $script:LogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStampAndServerName + 'GetPublicFolderPermission.log')
-        $script:ErrorLogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStampAndServerName + 'GetPublicFolderPermission-ERRORS.log')
+        $script:LogPath = Join-Path -Path $OutputFolderPath -ChildPath $($BeginTimeStampAndServerName + 'GetPublicFolderPermission.log')
+        $script:ErrorLogPath = Join-Path -Path $OutputFolderPath -ChildPath $($BeginTimeStampAndServerName + 'GetPublicFolderPermission-ERRORS.log')
         #$Stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
         WriteLog -Message "Calling Invocation = $($MyInvocation.Line)" -EntryType Notification
         WriteLog -Message "Exchange Session is Running in Exchange Organzation $script:ExchangeOrganization" -EntryType Notification
@@ -207,17 +207,17 @@ Function Get-PFMPublicFolderPermission
                 'Scoped'
                 {
                     Write-Information -MessageData "Not Implemented, rewriting to use Get-PFMPublicFolderTree" -InformationAction Continue
-                    Write-Warning -message "Not Implemented, rewriting to use Get-PFMPublicFolderTree" -WarningAction Stop
+                    Write-Warning -Message "Not Implemented, rewriting to use Get-PFMPublicFolderTree" -WarningAction Stop
                 }#end Scoped
                 'AllPublicFolders'
                 {
                     Write-Information -MessageData "Not Implemented, rewriting to use Get-PFMPublicFolderTree" -InformationAction Continue
-                    Write-Warning -message "Not Implemented, rewriting to use Get-PFMPublicFolderTree" -WarningAction Stop
+                    Write-Warning -Message "Not Implemented, rewriting to use Get-PFMPublicFolderTree" -WarningAction Stop
                 }#end AllMailboxes
                 'EntryID'
                 {
                     Write-Information -MessageData "Not Implemented, rewriting to use Get-PFMPublicFolderTree" -InformationAction Continue
-                    Write-Warning -message "Not Implemented, rewriting to use Get-PFMPublicFolderTree" -WarningAction Stop
+                    Write-Warning -Message "Not Implemented, rewriting to use Get-PFMPublicFolderTree" -WarningAction Stop
                 }
                 'InfoObject'
                 {
@@ -312,7 +312,7 @@ Function Get-PFMPublicFolderPermission
         )
         {
             Confirm-PFMExchangeConnection -PSSession $script:PSSession
-            if ($true -eq $IncludeSendAs -or $true -eq $IncludeSendOnBehalf)
+            if ($true -eq $IncludeSendAs)
             {
                 Confirm-PFMActiveDirectoryConnection -PSSession $script:ADPSSession
             }
@@ -334,7 +334,7 @@ Function Get-PFMPublicFolderPermission
                 $ISRR = $null
             }
             $message = "Collect permissions for $($ID)"
-            Write-Progress -Activity $message -status "Items processed: $($ISRCounter) of $($InScopeFolderCount)" -percentComplete (($ISRCounter / $InScopeFolderCount) * 100)
+            Write-Progress -Activity $message -Status "Items processed: $($ISRCounter) of $($InScopeFolderCount)" -PercentComplete (($ISRCounter / $InScopeFolderCount) * 100)
             Try
             {
                 Confirm-PFMExchangeConnection -PSSession $Script:PSSession
