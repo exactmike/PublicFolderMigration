@@ -23,8 +23,8 @@ Function Get-PFMMailPublicFolder
     )
     Confirm-PFMExchangeConnection -PSSession $Script:PSSession
     $BeginTimeStamp = Get-Date -Format yyyyMMdd-HHmmss
-    $script:LogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'GetMailPublicFolder.log')
-    $script:ErrorLogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'GetMailPublicFolder-ERRORS.log')
+    $script:LogPath = Join-Path -Path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'GetMailPublicFolder.log')
+    $script:ErrorLogPath = Join-Path -Path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'GetMailPublicFolder-ERRORS.log')
     #$Stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
     WriteLog -Message "Calling Invocation = $($MyInvocation.Line)" -EntryType Notification
     WriteLog -Message "Exchange Session is Running in Exchange Organzation $script:ExchangeOrganization" -EntryType Notification
@@ -57,7 +57,12 @@ Function Get-PFMMailPublicFolder
                         }
                         if ($null -ne $MEPF)
                         {
-                            $MEPF | Select-Object -Property *, @{n = 'EntryID'; e = { $pf.EntryID.tostring() } }, @{n = 'PFIdentity'; e = { $pf.Identity.tostring() } }
+                            $CustomProperties = @(@{n = 'PFIdentity'; e = { $pf.Identity.tostring() } })
+                            if ($null -eq $MEPF.EntryID) #Exchange 2013 and later include the EntryID natively so check for that
+                            {
+                                $CustomProperties += @{n = 'EntryID'; e = { $pf.EntryID.tostring() } }
+                            }
+                            $MEPF | Select-Object -Property *, $CustomProperties
                         }
                     }
                     catch
