@@ -47,8 +47,8 @@ Function Invoke-PFMValidatePublicFolder
     {
         Confirm-PFMExchangeConnection -PSSession $Script:PSSession
         $BeginTimeStamp = Get-Date -Format yyyyMMdd-HHmmss
-        $script:LogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'InvokeValidatePublicFolder.log')
-        $script:ErrorLogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'InvokeValidatePublicFolder-ERRORS.log')
+        $script:LogPath = Join-Path -Path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'InvokeValidatePublicFolder.log')
+        $script:ErrorLogPath = Join-Path -Path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'InvokeValidatePublicFolder-ERRORS.log')
         WriteLog -Message "Calling Invocation = $($MyInvocation.Line)" -EntryType Notification
         WriteLog -Message "Exchange Session is Running in Exchange Organzation $script:ExchangeOrganization" -EntryType Notification
         $GetPublicFolderParams = @{
@@ -64,7 +64,7 @@ Function Invoke-PFMValidatePublicFolder
             $DatabaseServerLookup = @{ }
             $ServerDatabase.foreach( { $DatabaseServerLookup.$($_.DatabaseName) = $_ })
         }
-        $ValidationRecords = [System.Collections.ArrayList]::new()
+        $ValidationRecords = New-Object -TypeName System.Collections.ArrayList
     }
     process
     {
@@ -77,7 +77,7 @@ Function Invoke-PFMValidatePublicFolder
                 FoundEntryID       = ''
                 FoundIdentity      = ''
                 FoldersFound       = $null
-                ValidationResults  = [System.Collections.ArrayList]::new()
+                ValidationResults  = New-Object -TypeName System.Collections.ArrayList
                 Validated          = $false
                 ValidatedTimeStamp = $null
                 ActionName         = ''
@@ -92,7 +92,7 @@ Function Invoke-PFMValidatePublicFolder
                 {
                     Invoke-Command -ErrorAction Stop -Session $script:PSSession -ScriptBlock {
                         Get-PublicFolder -Identity $Using:i  @using:GetPublicFolderParams
-                    } | Select-Object -property $Script:PublicFolderPropertyList
+                    } | Select-Object -Property $Script:PublicFolderPropertyList
                 }
                 catch { }
             )
@@ -189,7 +189,7 @@ Function Invoke-PFMValidatePublicFolder
     end
     {
         $ValidationCount = $ValidationRecords.count
-        $RecordFilePath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'PFValidationForRemovalRecords.log')
+        $RecordFilePath = Join-Path -Path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'PFValidationForRemovalRecords.log')
         WriteLog -Message "$validationCount Public Folders processed for Removal Validation" -entryType Notification -verbose
         WriteLog -Message "Public Folder Validation for Removal Records being sent to file $RecordFilePath" -entryType Notification -verbose
         $ValidationRecords | Out-File -FilePath $RecordFilePath -Encoding $Encoding

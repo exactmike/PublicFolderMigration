@@ -68,7 +68,7 @@ function Get-PFMPublicFolderReplicationReport
         [ValidateScript( {
                 if ($null -eq $script:EmailConfiguration)
                 {
-                    Write-Warning -message 'You must run Set-PFMEmailConfiguration before use the SendEmail parameter'
+                    Write-Warning -Message 'You must run Set-PFMEmailConfiguration before use the SendEmail parameter'
                     $false
                 }
                 else
@@ -87,8 +87,8 @@ function Get-PFMPublicFolderReplicationReport
     {
         Confirm-PFMExchangeConnection -PSSession $Script:PSSession
         $BeginTimeStamp = Get-Date -Format yyyyMMdd-HHmmss
-        $script:LogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'PublicFolderReplicationAndStatisticsReport.log')
-        $script:ErrorLogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'PublicFolderReplicationAndStatisticsReport-ERRORS.log')
+        $script:LogPath = Join-Path -Path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'PublicFolderReplicationAndStatisticsReport.log')
+        $script:ErrorLogPath = Join-Path -Path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'PublicFolderReplicationAndStatisticsReport-ERRORS.log')
         WriteLog -Message "Calling Invocation = $($MyInvocation.Line)" -EntryType Notification
         WriteLog -Message "Exchange Session is Running in Exchange Organzation $Script:ExchangeOrganization" -EntryType Notification
         #region ValidateParameters
@@ -98,7 +98,7 @@ function Get-PFMPublicFolderReplicationReport
             foreach ($Server in $PublicFolderMailboxServer)
             {
                 $VerifyPFDatabase = @(
-                    Invoke-Command -Session $script:PSSession -scriptblock {
+                    Invoke-Command -Session $script:PSSession -ScriptBlock {
                         Get-PublicFolderDatabase -server $using:Server -ErrorAction SilentlyContinue
                     }
                 )
@@ -176,7 +176,7 @@ function Get-PFMPublicFolderReplicationReport
                     {
                         Invoke-Command -Session $script:PSSession -ScriptBlock {
                             Get-PublicFolder $using:Path @using:GetPublicFolderParams
-                        } | Select-Object -property @{n = 'EntryID'; e = { $_.EntryID.tostring() } }, @{n = 'Identity'; e = { $_.Identity.tostring() } }, Name, Replicas
+                        } | Select-Object -Property @{n = 'EntryID'; e = { $_.EntryID.tostring() } }, @{n = 'Identity'; e = { $_.Identity.tostring() } }, Name, Replicas
                     }
                 }
                 { $_ -in @('Root', 'MultipleWithRoot') } #otherwise, get all default public folders
@@ -184,13 +184,13 @@ function Get-PFMPublicFolderReplicationReport
                     WriteLog -message 'Retrieving All Default (Non-System) Public Folders from IPM_SUBTREE' -EntryType Notification
                     Invoke-Command -Session $script:PSSession -ScriptBlock {
                         Get-PublicFolder -Recurse -ResultSize Unlimited
-                    } | Select-Object -property @{n = 'EntryID'; e = { $_.EntryID.tostring() } }, @{n = 'Identity'; e = { $_.Identity.tostring() } }, Name, Replicas
+                    } | Select-Object -Property @{n = 'EntryID'; e = { $_.EntryID.tostring() } }, @{n = 'Identity'; e = { $_.Identity.tostring() } }, Name, Replicas
                     if ($IncludeSystemPublicFolders)
                     {
                         WriteLog -Message 'Retrieving All System Public Folders from NON_IPM_SUBTREE' -EntryType Notification
                         Invoke-Command -Session $script:PSSession -ScriptBlock {
                             Get-PublicFolder \Non_IPM_SUBTREE -Recurse -ResultSize Unlimited
-                        } | Select-Object -property @{n = 'EntryID'; e = { $_.EntryID.tostring() } }, @{n = 'Identity'; e = { $_.Identity.tostring() } }, Name, Replicas
+                        } | Select-Object -Property @{n = 'EntryID'; e = { $_.EntryID.tostring() } }, @{n = 'Identity'; e = { $_.Identity.tostring() } }, Name, Replicas
                     }
                 }
             }
@@ -334,7 +334,7 @@ function Get-PFMPublicFolderReplicationReport
                     )
                     $CompletedJobCount = 0
                     $StatsJobsCount = $StatsJobs.Count
-                    $StatsJobStopWatch = [System.Diagnostics.Stopwatch]::new()
+                    $StatsJobStopWatch = New-Object -TypeName System.Diagnostics.Stopwatch
                     $StatsJobStopWatch.Start()
                     do
                     {
@@ -389,7 +389,7 @@ function Get-PFMPublicFolderReplicationReport
                                     @{n = 'ServerName'; e = { $job.Name } }
                                     @{n = 'SizeInBytes'; e = { $_.TotalItemSize.ToString().split(('(', ')'))[1].replace(',', '').replace(' bytes', '') -as [long] } }
                                 )
-                                $theStats = Receive-Job -job $job -ErrorAction Stop
+                                $theStats = Receive-Job -Job $job -ErrorAction Stop
                                 if ($null -ne $thestats)
                                 {
                                     $thestats | Select-Object -ExcludeProperty ServerName -Property $customProperties
@@ -694,15 +694,15 @@ function Get-PFMPublicFolderReplicationReport
                 foreach ($key in $CSVOutputReports.keys)
                 {
                     $outputFileName = $BeginTimeStamp + $key + '.csv'
-                    $outputFilePath = Join-Path -path $outputFolderPath -ChildPath $outputFileName
-                    $CSVOutputReports.$key | Export-Csv -path $outputFilePath -Encoding UTF8 -NoTypeInformation
+                    $outputFilePath = Join-Path -Path $outputFolderPath -ChildPath $outputFileName
+                    $CSVOutputReports.$key | Export-Csv -Path $outputFilePath -Encoding UTF8 -NoTypeInformation
                     $outputFilePath
                 }
             }
             if ('html' -in $outputformats)
             {
                 $HTMLFileName = $BeginTimeStamp + 'PublicFolderEnvironmentAndReplicationReport.html'
-                $HTMLFilePath = Join-Path -path $outputFolderPath -ChildPath $HTMLFileName
+                $HTMLFilePath = Join-Path -Path $outputFolderPath -ChildPath $HTMLFileName
                 $html | Out-File -FilePath $HTMLFilePath -Encoding utf8
                 $HTMLFilePath
             }

@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+#Requires -Version 4
 ###############################################################################################
 #Public Folder Migration Module Variables
 ###############################################################################################
@@ -24,10 +24,49 @@ $ModuleVariableNames = (
 )
 $ModuleVariableNames.ForEach( { Set-Variable -Scope Script -Name $_ -Value $null })
 
-enum ExportDataOutputFormat { csv; json; xml; clixml }
-enum FolderValidation { NoSubFolders; NotMailEnabled; NoItems }
-enum FolderActivityTime { CreationTime; LastAccessTime; LastModificationTime; LastUserAccessTime; LastUserModificationTime }
-enum ItemActivityTime { LastUserModificationTime; LastUserAccessTime; CreationTime }
+Add-Type -TypeDefinition @"
+        public enum ExportDataOutputFormat
+        {
+             csv,
+             json,
+             xml,
+             clixml
+        }
+"@
+Add-Type -TypeDefinition @"
+        public enum FolderValidation
+        {
+            NoSubFolders,
+            NotMailEnabled,
+            NoItems
+        }
+"@
+Add-Type -TypeDefinition @"
+        public enum FolderValidation
+        {
+            NoSubFolders,
+            NotMailEnabled,
+            NoItems
+        }
+"@
+Add-Type -TypeDefinition @"
+        public enum FolderActivityTime
+        {
+            CreationTime,
+            LastAccessTime,
+            LastModificationTime,
+            LastUserAccessTime,
+            LastUserModificationTime
+        }
+"@
+Add-Type -TypeDefinition @"
+        public enum ItemActivityTime
+        {
+            LastUserModificationTime,
+            LastUserAccessTime,
+            CreationTime
+        }
+"@
 
 ###############################################################################################
 #Public Folder Migration Module Functions

@@ -8,7 +8,7 @@ foreach ($f in $sortedTree)
 {
     Write-Progress -Activity 'Add Members' -Status "Processing $c of $($SortedTree.count)" -CurrentOperation "Processing $($f.name)" -PercentComplete $($c / $SortedTree.count * 100)
     Add-Member -InputObject $f -MemberType NoteProperty -Name FolderCount -Value 1 -Force;
-    Add-Member -InputObject $f -MemberType NoteProperty -Name SubFolderEntryIDs -value @() -Force;
+    Add-Member -InputObject $f -MemberType NoteProperty -Name SubFolderEntryIDs -Value @() -Force;
     Add-Member -InputObject $f -MemberType NoteProperty -Name MailEnabledFolderCount -Value 0 -Force;
     Add-Member -InputObject $f -MemberType NoteProperty -Name ReplicaCount -Value $f.Replicas.count -Force;
     $c++
@@ -22,7 +22,7 @@ foreach ($f in $SortedTree[1..$sortedTree.count])
     $mefc = 0;
     if ($true -eq $f.mailenabled)
     { $mefc++ }
-    $sfeids = [System.Collections.ArrayList]::new()
+    $sfeids = New-Object -TypeName System.Collections.ArrayList
     do
     {
         if ($sortedTree[$i].identity.replace('[', '`[').replace(']', '`]') + '\' -like $f.identity.replace('[', '`[').replace(']', '`]') + '\*')

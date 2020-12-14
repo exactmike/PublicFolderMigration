@@ -6,7 +6,7 @@ function Add-PFMParallelPSSession
 
     if ($null -eq $script:ParallelPSSession)
     {
-        $script:ParallelPSSession = [System.Collections.ArrayList]::new()
+        $script:ParallelPSSession = New-Object -TypeName System.Collections.ArrayList
     }
 
     $existingSessionIndex = (GetArrayIndexForProperty -array $script:ParallelPSSession -property Name -Value $PSSession.Name)

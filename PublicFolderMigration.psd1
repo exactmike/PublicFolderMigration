@@ -24,7 +24,7 @@
     CompanyName          = 'themodulecollective'
 
     # Copyright statement for this module
-    Copyright            = '(c) 2019. All rights reserved.'
+    Copyright            = '(c) 2020. All rights reserved.'
 
     # Supported PSEditions
     CompatiblePSEditions = 'Desktop', 'Core'
@@ -33,7 +33,7 @@
     # Description = ''
 
     # Minimum version of the Windows PowerShell engine required by this module
-    PowerShellVersion    = '5.1'
+    PowerShellVersion    = '4.0'
 
     # Name of the Windows PowerShell host required by this module
     # PowerShellHostName = ''

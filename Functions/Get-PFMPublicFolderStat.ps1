@@ -76,8 +76,8 @@ function Get-PFMPublicFolderStat
     )
     Confirm-PFMExchangeConnection -PSSession $Script:PSSession
     $BeginTimeStamp = Get-Date -Format yyyyMMdd-HHmmss
-    $script:LogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'GetPublicFolderStat.log')
-    $script:ErrorLogPath = Join-Path -path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'GetPublicFolderStat-ERRORS.log')
+    $script:LogPath = Join-Path -Path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'GetPublicFolderStat.log')
+    $script:ErrorLogPath = Join-Path -Path $OutputFolderPath -ChildPath $($BeginTimeStamp + 'GetPublicFolderStat-ERRORS.log')
     WriteLog -Message "Calling Invocation = $($MyInvocation.Line)" -EntryType Notification
     WriteLog -Message "Exchange Session is Running in Exchange Organzation $script:ExchangeOrganization" -EntryType Notification
     #region ValidateParameters
@@ -111,7 +111,7 @@ function Get-PFMPublicFolderStat
                             foreach ($Server in $PublicFolderMailboxServer)
                             {
 
-                                Invoke-Command -Session $script:PSSession -scriptblock {
+                                Invoke-Command -Session $script:PSSession -ScriptBlock {
                                     Get-PublicFolderDatabase -server $using:Server -ErrorAction SilentlyContinue
                                 } | Select-Object -Property @{n = 'DatabaseName'; e = { $_.Name } }, @{n = 'ServerName'; e = { $_.Server } }, @{n = 'ServerFQDN'; e = { $_.RpcClientAccessServer } }
                             }
@@ -129,8 +129,8 @@ function Get-PFMPublicFolderStat
             $PublicFolderMailboxServerNames = $ServerDatabase.ServerName -join ', '
             WriteLog -Message "Public Folder Mailbox Servers Included: $PublicFolderMailboxServerNames" -EntryType Notification -Verbose
             #Make Server PSSessions
-            $connectSessionFailure = [System.Collections.Generic.List[String]]::new()
-            $connectSessionSuccess = [System.Collections.Generic.List[String]]::new()
+            $connectSessionFailure = New-Object -TypeName System.Collections.Generic.List[String]
+            $connectSessionSuccess = New-Object -TypeName System.Collections.Generic.List[String]
             foreach ($s in $ServerDatabase)
             {
                 $ConnectPFMExchangeParams = @{
@@ -200,7 +200,7 @@ function Get-PFMPublicFolderStat
                 #Monitor the jobs
                 $CompletedJobCount = 0
                 $StatsJobCount = $StatsJob.Count
-                $StatsJobStopWatch = [System.Diagnostics.Stopwatch]::new()
+                $StatsJobStopWatch = New-Object -TypeName System.Diagnostics.Stopwatch
                 $StatsJobStopWatch.Start()
                 do
                 {
@@ -257,7 +257,7 @@ function Get-PFMPublicFolderStat
                                 @{n = 'ServerName'; e = { $job.Name } }
                                 @{n = 'SizeInBytes'; e = { $_.TotalItemSize.ToString().split(('(', ')'))[1].replace(',', '').replace(' bytes', '') -as [long] } }
                             )
-                            $theStats = Receive-Job -job $job -ErrorAction Stop
+                            $theStats = Receive-Job -Job $job -ErrorAction Stop
                             if ($null -ne $thestats)
                             {
                                 $thestats | Select-Object -ExcludeProperty ServerName -Property $customProperties

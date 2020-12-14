@@ -34,7 +34,7 @@ Function Measure-Property
             {
                 $hashtable = @{ }
             }
-            $InputObjects = [System.Collections.ArrayList]::new()
+            $InputObjects = New-Object -TypeName System.Collections.ArrayList
         }
         catch
         {
