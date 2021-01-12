@@ -29,10 +29,20 @@ Function GetMailPublicFolderPerUserPublicFolder
             try
             {
                 #output Selected object with additional properties from the Pf object
-                $MEPF = @(Invoke-Command -Session $ExchangeSession -ScriptBlock { Get-MailPublicFolder @using:GetMailPublicFolderParams } -ErrorAction SilentlyContinue -WarningAction SilentlyContinue)
-                if ($null -ne $MEPF -and $MEPF.Count -eq 1)
+                $MEPF = Invoke-Command -Session $script:PSSession -ErrorAction SilentlyContinue -WarningAction SilentlyContinue -ScriptBlock {
+                    Get-MailPublicFolder @using:GetMailPublicFolderParams
+                }
+                if ($null -ne $MEPF)
                 {
-                    $MEPF | Select-Object -Property *, @{n = 'EntryID'; e = { $pf.EntryID.tostring() } }, @{n = 'PFIdentity'; e = { $pf.Identity.tostring() } }
+                    $CustomProperties = @(
+                        '*'
+                        @{n = 'PFIdentity'; e = { $pf.Identity.tostring() } }
+                    )
+                    if ($null -eq $MEPF.EntryID) #Exchange 2013 and later include the EntryID natively so check for that
+                    {
+                        $CustomProperties += @{n = 'EntryID'; e = { $pf.EntryID.tostring() } }
+                    }
+                    $MEPF | Select-Object -Property $CustomProperties
                 }
             }
             catch

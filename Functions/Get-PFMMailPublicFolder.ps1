@@ -57,12 +57,15 @@ Function Get-PFMMailPublicFolder
                         }
                         if ($null -ne $MEPF)
                         {
-                            $CustomProperties = @(@{n = 'PFIdentity'; e = { $pf.Identity.tostring() } })
+                            $CustomProperties = @(
+                                '*'
+                                @{n = 'PFIdentity'; e = { $pf.Identity.tostring() } }
+                            )
                             if ($null -eq $MEPF.EntryID) #Exchange 2013 and later include the EntryID natively so check for that
                             {
                                 $CustomProperties += @{n = 'EntryID'; e = { $pf.EntryID.tostring() } }
                             }
-                            $MEPF | Select-Object -Property *, $CustomProperties
+                            $MEPF | Select-Object -Property $CustomProperties
                         }
                     }
                     catch
