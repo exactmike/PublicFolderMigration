@@ -17,6 +17,7 @@ Function Get-PFMActiveDirectoryPSSession
     $NewPsSessionParams = @{
         ErrorAction = 'Stop'
         Credential  = $Credential
+        EnableNetworkAccess = $true
     }
     if ($null -ne $PSSessionOption)
     {
